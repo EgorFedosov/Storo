@@ -1,0 +1,30 @@
+using backend.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
+                               ?? throw new InvalidOperationException("Connection string 'Postgres' was not found.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(postgresConnectionString));
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.MapGet("/api/ping", () => Results.Ok(new
+{
+    Message = "pong",
+    Utc = DateTime.UtcNow
+}))
+.WithName("Ping");
+
+app.Run();

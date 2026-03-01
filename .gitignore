@@ -1,0 +1,7 @@
+backend/.dotnet/
+backend/.idea/
+backend/backend/bin/
+backend/backend/obj/
+**/**.md
+**/**.csv
+**/**.webp
