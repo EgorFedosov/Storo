@@ -5,3 +5,6 @@ backend/backend/obj/
 **/**.md
 **/**.csv
 **/**.webp
+**/**.dotnet
+**/**.nuget
+**/**.puml
