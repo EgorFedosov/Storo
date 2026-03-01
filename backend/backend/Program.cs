@@ -2,6 +2,10 @@ using backend.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
                                ?? throw new InvalidOperationException("Connection string 'Postgres' was not found.");
 
