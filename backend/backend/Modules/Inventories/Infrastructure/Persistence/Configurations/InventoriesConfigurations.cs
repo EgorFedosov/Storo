@@ -2,6 +2,7 @@ using backend.Infrastructure.Persistence.Configurations;
 using backend.Modules.Inventories.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NpgsqlTypes;
 
 namespace backend.Modules.Inventories.Infrastructure.Persistence.Configurations;
 
@@ -97,6 +98,18 @@ public sealed class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
 
         entity.HasIndex(x => x.CreatorId);
         entity.HasIndex(x => x.CategoryId);
+        entity.HasIndex(x => x.CreatedAt)
+            .IsDescending();
+
+        entity.Property<NpgsqlTsVector>("search_vector")
+            .HasColumnName("search_vector")
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql(
+                "to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description_markdown, ''))",
+                stored: true);
+
+        entity.HasIndex("search_vector")
+            .HasMethod("GIN");
     }
 }
 
@@ -164,6 +177,14 @@ public sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
 
         entity.HasIndex(x => x.NormalizedName)
             .IsUnique();
+
+        entity.Property<NpgsqlTsVector>("search_vector")
+            .HasColumnName("search_vector")
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql("to_tsvector('simple', coalesce(name, ''))", stored: true);
+
+        entity.HasIndex("search_vector")
+            .HasMethod("GIN");
     }
 }
 
@@ -439,6 +460,9 @@ public sealed class InventoryStatisticsConfiguration : IEntityTypeConfiguration<
             .WithOne(x => x.Statistics)
             .HasForeignKey<InventoryStatistics>(x => x.InventoryId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(x => x.ItemsCount)
+            .IsDescending();
     }
 }
 

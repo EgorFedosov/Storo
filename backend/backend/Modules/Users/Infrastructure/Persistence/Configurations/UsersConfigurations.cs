@@ -30,6 +30,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(100)
             .IsRequired();
 
+        entity.Property(x => x.NormalizedUserName)
+            .HasColumnName("normalized_user_name")
+            .HasMaxLength(100)
+            .IsRequired();
+
         entity.Property(x => x.DisplayName)
             .HasColumnName("display_name")
             .HasMaxLength(200)
@@ -64,6 +69,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsUnique();
 
         entity.HasIndex(x => x.UserName)
+            .IsUnique();
+
+        entity.HasIndex(x => x.NormalizedUserName)
             .IsUnique();
     }
 }
@@ -153,6 +161,9 @@ public sealed class ExternalAuthAccountConfiguration : IEntityTypeConfiguration<
             .OnDelete(DeleteBehavior.Cascade);
 
         entity.HasIndex(x => new { x.Provider, x.ProviderUserId })
+            .IsUnique();
+
+        entity.HasIndex(x => new { x.UserId, x.Provider })
             .IsUnique();
     }
 }

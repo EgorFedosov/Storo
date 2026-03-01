@@ -1,6 +1,7 @@
 using backend.Modules.Items.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using NpgsqlTypes;
 
 namespace backend.Modules.Items.Infrastructure.Persistence.Configurations;
 
@@ -126,6 +127,24 @@ public sealed class ItemCustomFieldValueConfiguration : IEntityTypeConfiguration
 
         entity.HasIndex(x => new { x.ItemId, x.CustomFieldId })
             .IsUnique();
+
+        entity.ToTable(t => t.HasCheckConstraint(
+            "ck_item_custom_field_values_single_value",
+            "(case when string_value is not null then 1 else 0 end + " +
+            "case when text_value is not null then 1 else 0 end + " +
+            "case when number_value is not null then 1 else 0 end + " +
+            "case when link_value is not null then 1 else 0 end + " +
+            "case when bool_value is not null then 1 else 0 end) <= 1"));
+
+        entity.Property<NpgsqlTsVector>("search_vector")
+            .HasColumnName("search_vector")
+            .HasColumnType("tsvector")
+            .HasComputedColumnSql(
+                "to_tsvector('simple', coalesce(string_value, '') || ' ' || coalesce(text_value, '') || ' ' || coalesce(link_value, ''))",
+                stored: true);
+
+        entity.HasIndex("search_vector")
+            .HasMethod("GIN");
     }
 }
 
