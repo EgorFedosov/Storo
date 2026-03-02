@@ -2,6 +2,7 @@ using backend.Infrastructure.Modularity;
 using backend.Modules.Auth.Api;
 using backend.Modules.Auth.UseCases.AuthProviders;
 using backend.Modules.Auth.UseCases.Authorization;
+using backend.Modules.Auth.UseCases.CurrentUser;
 using backend.Modules.Auth.UseCases.ExternalLogin;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -25,13 +26,16 @@ public sealed class AuthModule : IApiModule
         services.AddScoped<ICurrentUserAccessor, HttpContextCurrentUserAccessor>();
         services.AddScoped<IAuthorizationCheckUseCase, AuthorizationCheckUseCase>();
         services.AddScoped<IListAuthProvidersUseCase, ListAuthProvidersUseCase>();
+        services.AddScoped<IGetCurrentUserUseCase, GetCurrentUserUseCase>();
         services.AddScoped<IStartGoogleLoginUseCase, StartGoogleLoginUseCase>();
         services.AddScoped<ICompleteGoogleLoginUseCase, CompleteGoogleLoginUseCase>();
         services.AddScoped<IExternalAuthService, AspNetExternalAuthService>();
         services.AddScoped<IUserRepository, EfCoreAuthUserRepository>();
+        services.AddScoped<IUserReadRepository, EfCoreUserReadRepository>();
         services.AddScoped<ISessionService, CookieSessionService>();
         services.AddScoped<IAuthorizationHandler, ActiveUserAuthorizationHandler>();
         services.AddSingleton<IAuthProviderRegistry, ConfigurationAuthProviderRegistry>();
+        services.AddSingleton<IPermissionService, DefaultPermissionService>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ApiAuthorizationMiddlewareResultHandler>();
 
         var authenticationBuilder = services
@@ -109,6 +113,7 @@ public sealed class AuthModule : IApiModule
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
         apiGroup.MapAuthProvidersEndpoint();
+        apiGroup.MapCurrentUserEndpoint();
         apiGroup.MapExternalGoogleLoginEndpoints();
     }
 }
