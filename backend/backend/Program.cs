@@ -1,3 +1,4 @@
+using backend.Infrastructure.Modularity;
 using backend.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,7 @@ var postgresConnectionString = builder.Configuration.GetConnectionString("Postgr
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(postgresConnectionString));
+builder.Services.AddApiModules(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -24,11 +26,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/api/ping", () => Results.Ok(new
-{
-    Message = "pong",
-    Utc = DateTime.UtcNow
-}))
-.WithName("Ping");
+app.MapApiV1();
 
 app.Run();
