@@ -13,10 +13,14 @@ var postgresConnectionString = builder.Configuration.GetConnectionString("Postgr
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(postgresConnectionString));
 builder.Services.AddApiModules(builder.Configuration);
+builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
@@ -25,6 +29,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapApiV1();
 

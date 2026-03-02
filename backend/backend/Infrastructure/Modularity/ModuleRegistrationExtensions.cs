@@ -1,3 +1,4 @@
+using backend.Modules.Auth.Infrastructure;
 using backend.Modules.Systems.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 
@@ -7,6 +8,7 @@ public static class ModuleRegistrationExtensions
 {
     private static readonly IApiModule[] Modules =
     [
+        new AuthModule(),
         new SystemsModule()
     ];
 
