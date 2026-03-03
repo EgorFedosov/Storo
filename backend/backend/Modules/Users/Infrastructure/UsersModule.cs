@@ -1,6 +1,7 @@
 using backend.Infrastructure.Modularity;
 using backend.Modules.Users.Api;
 using backend.Modules.Users.Infrastructure.Persistence;
+using backend.Modules.Users.UseCases.ListUsersForAdmin;
 using backend.Modules.Users.UseCases.ListCurrentUserInventories;
 using Microsoft.AspNetCore.Routing;
 
@@ -10,12 +11,15 @@ public sealed class UsersModule : IApiModule
 {
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IAdminUsersReadRepository, EfCoreAdminUsersReadRepository>();
+        services.AddScoped<IListUsersForAdminUseCase, ListUsersForAdminUseCase>();
         services.AddScoped<IUserInventoryReadModel, EfCoreUserInventoryReadModel>();
         services.AddScoped<IListCurrentUserInventoriesUseCase, ListCurrentUserInventoriesUseCase>();
     }
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
+        apiGroup.MapAdminUsersEndpoint();
         apiGroup.MapUserInventoriesEndpoint();
     }
 }
