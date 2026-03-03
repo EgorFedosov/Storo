@@ -1,6 +1,7 @@
 using backend.Modules.Auth.Infrastructure;
 using backend.Modules.Concurrency.Infrastructure;
 using backend.Modules.Systems.Infrastructure;
+using backend.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 
 namespace backend.Infrastructure.Modularity;
@@ -11,7 +12,8 @@ public static class ModuleRegistrationExtensions
     [
         new AuthModule(),
         new ConcurrencyModule(),
-        new SystemsModule()
+        new SystemsModule(),
+        new UsersModule()
     ];
 
     public static IServiceCollection AddApiModules(
