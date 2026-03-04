@@ -1,5 +1,6 @@
 using backend.Infrastructure.Modularity;
 using backend.Infrastructure.Persistence;
+using backend.Modules.Inventories.Infrastructure.Realtime;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,5 +34,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapApiV1();
+app.MapHub<DiscussionHub>("/hubs/discussions");
 
 app.Run();
