@@ -8,6 +8,8 @@ public interface IInventoryRepository
 
     Task AddAsync(Inventory inventory, CancellationToken cancellationToken);
 
+    Task<Inventory?> GetForUpdateAsync(long inventoryId, CancellationToken cancellationToken);
+
     Task<InventoryDetailsAggregate?> GetDetailsAsync(
         long inventoryId,
         long? viewerUserId,

@@ -20,6 +20,14 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
         return dbContext.Inventories.AddAsync(inventory, cancellationToken).AsTask();
     }
 
+    public Task<Inventory?> GetForUpdateAsync(long inventoryId, CancellationToken cancellationToken)
+    {
+        return dbContext.Inventories
+            .Include(inventory => inventory.CustomIdTemplate!)
+            .ThenInclude(template => template.Parts)
+            .SingleOrDefaultAsync(inventory => inventory.Id == inventoryId, cancellationToken);
+    }
+
     public Task<InventoryDetailsAggregate?> GetDetailsAsync(
         long inventoryId,
         long? viewerUserId,
