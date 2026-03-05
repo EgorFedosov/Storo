@@ -10,6 +10,8 @@ public interface IInventoryRepository
 
     Task<Inventory?> GetForUpdateAsync(long inventoryId, CancellationToken cancellationToken);
 
+    void Delete(Inventory inventory);
+
     Task<InventoryDetailsAggregate?> GetDetailsAsync(
         long inventoryId,
         long? viewerUserId,

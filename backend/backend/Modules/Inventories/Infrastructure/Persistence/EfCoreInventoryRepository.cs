@@ -33,6 +33,12 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
             .SingleOrDefaultAsync(inventory => inventory.Id == inventoryId, cancellationToken);
     }
 
+    public void Delete(Inventory inventory)
+    {
+        ArgumentNullException.ThrowIfNull(inventory);
+        dbContext.Inventories.Remove(inventory);
+    }
+
     public Task<InventoryDetailsAggregate?> GetDetailsAsync(
         long inventoryId,
         long? viewerUserId,

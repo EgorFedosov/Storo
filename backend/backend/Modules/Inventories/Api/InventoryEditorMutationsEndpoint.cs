@@ -3,6 +3,7 @@ using backend.Modules.Auth.Api;
 using backend.Modules.Auth.UseCases.Authorization;
 using backend.Modules.Concurrency.Api;
 using backend.Modules.Concurrency.UseCases.Versioning;
+using backend.Modules.Inventories.UseCases.DeleteInventory;
 using backend.Modules.Inventories.UseCases.EditorMutations;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -51,6 +52,14 @@ public static class InventoryEditorMutationsEndpoint
             .WithName("ReplaceInventoryAccess")
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(InventoryVersionResponse), StatusCodes.Status200OK))
+            .RequireAuthenticatedAccess()
+            .RequireIfMatch();
+
+        mutationsGroup
+            .MapDelete(string.Empty, DeleteAsync)
+            .WithName("DeleteInventory")
+            .WithMetadata(
+                new ProducesResponseTypeAttribute(StatusCodes.Status204NoContent))
             .RequireAuthenticatedAccess()
             .RequireIfMatch();
     }
@@ -239,6 +248,55 @@ public static class InventoryEditorMutationsEndpoint
                 "inventory_not_found");
         }
         catch (InventoryEditorMutationAccessDeniedException)
+        {
+            return CreateProblem(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "You do not have permission to modify this inventory.",
+                "inventory_write_forbidden");
+        }
+    }
+
+    private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult>> DeleteAsync(
+        string inventoryId,
+        ICurrentUserAccessor currentUserAccessor,
+        IDeleteInventoryUseCase useCase,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var parsedInventoryId = ParseRequiredPositiveLong(inventoryId, "inventoryId", errors);
+        if (!parsedInventoryId.HasValue)
+        {
+            return TypedResults.ValidationProblem(errors);
+        }
+
+        var currentUser = currentUserAccessor.CurrentUser;
+        var actorUserId = currentUser.UserId
+                          ?? throw new InvalidOperationException(
+                              "Authenticated user id claim is missing.");
+
+        try
+        {
+            await useCase.ExecuteAsync(
+                new DeleteInventoryCommand(
+                    parsedInventoryId.Value,
+                    actorUserId,
+                    HasAdminRole(currentUser.Roles),
+                    httpContext.GetIfMatchToken()),
+                cancellationToken);
+
+            return TypedResults.NoContent();
+        }
+        catch (InventoryNotFoundException exception)
+        {
+            return CreateProblem(
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                $"Inventory '{exception.InventoryId.ToString(CultureInfo.InvariantCulture)}' was not found.",
+                "inventory_not_found");
+        }
+        catch (InventoryDeleteAccessDeniedException)
         {
             return CreateProblem(
                 StatusCodes.Status403Forbidden,
