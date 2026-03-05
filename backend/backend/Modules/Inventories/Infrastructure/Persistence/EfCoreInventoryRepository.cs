@@ -23,6 +23,11 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
     public Task<Inventory?> GetForUpdateAsync(long inventoryId, CancellationToken cancellationToken)
     {
         return dbContext.Inventories
+            .AsSplitQuery()
+            .Include(inventory => inventory.InventoryTags)
+            .ThenInclude(inventoryTag => inventoryTag.Tag)
+            .Include(inventory => inventory.AccessList)
+            .Include(inventory => inventory.CustomFields)
             .Include(inventory => inventory.CustomIdTemplate!)
             .ThenInclude(template => template.Parts)
             .SingleOrDefaultAsync(inventory => inventory.Id == inventoryId, cancellationToken);

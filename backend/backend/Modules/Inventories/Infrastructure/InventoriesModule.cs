@@ -7,7 +7,9 @@ using backend.Modules.Inventories.UseCases.Abstractions;
 using backend.Modules.Inventories.UseCases.CustomIdTemplate;
 using backend.Modules.Inventories.UseCases.CreateInventory;
 using backend.Modules.Inventories.UseCases.Discussion;
+using backend.Modules.Inventories.UseCases.EditorMutations;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
+using backend.Modules.Inventories.UseCases.GetInventoryEditor;
 using Microsoft.AspNetCore.Routing;
 
 namespace backend.Modules.Inventories.Infrastructure;
@@ -18,13 +20,21 @@ public sealed class InventoriesModule : IApiModule
     {
         services.AddSignalR();
         services.AddScoped<IInventoryRepository, EfCoreInventoryRepository>();
+        services.AddScoped<IInventoryEditorReadModel, EfCoreInventoryEditorReadModel>();
         services.AddScoped<ISequenceStateRepository, EfCoreSequenceStateRepository>();
         services.AddScoped<IDiscussionRepository, EfCoreDiscussionRepository>();
         services.AddScoped<IDiscussionHubPublisher, SignalRDiscussionHubPublisher>();
+        services.AddScoped<IAccessService, EfCoreAccessService>();
         services.AddScoped<ITagService, EfCoreTagService>();
         services.AddScoped<ICustomIdTemplateService, DefaultCustomIdTemplateService>();
+        services.AddScoped<ICustomFieldService, DefaultCustomFieldService>();
         services.AddScoped<ICreateInventoryUseCase, CreateInventoryUseCase>();
         services.AddScoped<IGetInventoryDetailsUseCase, GetInventoryDetailsUseCase>();
+        services.AddScoped<IGetInventoryEditorUseCase, GetInventoryEditorUseCase>();
+        services.AddScoped<IUpdateInventorySettingsUseCase, UpdateInventorySettingsUseCase>();
+        services.AddScoped<IReplaceInventoryTagsUseCase, ReplaceInventoryTagsUseCase>();
+        services.AddScoped<IReplaceInventoryAccessUseCase, ReplaceInventoryAccessUseCase>();
+        services.AddScoped<IReplaceInventoryCustomFieldsUseCase, ReplaceInventoryCustomFieldsUseCase>();
         services.AddScoped<IReplaceCustomIdTemplateUseCase, ReplaceCustomIdTemplateUseCase>();
         services.AddScoped<IPreviewCustomIdTemplateUseCase, PreviewCustomIdTemplateUseCase>();
         services.AddScoped<IListDiscussionPostsUseCase, ListDiscussionPostsUseCase>();
@@ -34,6 +44,8 @@ public sealed class InventoriesModule : IApiModule
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
         apiGroup.MapInventoryRootEndpoint();
+        apiGroup.MapInventoryEditorMutationsEndpoint();
+        apiGroup.MapInventoryCustomFieldsEndpoint();
         apiGroup.MapInventoryCustomIdTemplateEndpoint();
         apiGroup.MapInventoryDiscussionEndpoint();
     }

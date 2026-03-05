@@ -4,6 +4,7 @@ using backend.Modules.Auth.UseCases.Authorization;
 using backend.Modules.Concurrency.UseCases.Versioning;
 using backend.Modules.Inventories.UseCases.CreateInventory;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
+using backend.Modules.Inventories.UseCases.GetInventoryEditor;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
@@ -37,6 +38,15 @@ public static class InventoryRootEndpoint
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(InventoryDetailsResponse), StatusCodes.Status200OK),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status404NotFound));
+
+        inventoriesGroup
+            .MapGet("/{inventoryId}/edit", GetEditorAsync)
+            .WithName("GetInventoryEditor")
+            .WithMetadata(
+                new ProducesResponseTypeAttribute(typeof(InventoryEditorResponse), StatusCodes.Status200OK),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status403Forbidden),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status404NotFound))
+            .RequireAuthenticatedAccess();
     }
 
     private static async Task<Results<Created<InventoryDetailsResponse>, ValidationProblem>> CreateAsync(
@@ -115,6 +125,61 @@ public static class InventoryRootEndpoint
 
             problemDetails.Extensions["code"] = "inventory_not_found";
             return TypedResults.NotFound(problemDetails);
+        }
+    }
+
+    private static async Task<Results<Ok<InventoryEditorResponse>, ValidationProblem, ProblemHttpResult>> GetEditorAsync(
+        string inventoryId,
+        ICurrentUserAccessor currentUserAccessor,
+        IGetInventoryEditorUseCase useCase,
+        IETagService eTagService,
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        if (!TryParseInventoryId(inventoryId, out var parsedInventoryId, out var validationProblem))
+        {
+            return validationProblem;
+        }
+
+        var currentUser = currentUserAccessor.CurrentUser;
+        var currentUserId = currentUser.UserId
+                            ?? throw new InvalidOperationException("Authenticated user id claim is missing.");
+
+        try
+        {
+            var result = await useCase.ExecuteAsync(
+                new GetInventoryEditorQuery(
+                    parsedInventoryId,
+                    currentUserId,
+                    HasAdminRole(currentUser.Roles)),
+                cancellationToken);
+
+            httpContext.Response.Headers.ETag = eTagService.ToETag(result.Version);
+            return TypedResults.Ok(InventoryEditorResponse.FromResult(result));
+        }
+        catch (InventoryNotFoundException exception)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Not Found",
+                detail: $"Inventory '{exception.InventoryId.ToString(CultureInfo.InvariantCulture)}' was not found.",
+                type: "https://httpstatuses.com/404",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "inventory_not_found"
+                });
+        }
+        catch (InventoryEditorAccessDeniedException)
+        {
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "Forbidden",
+                detail: "You do not have permission to modify this inventory.",
+                type: "https://httpstatuses.com/403",
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "inventory_write_forbidden"
+                });
         }
     }
 

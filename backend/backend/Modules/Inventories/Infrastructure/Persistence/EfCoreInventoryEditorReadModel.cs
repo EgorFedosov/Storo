@@ -18,7 +18,7 @@ public sealed class EfCoreInventoryEditorReadModel(AppDbContext dbContext) : IIn
             .ThenInclude(access => access.User)
             .Include(entity => entity.CustomFields)
             .Include(entity => entity.CustomIdTemplate)
-            .ThenInclude(template => template.Parts)
+            .ThenInclude(template => template!.Parts)
             .Include(entity => entity.CustomIdSequenceState)
             .SingleOrDefaultAsync(entity => entity.Id == inventoryId, cancellationToken);
 
