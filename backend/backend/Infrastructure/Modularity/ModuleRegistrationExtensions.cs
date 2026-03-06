@@ -2,6 +2,7 @@ using backend.Modules.Auth.Infrastructure;
 using backend.Modules.Concurrency.Infrastructure;
 using backend.Modules.Inventories.Infrastructure;
 using backend.Modules.Items.Infrastructure;
+using backend.Modules.Search.Infrastructure;
 using backend.Modules.Systems.Infrastructure;
 using backend.Modules.Users.Infrastructure;
 using Microsoft.AspNetCore.Routing;
@@ -16,6 +17,7 @@ public static class ModuleRegistrationExtensions
         new ConcurrencyModule(),
         new InventoriesModule(),
         new ItemsModule(),
+        new SearchModule(),
         new SystemsModule(),
         new UsersModule()
     ];
