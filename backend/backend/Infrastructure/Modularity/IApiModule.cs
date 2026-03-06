@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Routing;
-
 namespace backend.Infrastructure.Modularity;
 
 public interface IApiModule

@@ -3,6 +3,7 @@ using backend.Infrastructure.Time;
 using backend.Modules.Systems.Api;
 using backend.Modules.Systems.Infrastructure.Persistence;
 using backend.Modules.Systems.UseCases.Categories;
+using backend.Modules.Systems.UseCases.Home;
 using backend.Modules.Systems.UseCases.Ping;
 using Microsoft.AspNetCore.Routing;
 
@@ -14,13 +15,16 @@ public sealed class SystemsModule : IApiModule
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ICategoryReadRepository, EfCoreCategoryReadRepository>();
+        services.AddScoped<IHomeReadModel, EfCoreHomeReadModel>();
         services.AddScoped<IListCategoriesUseCase, ListCategoriesUseCase>();
+        services.AddScoped<IGetHomePageDataUseCase, GetHomePageDataUseCase>();
         services.AddScoped<IPingUseCase, PingUseCase>();
     }
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
         apiGroup.MapCategoriesEndpoint();
+        apiGroup.MapHomeEndpoint();
         apiGroup.MapPingEndpoint();
     }
 }

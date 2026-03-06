@@ -5,7 +5,6 @@ using backend.Modules.Items.Infrastructure;
 using backend.Modules.Search.Infrastructure;
 using backend.Modules.Systems.Infrastructure;
 using backend.Modules.Users.Infrastructure;
-using Microsoft.AspNetCore.Routing;
 
 namespace backend.Infrastructure.Modularity;
 

@@ -13,6 +13,7 @@ using backend.Modules.Inventories.UseCases.EditorMutations;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
 using backend.Modules.Inventories.UseCases.GetInventoryEditor;
 using backend.Modules.Inventories.UseCases.ImageUpload;
+using backend.Modules.Inventories.UseCases.Statistics;
 using Microsoft.AspNetCore.Routing;
 
 namespace backend.Modules.Inventories.Infrastructure;
@@ -27,6 +28,7 @@ public sealed class InventoriesModule : IApiModule
         services.AddSignalR();
         services.AddScoped<IInventoryRepository, EfCoreInventoryRepository>();
         services.AddScoped<IInventoryEditorReadModel, EfCoreInventoryEditorReadModel>();
+        services.AddScoped<IStatisticsReadModel, EfCoreStatisticsReadModel>();
         services.AddScoped<ISequenceStateRepository, EfCoreSequenceStateRepository>();
         services.AddScoped<IDiscussionRepository, EfCoreDiscussionRepository>();
         services.AddScoped<IDiscussionHubPublisher, SignalRDiscussionHubPublisher>();
@@ -48,6 +50,7 @@ public sealed class InventoriesModule : IApiModule
         services.AddScoped<IListDiscussionPostsUseCase, ListDiscussionPostsUseCase>();
         services.AddScoped<ICreateDiscussionPostUseCase, CreateDiscussionPostUseCase>();
         services.AddScoped<ICreateInventoryImageUploadUseCase, CreateInventoryImageUploadUseCase>();
+        services.AddScoped<IGetInventoryStatisticsUseCase, GetInventoryStatisticsUseCase>();
     }
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
@@ -57,6 +60,7 @@ public sealed class InventoriesModule : IApiModule
         apiGroup.MapInventoryCustomFieldsEndpoint();
         apiGroup.MapInventoryCustomIdTemplateEndpoint();
         apiGroup.MapInventoryDiscussionEndpoint();
+        apiGroup.MapInventoryStatisticsEndpoint();
         apiGroup.MapImageUploadsEndpoint();
     }
 }
