@@ -1,8 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import 'antd/dist/reset.css'
 import { App } from './app/App.tsx'
 import { AppProviders } from './app/providers/AppProviders.tsx'
 import './app/styles/global.css'
+import { configureApiClient } from './shared/api/httpClient.ts'
 import { createAppBootstrapConfig } from './shared/config/bootstrap.ts'
 
 const rootElement = document.getElementById('root')
@@ -15,6 +17,7 @@ const root = createRoot(rootElement)
 
 try {
   const bootstrapConfig = createAppBootstrapConfig(import.meta.env)
+  configureApiClient({ baseUrl: bootstrapConfig.apiBaseUrl })
 
   root.render(
     <StrictMode>

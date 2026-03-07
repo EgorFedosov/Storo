@@ -1,23 +1,46 @@
-﻿export const routes = {
+export type AppRouteKey =
+  | 'home'
+  | 'searchInventories'
+  | 'searchItems'
+  | 'inventory'
+  | 'item'
+  | 'myInventories'
+  | 'adminUsers'
+  | 'notFound'
+
+type ConcreteRouteKey = Exclude<AppRouteKey, 'notFound'>
+
+export type AppRouteDefinition = Readonly<{
+  key: ConcreteRouteKey
+  path: string
+  label: string
+}>
+
+export const routes = {
   home: {
     key: 'home',
     path: '/',
     label: 'Home',
   },
-  search: {
-    key: 'search',
-    path: '/search',
-    label: 'Search',
+  searchInventories: {
+    key: 'searchInventories',
+    path: '/search/inventories',
+    label: 'Search Inventories',
+  },
+  searchItems: {
+    key: 'searchItems',
+    path: '/search/items',
+    label: 'Search Items',
   },
   inventory: {
     key: 'inventory',
     path: '/inventory/1',
-    label: 'Inventory',
+    label: 'Inventory #1',
   },
   item: {
     key: 'item',
     path: '/item/1',
-    label: 'Item',
+    label: 'Item #1',
   },
   myInventories: {
     key: 'myInventories',
@@ -29,6 +52,28 @@
     path: '/admin/users',
     label: 'Admin Users',
   },
-} as const
+} as const satisfies Record<ConcreteRouteKey, AppRouteDefinition>
 
-export type AppRouteKey = keyof typeof routes
+export const shellNavigationModel = [
+  routes.home,
+  routes.searchInventories,
+  routes.searchItems,
+  routes.myInventories,
+  routes.adminUsers,
+] as const
+
+export type AppShellNavKey = (typeof shellNavigationModel)[number]['key']
+
+export function normalizePathname(pathname: string): string {
+  const trimmedPathname = pathname.trim()
+  if (trimmedPathname.length === 0) {
+    return '/'
+  }
+
+  const withLeadingSlash = trimmedPathname.startsWith('/') ? trimmedPathname : `/${trimmedPathname}`
+  if (withLeadingSlash.length === 1) {
+    return withLeadingSlash
+  }
+
+  return withLeadingSlash.replace(/\/+$/, '')
+}

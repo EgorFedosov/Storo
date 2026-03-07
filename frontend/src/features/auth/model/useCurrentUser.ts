@@ -1,20 +1,15 @@
-﻿import { useMemo } from 'react'
-import type { CurrentUser } from '../../../entities/user/model/types.ts'
-
-const prototypeUser: CurrentUser = {
-  id: '1',
-  userName: 'prototype-admin',
-  displayName: 'Prototype Admin',
-  roles: ['admin'],
-  language: 'en',
-  theme: 'light',
-}
+import { useMemo } from 'react'
+import { guestCurrentUser } from '../../../entities/user/model/types.ts'
+import { useAuthModel } from './authStore.tsx'
 
 export function useCurrentUser() {
-  const currentUser = useMemo<CurrentUser>(() => prototypeUser, [])
+  const authModel = useAuthModel()
 
-  return {
-    currentUser,
-    isAuthenticated: true,
-  }
+  return useMemo(
+    () => ({
+      ...authModel,
+      currentUser: authModel.currentUser ?? guestCurrentUser,
+    }),
+    [authModel],
+  )
 }
