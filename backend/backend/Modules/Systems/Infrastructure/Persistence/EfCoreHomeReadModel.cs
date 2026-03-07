@@ -54,18 +54,24 @@ public sealed class EfCoreHomeReadModel(AppDbContext dbContext) : IHomeReadModel
                 inventory.Creator.DisplayName))
             .ToArrayAsync(cancellationToken);
 
-        var tagCloud = await dbContext.Tags
+        var tagCloudRows = await dbContext.Tags
             .AsNoTracking()
             .Where(tag => tag.InventoryTags.Any())
-            .Select(tag => new HomeTagCloudItemResult(
+            .Select(tag => new
+            {
                 tag.Id,
                 tag.Name,
-                tag.InventoryTags.Count()))
+                Count = tag.InventoryTags.Count()
+            })
             .OrderByDescending(tag => tag.Count)
             .ThenBy(tag => tag.Name)
             .ThenBy(tag => tag.Id)
             .Take(TagCloudLimit)
             .ToArrayAsync(cancellationToken);
+
+        var tagCloud = tagCloudRows
+            .Select(tag => new HomeTagCloudItemResult(tag.Id, tag.Name, tag.Count))
+            .ToArray();
 
         return new HomePageDataResult(
             latestInventories.Select(MapInventory).ToArray(),
