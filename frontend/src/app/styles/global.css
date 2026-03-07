@@ -17,6 +17,25 @@ body {
   min-height: 100vh;
 }
 
+.bootstrap-error {
+  max-width: 680px;
+  margin: 48px auto;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+}
+
+.bootstrap-error h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.bootstrap-error p {
+  margin: 10px 0 0;
+}
+
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
