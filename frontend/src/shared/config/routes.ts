@@ -20,7 +20,7 @@ export type AppRouteDefinition = Readonly<{
 export const routes = {
   home: {
     key: 'home',
-    path: '/',
+    path: '/home',
     label: 'Home',
   },
   searchInventories: {

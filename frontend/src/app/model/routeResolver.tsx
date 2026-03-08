@@ -68,7 +68,7 @@ export function resolveRoute(pathname: string): RouteMatch & { Page: PageCompone
 export function resolveRouteKey(pathname: string): AppRouteKey {
   const normalizedPathname = normalizePathname(pathname)
 
-  if (normalizedPathname === routes.home.path || normalizedPathname === '/home') {
+  if (normalizedPathname === routes.home.path || normalizedPathname === '/') {
     return 'home'
   }
 

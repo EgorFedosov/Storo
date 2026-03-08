@@ -148,6 +148,51 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
   justify-content: center;
 }
 
+.search-tags-autocomplete {
+  flex: 1;
+}
+
+.search-tags-cloud-loading {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-tags-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-tags-cloud-tag {
+  cursor: pointer;
+  margin-inline-end: 0;
+}
+
+.home-inventory-image-preview {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  max-height: 88px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #dbe3ec;
+}
+
+.home-tag-cloud-item.ant-tag {
+  cursor: pointer;
+  user-select: none;
+  margin-inline-end: 4px;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.home-tag-cloud-item.ant-tag:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
 @media (max-width: 900px) {
   .app-shell-header {
     align-items: flex-start;
@@ -189,5 +234,9 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
 
   .global-search-form-item-submit {
     margin-left: 0;
+  }
+
+  .search-tags-cloud {
+    gap: 6px;
   }
 }
