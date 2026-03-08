@@ -14,6 +14,9 @@ const MyInventoriesPage = lazy(async () => ({
 const AdminUsersPage = lazy(async () => ({
   default: (await import('../../pages/admin-users/ui/AdminUsersPage.tsx')).AdminUsersPage,
 }))
+const AuthErrorPage = lazy(async () => ({
+  default: (await import('../../pages/auth-error/ui/AuthErrorPage.tsx')).AuthErrorPage,
+}))
 const NotFoundPage = lazy(async () => ({
   default: (await import('../../pages/not-found/ui/NotFoundPage.tsx')).NotFoundPage,
 }))
@@ -28,6 +31,7 @@ const routePageMap: Record<AppRouteKey, PageComponent> = {
   item: ItemPage,
   myInventories: MyInventoriesPage,
   adminUsers: AdminUsersPage,
+  authError: AuthErrorPage,
   notFound: NotFoundPage,
 }
 
@@ -90,6 +94,10 @@ export function resolveRouteKey(pathname: string): AppRouteKey {
 
   if (normalizedPathname === routes.adminUsers.path) {
     return 'adminUsers'
+  }
+
+  if (normalizedPathname === routes.authError.path) {
+    return 'authError'
   }
 
   return 'notFound'

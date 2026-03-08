@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 
+export type LocationSnapshot = {
+  pathname: string
+  search: string
+  hash: string
+}
+
 function normalizeNavigationPath(targetPath: string): string {
   const trimmedPath = targetPath.trim()
   if (trimmedPath.length === 0) {
@@ -24,12 +30,21 @@ export function navigate(pathname: string) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export function usePathname() {
-  const [pathname, setPathname] = useState(() => window.location.pathname)
+function createLocationSnapshot(): LocationSnapshot {
+  return {
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: window.location.hash,
+  }
+}
+
+export function useLocationSnapshot(): LocationSnapshot {
+  const [locationSnapshot, setLocationSnapshot] = useState<LocationSnapshot>(() =>
+    createLocationSnapshot())
 
   useEffect(() => {
     const handlePopState = () => {
-      setPathname(window.location.pathname)
+      setLocationSnapshot(createLocationSnapshot())
     }
 
     window.addEventListener('popstate', handlePopState)
@@ -39,5 +54,9 @@ export function usePathname() {
     }
   }, [])
 
-  return pathname
+  return locationSnapshot
+}
+
+export function usePathname() {
+  return useLocationSnapshot().pathname
 }

@@ -6,6 +6,7 @@ export type AppRouteKey =
   | 'item'
   | 'myInventories'
   | 'adminUsers'
+  | 'authError'
   | 'notFound'
 
 type ConcreteRouteKey = Exclude<AppRouteKey, 'notFound'>
@@ -51,6 +52,11 @@ export const routes = {
     key: 'adminUsers',
     path: '/admin/users',
     label: 'Admin Users',
+  },
+  authError: {
+    key: 'authError',
+    path: '/auth/error',
+    label: 'Auth Error',
   },
 } as const satisfies Record<ConcreteRouteKey, AppRouteDefinition>
 

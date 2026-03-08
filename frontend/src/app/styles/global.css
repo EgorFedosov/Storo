@@ -17,6 +17,13 @@ body {
     #f3f5f8;
 }
 
+html[data-ui-theme='dark'] body {
+  background:
+    radial-gradient(1200px 420px at 10% -10%, rgba(56, 189, 248, 0.2), transparent 60%),
+    radial-gradient(900px 360px at 100% 0%, rgba(20, 184, 166, 0.2), transparent 58%),
+    #020617;
+}
+
 #root {
   min-height: 100vh;
 }
@@ -47,7 +54,7 @@ body {
 
 .app-shell-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 16px;
   padding: 0 24px;
@@ -60,6 +67,7 @@ body {
 .app-shell-title {
   display: grid;
   gap: 2px;
+  min-width: 220px;
 }
 
 .app-shell-title-text.ant-typography {
@@ -79,10 +87,53 @@ body {
   color: rgba(226, 232, 240, 0.85);
 }
 
+.app-shell-header-meta {
+  margin-left: auto;
+}
+
+.global-search-entry {
+  min-width: min(560px, 100%);
+}
+
+.global-search-form {
+  display: flex;
+  width: 100%;
+}
+
+.global-search-form-item {
+  margin-bottom: 0;
+}
+
+.global-search-form-item-scope {
+  width: 170px;
+}
+
+.global-search-form-item-query {
+  flex: 1;
+}
+
+.global-search-form-item-query .ant-form-item-control {
+  width: 100%;
+}
+
+.global-search-form-item-submit {
+  margin-left: 8px;
+}
+
+.global-search-error.ant-typography {
+  display: block;
+  margin-top: 4px;
+}
+
 .app-shell-nav.ant-menu {
   padding-inline: 16px;
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid #dbe3ec;
+}
+
+html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
+  background: rgba(2, 6, 23, 0.84);
+  border-bottom-color: #1e293b;
 }
 
 .app-shell-content {
@@ -107,5 +158,36 @@ body {
   .app-shell-content {
     width: calc(100% - 20px);
     margin-top: 14px;
+  }
+
+  .app-shell-title {
+    min-width: 0;
+  }
+
+  .app-shell-header-meta {
+    margin-left: 0;
+  }
+
+  .global-search-entry {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .global-search-form {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .global-search-form-item-scope {
+    width: min(180px, 100%);
+  }
+
+  .global-search-form-item-query {
+    width: calc(100% - 190px);
+    min-width: 220px;
+  }
+
+  .global-search-form-item-submit {
+    margin-left: 0;
   }
 }

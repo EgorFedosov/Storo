@@ -10,12 +10,15 @@ import type { ReactNode } from 'react'
 import { Suspense, useMemo } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
 import { useCurrentUser } from '../../features/auth/model/useCurrentUser.ts'
+import { SocialLoginControl } from '../../features/auth/ui/SocialLoginControl.tsx'
+import { UserPreferencesControl } from '../../features/preferences/ui/UserPreferencesControl.tsx'
+import { GlobalSearchEntry } from '../../features/search-navigation/ui/GlobalSearchEntry.tsx'
 import { useSystemReferences } from '../../entities/reference/model/useSystemReferences.ts'
 import {
   shellNavigationModel,
   type AppShellNavKey,
 } from '../../shared/config/routes.ts'
-import { navigate, usePathname } from '../../shared/lib/router/navigation.ts'
+import { navigate, useLocationSnapshot } from '../../shared/lib/router/navigation.ts'
 import { useShellLayoutState } from '../model/useShellLayoutState.ts'
 
 const navigationIcons: Record<AppShellNavKey, ReactNode> = {
@@ -27,8 +30,8 @@ const navigationIcons: Record<AppShellNavKey, ReactNode> = {
 }
 
 export function AppShell() {
-  const pathname = usePathname()
-  const { route, selectedNavigationKeys } = useShellLayoutState(pathname)
+  const locationSnapshot = useLocationSnapshot()
+  const { route, selectedNavigationKeys } = useShellLayoutState(locationSnapshot.pathname)
   const {
     categoryOptions,
     errorMessage: referencesErrorMessage,
@@ -95,9 +98,23 @@ export function AppShell() {
           </Typography.Text>
         </div>
 
-        <Space size="small" wrap>
+        <GlobalSearchEntry
+          pathname={locationSnapshot.pathname}
+          search={locationSnapshot.search}
+          disabled={referencesStatus === 'loading'}
+        />
+
+        <Space size="small" wrap className="app-shell-header-meta">
           <Tag color={authStatusColor}>{authStatusLabel}</Tag>
           <Tag color={referencesStatusColor}>{referencesStatusLabel}</Tag>
+          <SocialLoginControl
+            isAuthenticated={isAuthenticated}
+            pathname={locationSnapshot.pathname}
+            search={locationSnapshot.search}
+            hash={locationSnapshot.hash}
+            disabled={status === 'loading'}
+          />
+          <UserPreferencesControl />
           <Avatar icon={<UserOutlined />} size="small" />
           <Typography.Text className="app-shell-user-name" strong>
             {currentUser.displayName}

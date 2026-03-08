@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 import type { AppRouteKey } from '../../../shared/config/routes.ts'
-import { apiRequest } from '../../../shared/api/httpClient.ts'
+import { apiRequest, type ApiFailure } from '../../../shared/api/httpClient.ts'
 import {
   guestAccessModel,
   guestPermissions,
@@ -13,6 +13,12 @@ import {
 } from '../../../entities/user/model/types.ts'
 
 export type AuthBootstrapStatus = 'loading' | 'ready' | 'error'
+export type PreferencesSyncStatus = 'idle' | 'saving' | 'success' | 'error'
+
+type UserPreferencesPayload = {
+  language: string
+  theme: UiTheme
+}
 
 type AuthState = {
   status: AuthBootstrapStatus
@@ -22,6 +28,8 @@ type AuthState = {
   permissions: CurrentUserPermissions
   access: GlobalAccessModel
   errorMessage: string | null
+  preferencesSyncStatus: PreferencesSyncStatus
+  preferencesSyncErrorMessage: string | null
 }
 
 type AuthStateAction =
@@ -37,6 +45,10 @@ type AuthStateAction =
       }
     }
   | { type: 'bootstrap_failed'; payload: { errorMessage: string } }
+  | { type: 'preferences_sync_started' }
+  | { type: 'preferences_sync_succeeded'; payload: UserPreferencesPayload }
+  | { type: 'preferences_sync_failed'; payload: { errorMessage: string } }
+  | { type: 'preferences_sync_reset' }
 
 type NormalizedAuthPayload = {
   isAuthenticated: boolean
@@ -47,6 +59,8 @@ type NormalizedAuthPayload = {
 
 type AuthContextValue = AuthState & {
   retryBootstrap: () => void
+  updatePreferences: (preferences: UserPreferencesPayload) => Promise<boolean>
+  resetPreferencesSyncState: () => void
 }
 
 const authContext = createContext<AuthContextValue | null>(null)
@@ -59,6 +73,8 @@ const initialAuthState: AuthState = {
   permissions: guestPermissions,
   access: guestAccessModel,
   errorMessage: null,
+  preferencesSyncStatus: 'idle',
+  preferencesSyncErrorMessage: null,
 }
 
 function authStateReducer(state: AuthState, action: AuthStateAction): AuthState {
@@ -68,6 +84,8 @@ function authStateReducer(state: AuthState, action: AuthStateAction): AuthState 
         ...state,
         status: 'loading',
         errorMessage: null,
+        preferencesSyncStatus: 'idle',
+        preferencesSyncErrorMessage: null,
       }
     case 'bootstrap_succeeded':
       return {
@@ -78,6 +96,8 @@ function authStateReducer(state: AuthState, action: AuthStateAction): AuthState 
         permissions: action.payload.permissions,
         access: action.payload.access,
         errorMessage: null,
+        preferencesSyncStatus: 'idle',
+        preferencesSyncErrorMessage: null,
       }
     case 'bootstrap_failed':
       return {
@@ -88,6 +108,40 @@ function authStateReducer(state: AuthState, action: AuthStateAction): AuthState 
         permissions: guestPermissions,
         access: guestAccessModel,
         errorMessage: action.payload.errorMessage,
+        preferencesSyncStatus: 'idle',
+        preferencesSyncErrorMessage: null,
+      }
+    case 'preferences_sync_started':
+      return {
+        ...state,
+        preferencesSyncStatus: 'saving',
+        preferencesSyncErrorMessage: null,
+      }
+    case 'preferences_sync_succeeded':
+      return {
+        ...state,
+        currentUser:
+          state.currentUser === null
+            ? null
+            : {
+                ...state.currentUser,
+                language: action.payload.language,
+                theme: action.payload.theme,
+              },
+        preferencesSyncStatus: 'success',
+        preferencesSyncErrorMessage: null,
+      }
+    case 'preferences_sync_failed':
+      return {
+        ...state,
+        preferencesSyncStatus: 'error',
+        preferencesSyncErrorMessage: action.payload.errorMessage,
+      }
+    case 'preferences_sync_reset':
+      return {
+        ...state,
+        preferencesSyncStatus: 'idle',
+        preferencesSyncErrorMessage: null,
       }
     default:
       return state
@@ -257,6 +311,47 @@ function normalizeAuthFailure(error: unknown): string {
   return 'Failed to bootstrap current user context.'
 }
 
+function normalizePreferencesPayload(payload: unknown): UserPreferencesPayload | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const language = normalizeNonEmptyString(payload.language)
+  if (language === null) {
+    return null
+  }
+
+  return {
+    language,
+    theme: normalizeTheme(payload.theme),
+  }
+}
+
+function getFirstValidationErrorMessage(failure: ApiFailure): string | null {
+  const validationErrors = failure.problem?.errors ?? {}
+
+  for (const messages of Object.values(validationErrors)) {
+    if (messages.length > 0) {
+      return messages[0]
+    }
+  }
+
+  return null
+}
+
+function normalizePreferencesFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 404) {
+    return 'Preferences endpoint is not available in current backend runtime.'
+  }
+
+  const validationMessage = getFirstValidationErrorMessage(failure)
+  if (validationMessage !== null) {
+    return validationMessage
+  }
+
+  return failure.error.message
+}
+
 export function canAccessRoute(routeKey: AppRouteKey, access: GlobalAccessModel): boolean {
   if (routeKey === 'myInventories') {
     return access.canAccessMyInventories
@@ -273,6 +368,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(authStateReducer, initialAuthState)
   const requestSequenceRef = useRef(0)
   const requestAbortControllerRef = useRef<AbortController | null>(null)
+  const preferencesRequestSequenceRef = useRef(0)
+  const preferencesAbortControllerRef = useRef<AbortController | null>(null)
 
   const bootstrapCurrentUser = useCallback(() => {
     requestSequenceRef.current += 1
@@ -332,11 +429,89 @@ export function AuthProvider({ children }: PropsWithChildren) {
     })()
   }, [])
 
+  const updatePreferences = useCallback(
+    async (preferences: UserPreferencesPayload): Promise<boolean> => {
+      if (!state.isAuthenticated || state.currentUser === null) {
+        dispatch({
+          type: 'preferences_sync_failed',
+          payload: { errorMessage: 'Only authenticated users can update preferences.' },
+        })
+        return false
+      }
+
+      preferencesRequestSequenceRef.current += 1
+      const requestId = preferencesRequestSequenceRef.current
+
+      preferencesAbortControllerRef.current?.abort()
+      const abortController = new AbortController()
+      preferencesAbortControllerRef.current = abortController
+
+      dispatch({ type: 'preferences_sync_started' })
+
+      try {
+        const response = await apiRequest<unknown>('/users/me/preferences', {
+          method: 'PATCH',
+          body: {
+            language: preferences.language,
+            theme: preferences.theme,
+          },
+          signal: abortController.signal,
+        })
+
+        if (abortController.signal.aborted || requestId !== preferencesRequestSequenceRef.current) {
+          return false
+        }
+
+        if (!response.ok) {
+          dispatch({
+            type: 'preferences_sync_failed',
+            payload: { errorMessage: normalizePreferencesFailureMessage(response) },
+          })
+          return false
+        }
+
+        const normalizedPayload = normalizePreferencesPayload(response.data)
+        if (normalizedPayload === null) {
+          dispatch({
+            type: 'preferences_sync_failed',
+            payload: {
+              errorMessage: 'Received invalid response format from /users/me/preferences.',
+            },
+          })
+          return false
+        }
+
+        dispatch({
+          type: 'preferences_sync_succeeded',
+          payload: normalizedPayload,
+        })
+
+        return true
+      } catch (error) {
+        if (abortController.signal.aborted || requestId !== preferencesRequestSequenceRef.current) {
+          return false
+        }
+
+        dispatch({
+          type: 'preferences_sync_failed',
+          payload: { errorMessage: normalizeAuthFailure(error) },
+        })
+        return false
+      }
+    },
+    [state.currentUser, state.isAuthenticated],
+  )
+
+  const resetPreferencesSyncState = useCallback(() => {
+    dispatch({ type: 'preferences_sync_reset' })
+  }, [])
+
   useEffect(() => {
     bootstrapCurrentUser()
 
     return () => {
       requestAbortControllerRef.current?.abort()
+      preferencesAbortControllerRef.current?.abort()
     }
   }, [bootstrapCurrentUser])
 
@@ -344,8 +519,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     () => ({
       ...state,
       retryBootstrap: bootstrapCurrentUser,
+      updatePreferences,
+      resetPreferencesSyncState,
     }),
-    [state, bootstrapCurrentUser],
+    [state, bootstrapCurrentUser, resetPreferencesSyncState, updatePreferences],
   )
 
   return <authContext.Provider value={contextValue}>{children}</authContext.Provider>
