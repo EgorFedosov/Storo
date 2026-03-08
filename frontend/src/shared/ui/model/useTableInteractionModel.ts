@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type { Key } from 'react'
+import { describeConcurrencyProblem, getConcurrencyProblem } from '../../api/concurrency.ts'
+import type { ApiResult } from '../../api/httpClient.ts'
 
 function toErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.length > 0) {
@@ -7,6 +9,28 @@ function toErrorMessage(error: unknown): string {
   }
 
   return 'Operation failed. Please try again.'
+}
+
+function isApiResult(value: unknown): value is ApiResult<unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'ok' in value &&
+    typeof (value as { ok: unknown }).ok === 'boolean'
+  )
+}
+
+function toApiFailureMessage(result: ApiResult<unknown>): string | null {
+  if (result.ok) {
+    return null
+  }
+
+  const concurrencyProblem = getConcurrencyProblem(result)
+  if (concurrencyProblem !== null) {
+    return describeConcurrencyProblem(concurrencyProblem).description
+  }
+
+  return result.error.message
 }
 
 export function useTableInteractionModel() {
@@ -35,7 +59,17 @@ export function useTableInteractionModel() {
     inFlightRef.current = actionPromise
 
     try {
-      return await actionPromise
+      const result = await actionPromise
+
+      if (isApiResult(result)) {
+        const failureMessage = toApiFailureMessage(result)
+        if (failureMessage !== null) {
+          setErrorMessage(failureMessage)
+          return null
+        }
+      }
+
+      return result
     } catch (error) {
       setErrorMessage(toErrorMessage(error))
       return null

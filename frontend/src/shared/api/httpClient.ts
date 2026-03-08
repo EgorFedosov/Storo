@@ -13,6 +13,7 @@ export type ApiRequestOptions = {
   headers?: Record<string, string>
   signal?: AbortSignal
   query?: ApiQueryParams
+  ifMatch?: string | null
 }
 
 export type ApiRequestMeta = {
@@ -66,6 +67,11 @@ let defaultClient = createHttpClient({ baseUrl: '/api/v1' })
 function hasHeader(headers: Record<string, string>, name: string): boolean {
   const normalizedName = name.toLowerCase()
   return Object.keys(headers).some((headerName) => headerName.toLowerCase() === normalizedName)
+}
+
+function normalizeIfMatch(value: string): string | null {
+  const normalizedValue = value.trim()
+  return normalizedValue.length > 0 ? normalizedValue : null
 }
 
 function isAbsoluteHttpUrl(value: string): boolean {
@@ -242,6 +248,28 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
       const requestHeaders: Record<string, string> = {
         ...defaultHeaders,
         ...(options.headers ?? {}),
+      }
+
+      if (options.ifMatch !== undefined && options.ifMatch !== null) {
+        const normalizedIfMatch = normalizeIfMatch(options.ifMatch)
+        if (normalizedIfMatch === null) {
+          const problem = normalizeProblemDetails({
+            payload: null,
+            status: 0,
+            fallbackTitle: 'Client Request Error',
+            fallbackDetail: 'If-Match token must be a non-empty string.',
+          })
+
+          return createApiFailure(
+            0,
+            requestMeta,
+            'serialization',
+            'If-Match token must be a non-empty string.',
+            problem,
+          )
+        }
+
+        requestHeaders['If-Match'] = normalizedIfMatch
       }
 
       let requestBody: BodyInit | undefined

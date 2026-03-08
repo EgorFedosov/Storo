@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import { Suspense, useMemo } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
 import { useCurrentUser } from '../../features/auth/model/useCurrentUser.ts'
+import { useSystemReferences } from '../../entities/reference/model/useSystemReferences.ts'
 import {
   shellNavigationModel,
   type AppShellNavKey,
@@ -28,6 +29,12 @@ const navigationIcons: Record<AppShellNavKey, ReactNode> = {
 export function AppShell() {
   const pathname = usePathname()
   const { route, selectedNavigationKeys } = useShellLayoutState(pathname)
+  const {
+    categoryOptions,
+    errorMessage: referencesErrorMessage,
+    retryBootstrap: retryReferencesBootstrap,
+    status: referencesStatus,
+  } = useSystemReferences()
   const {
     access,
     currentUser,
@@ -65,6 +72,16 @@ export function AppShell() {
     : isAuthenticated
       ? 'Authenticated'
       : 'Guest'
+  const referencesStatusColor = referencesStatus === 'loading'
+    ? 'processing'
+    : referencesStatus === 'ready'
+      ? 'success'
+      : 'error'
+  const referencesStatusLabel = referencesStatus === 'loading'
+    ? 'Refs Loading'
+    : referencesStatus === 'ready'
+      ? `Refs Ready (${String(categoryOptions.length)})`
+      : 'Refs Error'
 
   return (
     <Layout className="app-shell-layout">
@@ -80,6 +97,7 @@ export function AppShell() {
 
         <Space size="small" wrap>
           <Tag color={authStatusColor}>{authStatusLabel}</Tag>
+          <Tag color={referencesStatusColor}>{referencesStatusLabel}</Tag>
           <Avatar icon={<UserOutlined />} size="small" />
           <Typography.Text className="app-shell-user-name" strong>
             {currentUser.displayName}
@@ -104,6 +122,21 @@ export function AppShell() {
       />
 
       <Layout.Content className="app-shell-content">
+        {referencesErrorMessage !== null ? (
+          <Alert
+            showIcon
+            type="warning"
+            message="System references bootstrap failed"
+            description={referencesErrorMessage}
+            action={(
+              <Button type="primary" size="small" onClick={retryReferencesBootstrap}>
+                Retry
+              </Button>
+            )}
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
+
         {errorMessage !== null ? (
           <Alert
             showIcon
