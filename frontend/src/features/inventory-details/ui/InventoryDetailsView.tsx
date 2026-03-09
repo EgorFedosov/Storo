@@ -1,8 +1,10 @@
-import { Card, Empty, Space, Table, Tag, Typography } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
+import { Button, Card, Empty, Space, Table, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
 import dayjs from 'dayjs'
 import { useMemo } from 'react'
 import type { InventoryDetails } from '../../../entities/inventory/model/types.ts'
+import { navigate } from '../../../shared/lib/router/navigation.ts'
 
 type InventoryDetailsViewProps = {
   details: InventoryDetails
@@ -183,6 +185,16 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
               {details.header.isPublic ? 'Public write access' : 'Restricted write access'}
             </Tag>
             <Tag>Items: {String(details.summary.itemsCount)}</Tag>
+            {details.permissions.canEditInventory ? (
+              <Button
+                size="small"
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => navigate(`/inventories/${details.id}/edit`)}
+              >
+                Open Editor
+              </Button>
+            ) : null}
           </Space>
           <Typography.Text type="secondary">
             Read-only inventory page built from `GET /api/v1/inventories/:inventoryId`.

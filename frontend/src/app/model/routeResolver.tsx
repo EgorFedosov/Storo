@@ -7,6 +7,9 @@ type PageComponent = LazyExoticComponent<ComponentType>
 const HomePage = lazy(async () => ({ default: (await import('../../pages/home/ui/HomePage.tsx')).HomePage }))
 const SearchPage = lazy(async () => ({ default: (await import('../../pages/search/ui/SearchPage.tsx')).SearchPage }))
 const InventoryPage = lazy(async () => ({ default: (await import('../../pages/inventory/ui/InventoryPage.tsx')).InventoryPage }))
+const InventoryEditorPage = lazy(async () => ({
+  default: (await import('../../pages/inventory-editor/ui/InventoryEditorPage.tsx')).InventoryEditorPage,
+}))
 const ItemPage = lazy(async () => ({ default: (await import('../../pages/item/ui/ItemPage.tsx')).ItemPage }))
 const MyInventoriesPage = lazy(async () => ({
   default: (await import('../../pages/my-inventories/ui/MyInventoriesPage.tsx')).MyInventoriesPage,
@@ -31,6 +34,7 @@ const routePageMap: Record<AppRouteKey, PageComponent> = {
   searchInventories: SearchPage,
   searchItems: SearchPage,
   inventory: InventoryPage,
+  inventoryEditor: InventoryEditorPage,
   item: ItemPage,
   myInventories: MyInventoriesPage,
   createInventory: CreateInventoryPage,
@@ -54,6 +58,17 @@ function matchEntityRoute(pathname: string, singularSegment: string, pluralSegme
   const [segment, rawId] = segments
   const validPrefix = segment === singularSegment || segment === pluralSegment
   return validPrefix && positiveIdPattern.test(rawId)
+}
+
+function matchEntityEditRoute(pathname: string, singularSegment: string, pluralSegment: string): boolean {
+  const segments = pathname.split('/').filter(Boolean)
+  if (segments.length !== 3) {
+    return false
+  }
+
+  const [segment, rawId, action] = segments
+  const validPrefix = segment === singularSegment || segment === pluralSegment
+  return validPrefix && positiveIdPattern.test(rawId) && action.toLowerCase() === 'edit'
 }
 
 export function resolveRoute(pathname: string): RouteMatch & { Page: PageComponent } {
@@ -82,6 +97,10 @@ export function resolveRouteKey(pathname: string): AppRouteKey {
 
   if (normalizedPathname.startsWith('/search/items')) {
     return 'searchItems'
+  }
+
+  if (matchEntityEditRoute(normalizedPathname, 'inventory', 'inventories')) {
+    return 'inventoryEditor'
   }
 
   if (matchEntityRoute(normalizedPathname, 'inventory', 'inventories')) {

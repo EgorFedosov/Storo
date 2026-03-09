@@ -3,6 +3,7 @@ export type AppRouteKey =
   | 'searchInventories'
   | 'searchItems'
   | 'inventory'
+  | 'inventoryEditor'
   | 'item'
   | 'myInventories'
   | 'createInventory'
@@ -38,6 +39,11 @@ export const routes = {
     key: 'inventory',
     path: '/inventory/1',
     label: 'Inventory #1',
+  },
+  inventoryEditor: {
+    key: 'inventoryEditor',
+    path: '/inventory/1/edit',
+    label: 'Inventory Editor #1',
   },
   item: {
     key: 'item',
