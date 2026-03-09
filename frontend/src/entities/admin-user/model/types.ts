@@ -2,6 +2,8 @@ export type AdminUsersBlockedFilter = 'all' | 'true' | 'false'
 export type AdminUsersRoleFilter = 'all' | 'admin' | 'user'
 export type AdminUsersSortField = 'updatedAt' | 'createdAt' | 'userName' | 'email'
 export type AdminUsersSortDirection = 'asc' | 'desc'
+export type AdminModerationStatus = 'blocked' | 'unblocked' | 'admin_granted' | 'admin_revoked'
+export type AdminModerationAction = 'block' | 'unblock' | 'grant_admin' | 'revoke_admin' | 'delete'
 
 export type AdminUsersQueryState = Readonly<{
   blocked: AdminUsersBlockedFilter
@@ -37,6 +39,19 @@ export type AdminUsersPage = Readonly<{
   sort: AdminUsersSortState
 }>
 
+export type AdminModerationResult = Readonly<{
+  userId: string
+  status: AdminModerationStatus
+  changed: boolean
+}>
+
+export type AdminModerationMutationResult = Readonly<{
+  userId: string
+  action: AdminModerationAction
+  status: AdminModerationStatus | null
+  changed: boolean
+}>
+
 export const adminUsersContract = {
   defaultPage: 1,
   defaultPageSize: 20,
@@ -52,4 +67,3 @@ export const adminUsersBlockedFilterValues: readonly AdminUsersBlockedFilter[] =
 export const adminUsersRoleFilterValues: readonly AdminUsersRoleFilter[] = ['all', 'admin', 'user']
 export const adminUsersSortFieldValues: readonly AdminUsersSortField[] = ['updatedAt', 'createdAt', 'userName', 'email']
 export const adminUsersSortDirectionValues: readonly AdminUsersSortDirection[] = ['asc', 'desc']
-

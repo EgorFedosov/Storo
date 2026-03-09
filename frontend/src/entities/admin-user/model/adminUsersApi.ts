@@ -2,6 +2,9 @@ import type { ApiFailure, ApiQueryParams, ApiResult, ApiSuccess } from '../../..
 import { apiRequest } from '../../../shared/api/httpClient.ts'
 import { normalizeProblemDetails } from '../../../shared/api/problemDetails.ts'
 import type {
+  AdminModerationMutationResult,
+  AdminModerationResult,
+  AdminModerationStatus,
   AdminUserListItem,
   AdminUsersPage,
   AdminUsersQueryState,
@@ -154,6 +157,38 @@ function normalizeAdminUsersPage(payload: unknown): AdminUsersPage | null {
   }
 }
 
+function normalizeModerationStatus(value: unknown): AdminModerationStatus | null {
+  if (
+    value === 'blocked'
+    || value === 'unblocked'
+    || value === 'admin_granted'
+    || value === 'admin_revoked'
+  ) {
+    return value
+  }
+
+  return null
+}
+
+function normalizeAdminModerationResult(payload: unknown): AdminModerationResult | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const userId = normalizeNonEmptyString(payload.userId)
+  const status = normalizeModerationStatus(payload.status)
+
+  if (userId === null || status === null || typeof payload.changed !== 'boolean') {
+    return null
+  }
+
+  return {
+    userId,
+    status,
+    changed: payload.changed,
+  }
+}
+
 function createAdminUsersQueryParams(queryState: AdminUsersQueryState): ApiQueryParams {
   const queryParams: ApiQueryParams = {
     blocked: queryState.blocked,
@@ -173,6 +208,31 @@ function createAdminUsersQueryParams(queryState: AdminUsersQueryState): ApiQuery
 
 function createInvalidPayloadFailure(result: ApiSuccess<unknown>): ApiFailure {
   const detail = 'Received invalid response payload from /admin/users.'
+  const problem = normalizeProblemDetails({
+    payload: null,
+    status: result.status,
+    fallbackTitle: 'Invalid JSON Response',
+    fallbackDetail: detail,
+  })
+
+  return {
+    ok: false,
+    status: result.status,
+    problem,
+    error: {
+      kind: 'invalid_json',
+      message: detail,
+      problem,
+    },
+    meta: result.meta,
+  }
+}
+
+function createInvalidModerationPayloadFailure(
+  result: ApiSuccess<unknown>,
+  path: string,
+): ApiFailure {
+  const detail = `Received invalid response payload from ${path}.`
   const problem = normalizeProblemDetails({
     payload: null,
     status: result.status,
@@ -217,3 +277,81 @@ export async function fetchAdminUsersPage(
   }
 }
 
+async function mutateModerationEndpoint(
+  path: string,
+  method: 'PUT' | 'DELETE',
+  action: AdminModerationMutationResult['action'],
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  const result = await apiRequest<unknown>(path, {
+    method,
+    signal,
+  })
+
+  if (!result.ok) {
+    return result
+  }
+
+  if (result.status === 204) {
+    return {
+      ...result,
+      data: {
+        userId,
+        action,
+        status: null,
+        changed: true,
+      },
+    }
+  }
+
+  const normalizedPayload = normalizeAdminModerationResult(result.data)
+  if (normalizedPayload === null) {
+    return createInvalidModerationPayloadFailure(result, path)
+  }
+
+  return {
+    ...result,
+    data: {
+      userId: normalizedPayload.userId,
+      action,
+      status: normalizedPayload.status,
+      changed: normalizedPayload.changed,
+    },
+  }
+}
+
+export async function blockAdminUser(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  return mutateModerationEndpoint(`/admin/users/${userId}/block`, 'PUT', 'block', userId, signal)
+}
+
+export async function unblockAdminUser(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  return mutateModerationEndpoint(`/admin/users/${userId}/block`, 'DELETE', 'unblock', userId, signal)
+}
+
+export async function grantAdminRole(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  return mutateModerationEndpoint(`/admin/users/${userId}/roles/admin`, 'PUT', 'grant_admin', userId, signal)
+}
+
+export async function revokeAdminRole(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  return mutateModerationEndpoint(`/admin/users/${userId}/roles/admin`, 'DELETE', 'revoke_admin', userId, signal)
+}
+
+export async function deleteAdminUser(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AdminModerationMutationResult>> {
+  return mutateModerationEndpoint(`/admin/users/${userId}`, 'DELETE', 'delete', userId, signal)
+}

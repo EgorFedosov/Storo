@@ -1,9 +1,10 @@
-import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd'
 import type { TableProps } from 'antd'
 import type { FilterValue, TablePaginationConfig } from 'antd/es/table/interface'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Key } from 'react'
 import type {
+  AdminModerationAction,
   AdminUserListItem,
   AdminUsersBlockedFilter,
   AdminUsersRoleFilter,
@@ -11,6 +12,7 @@ import type {
   AdminUsersSortField,
 } from '../../../entities/admin-user/model/types.ts'
 import { adminUsersContract } from '../../../entities/admin-user/model/types.ts'
+import { useCurrentUser } from '../../auth/model/useCurrentUser.ts'
 import { useAdminUsersListModel } from '../model/useAdminUsersListModel.ts'
 
 type AdminUsersFiltersFormValues = {
@@ -30,6 +32,14 @@ const roleFilterOptions: Array<{ label: string; value: AdminUsersRoleFilter }> =
   { label: 'Admins', value: 'admin' },
   { label: 'Users', value: 'user' },
 ]
+
+const moderationActionLabelMap: Record<AdminModerationAction, string> = {
+  block: 'Block',
+  unblock: 'Unblock',
+  grant_admin: 'Grant Admin',
+  revoke_admin: 'Revoke Admin',
+  delete: 'Delete User',
+}
 
 function toSortOrder(direction: AdminUsersSortDirection): 'ascend' | 'descend' {
   return direction === 'asc' ? 'ascend' : 'descend'
@@ -69,18 +79,38 @@ function toSortDirection(order: 'ascend' | 'descend' | null | undefined): AdminU
   return order === 'ascend' ? 'asc' : 'desc'
 }
 
+function hasAdminRole(user: AdminUserListItem): boolean {
+  return user.roles.some((role) => role.trim().toLowerCase() === 'admin')
+}
+
+function normalizeSelectedTableKey(rawKey: Key | undefined): string | null {
+  if (rawKey === undefined || rawKey === null) {
+    return null
+  }
+
+  const normalizedKey = String(rawKey).trim()
+  return normalizedKey.length > 0 ? normalizedKey : null
+}
+
 export function AdminUsersListSection() {
   const [form] = Form.useForm<AdminUsersFiltersFormValues>()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [messageApi, messageContextHolder] = message.useMessage()
+  const { currentUser, retryBootstrap } = useCurrentUser()
   const {
     queryState,
     routeValidationErrors,
     pageData,
     isLoading,
     errorMessage,
+    moderationErrorMessage,
+    moderationInFlight,
     applyFilters,
     resetFilters,
     applyTableChange,
     retry,
+    clearModerationError,
+    executeModerationAction,
   } = useAdminUsersListModel()
 
   useEffect(() => {
@@ -90,6 +120,24 @@ export function AdminUsersListSection() {
       role: queryState.role,
     })
   }, [form, queryState.blocked, queryState.query, queryState.role])
+
+  const selectedUser = useMemo(() => {
+    if (selectedUserId === null || pageData === null) {
+      return null
+    }
+
+    return pageData.items.find((item) => item.id === selectedUserId) ?? null
+  }, [pageData, selectedUserId])
+
+  const selectedUserHasAdminRole = selectedUser !== null && hasAdminRole(selectedUser)
+  const moderationActionInFlight = moderationInFlight?.action ?? null
+  const moderationBusy = moderationInFlight !== null
+
+  const canBlock = selectedUser !== null && !selectedUser.isBlocked && !isLoading && !moderationBusy
+  const canUnblock = selectedUser !== null && selectedUser.isBlocked && !isLoading && !moderationBusy
+  const canGrantAdmin = selectedUser !== null && !selectedUserHasAdminRole && !isLoading && !moderationBusy
+  const canRevokeAdmin = selectedUser !== null && selectedUserHasAdminRole && !isLoading && !moderationBusy
+  const canDelete = selectedUser !== null && !isLoading && !moderationBusy
 
   const columns = useMemo<NonNullable<TableProps<AdminUserListItem>['columns']>>(
     () => [
@@ -157,6 +205,19 @@ export function AdminUsersListSection() {
     [queryState.sortDirection, queryState.sortField],
   )
 
+  const rowSelection = useMemo<NonNullable<TableProps<AdminUserListItem>['rowSelection']>>(
+    () => ({
+      type: 'radio',
+      selectedRowKeys: selectedUser === null ? [] : [selectedUser.id],
+      onChange: (selectedRowKeys) => {
+        const nextSelectedUserId = normalizeSelectedTableKey(selectedRowKeys[0])
+        setSelectedUserId(nextSelectedUserId)
+        clearModerationError()
+      },
+    }),
+    [clearModerationError, selectedUser],
+  )
+
   const handleFiltersSubmit = useCallback(
     (values: AdminUsersFiltersFormValues) => {
       applyFilters({
@@ -199,8 +260,39 @@ export function AdminUsersListSection() {
     Object.entries(routeValidationErrors).filter(([, message]) => typeof message === 'string' && message.length > 0),
   ) as Record<string, string>
 
+  const handleModerationAction = useCallback(
+    async (action: AdminModerationAction) => {
+      if (selectedUser === null) {
+        return
+      }
+
+      const affectsCurrentUser = selectedUser.id === currentUser.id
+      const result = await executeModerationAction(action, selectedUser)
+
+      if (result.ok) {
+        messageApi.success(result.message)
+        if (action === 'delete') {
+          setSelectedUserId((currentValue) => (currentValue === selectedUser.id ? null : currentValue))
+        }
+
+        if (affectsCurrentUser) {
+          retryBootstrap()
+        }
+
+        return
+      }
+
+      if (result.message !== 'Moderation request was canceled.') {
+        messageApi.error(result.message)
+      }
+    },
+    [currentUser.id, executeModerationAction, messageApi, retryBootstrap, selectedUser],
+  )
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
+      {messageContextHolder}
+
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
           Admin Users
@@ -289,12 +381,145 @@ export function AdminUsersListSection() {
           />
         ) : null}
 
+        {moderationErrorMessage !== null ? (
+          <Alert
+            showIcon
+            type="error"
+            message="Moderation action failed"
+            description={moderationErrorMessage}
+            closable
+            onClose={clearModerationError}
+            style={{ marginBottom: 12 }}
+          />
+        ) : null}
+
+        <Card
+          size="small"
+          title="Moderation Actions"
+          style={{ marginBottom: 12 }}
+        >
+          <Space direction="vertical" size={10} style={{ width: '100%' }}>
+            <Typography.Text type="secondary">
+              Select one row in the table and apply moderation actions.
+            </Typography.Text>
+
+            <Space size={[8, 8]} wrap>
+              <Tag color={selectedUser === null ? 'default' : 'blue'}>
+                {selectedUser === null ? 'No user selected' : `@${selectedUser.userName}`}
+              </Tag>
+              {selectedUser !== null ? (
+                <Tag color={selectedUser.isBlocked ? 'red' : 'green'}>
+                  {selectedUser.isBlocked ? 'Blocked' : 'Active'}
+                </Tag>
+              ) : null}
+              {selectedUser !== null && selectedUserHasAdminRole ? (
+                <Tag color="gold">Admin</Tag>
+              ) : null}
+              {moderationInFlight !== null ? (
+                <Tag color="processing">
+                  {`${moderationActionLabelMap[moderationInFlight.action]} in progress...`}
+                </Tag>
+              ) : null}
+            </Space>
+
+            <Space size={[8, 8]} wrap>
+              <Popconfirm
+                title="Block selected user?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} will not be able to sign in.`}
+                okText="Block"
+                cancelText="Cancel"
+                onConfirm={() => void handleModerationAction('block')}
+                disabled={!canBlock}
+              >
+                <Button
+                  disabled={!canBlock}
+                  loading={moderationActionInFlight === 'block'}
+                >
+                  Block
+                </Button>
+              </Popconfirm>
+
+              <Popconfirm
+                title="Unblock selected user?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} will regain normal access.`}
+                okText="Unblock"
+                cancelText="Cancel"
+                onConfirm={() => void handleModerationAction('unblock')}
+                disabled={!canUnblock}
+              >
+                <Button
+                  disabled={!canUnblock}
+                  loading={moderationActionInFlight === 'unblock'}
+                >
+                  Unblock
+                </Button>
+              </Popconfirm>
+
+              <Popconfirm
+                title="Grant admin role?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} will receive admin permissions.`}
+                okText="Grant"
+                cancelText="Cancel"
+                onConfirm={() => void handleModerationAction('grant_admin')}
+                disabled={!canGrantAdmin}
+              >
+                <Button
+                  disabled={!canGrantAdmin}
+                  loading={moderationActionInFlight === 'grant_admin'}
+                >
+                  Grant Admin
+                </Button>
+              </Popconfirm>
+
+              <Popconfirm
+                title="Revoke admin role?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} will lose admin permissions.`}
+                okText="Revoke"
+                cancelText="Cancel"
+                onConfirm={() => void handleModerationAction('revoke_admin')}
+                disabled={!canRevokeAdmin}
+              >
+                <Button
+                  disabled={!canRevokeAdmin}
+                  loading={moderationActionInFlight === 'revoke_admin'}
+                >
+                  Revoke Admin
+                </Button>
+              </Popconfirm>
+
+              <Popconfirm
+                title="Delete selected user?"
+                description={selectedUser === null ? '' : `Delete user @${selectedUser.userName} permanently.`}
+                okText="Delete"
+                cancelText="Cancel"
+                onConfirm={() => void handleModerationAction('delete')}
+                disabled={!canDelete}
+              >
+                <Button
+                  danger
+                  disabled={!canDelete}
+                  loading={moderationActionInFlight === 'delete'}
+                >
+                  Delete User
+                </Button>
+              </Popconfirm>
+            </Space>
+          </Space>
+        </Card>
+
         <Table<AdminUserListItem>
           rowKey="id"
           columns={columns}
           dataSource={pageData?.items ? [...pageData.items] : []}
+          rowSelection={rowSelection}
           loading={isLoading}
           onChange={handleTableChange}
+          onRow={(record) => ({
+            onClick: () => {
+              setSelectedUserId(record.id)
+              clearModerationError()
+            },
+          })}
           pagination={{
             current: queryState.page,
             pageSize: queryState.pageSize,
