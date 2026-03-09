@@ -193,6 +193,28 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
   outline-offset: 1px;
 }
 
+.inventory-details-image {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #dbe3ec;
+}
+
+.inventory-details-description.ant-typography {
+  margin-bottom: 0;
+  white-space: pre-wrap;
+}
+
+.inventory-details-loader {
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (max-width: 900px) {
   .app-shell-header {
     align-items: flex-start;
