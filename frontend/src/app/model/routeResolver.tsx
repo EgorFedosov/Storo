@@ -11,6 +11,9 @@ const ItemPage = lazy(async () => ({ default: (await import('../../pages/item/ui
 const MyInventoriesPage = lazy(async () => ({
   default: (await import('../../pages/my-inventories/ui/MyInventoriesPage.tsx')).MyInventoriesPage,
 }))
+const CreateInventoryPage = lazy(async () => ({
+  default: (await import('../../pages/create-inventory/ui/CreateInventoryPage.tsx')).CreateInventoryPage,
+}))
 const AdminUsersPage = lazy(async () => ({
   default: (await import('../../pages/admin-users/ui/AdminUsersPage.tsx')).AdminUsersPage,
 }))
@@ -30,6 +33,7 @@ const routePageMap: Record<AppRouteKey, PageComponent> = {
   inventory: InventoryPage,
   item: ItemPage,
   myInventories: MyInventoriesPage,
+  createInventory: CreateInventoryPage,
   adminUsers: AdminUsersPage,
   authError: AuthErrorPage,
   notFound: NotFoundPage,
@@ -92,6 +96,10 @@ export function resolveRouteKey(pathname: string): AppRouteKey {
     return 'myInventories'
   }
 
+  if (normalizedPathname === routes.createInventory.path) {
+    return 'createInventory'
+  }
+
   if (normalizedPathname === routes.adminUsers.path) {
     return 'adminUsers'
   }
@@ -122,6 +130,10 @@ function getNavKeyForRoute(routeKey: AppRouteKey): AppShellNavKey | null {
 
   if (routeKey === 'myInventories') {
     return routeKey
+  }
+
+  if (routeKey === 'createInventory') {
+    return 'myInventories'
   }
 
   if (routeKey === 'adminUsers') {

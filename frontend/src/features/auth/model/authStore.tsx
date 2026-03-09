@@ -256,6 +256,7 @@ function createAccessModel(
 
   return {
     canAccessMyInventories: isActiveUser,
+    canAccessCreateInventory: isActiveUser && permissions.canCreateInventory,
     canAccessAdminUsers: permissions.canManageUsers,
   }
 }
@@ -355,6 +356,10 @@ function normalizePreferencesFailureMessage(failure: ApiFailure): string {
 export function canAccessRoute(routeKey: AppRouteKey, access: GlobalAccessModel): boolean {
   if (routeKey === 'myInventories') {
     return access.canAccessMyInventories
+  }
+
+  if (routeKey === 'createInventory') {
+    return access.canAccessCreateInventory
   }
 
   if (routeKey === 'adminUsers') {

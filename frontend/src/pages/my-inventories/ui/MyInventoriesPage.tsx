@@ -1,4 +1,4 @@
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons'
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import {
   Alert,
   Button,
@@ -16,6 +16,7 @@ import type { SortOrder, SorterResult } from 'antd/es/table/interface'
 import { useMemo, useState } from 'react'
 import { useCurrentUser } from '../../../features/auth/model/useCurrentUser.ts'
 import { navigate } from '../../../shared/lib/router/navigation.ts'
+import { routes } from '../../../shared/config/routes.ts'
 import {
   myInventoriesContract,
   type InventoryRelation,
@@ -86,7 +87,7 @@ function parseSortDirection(order: SortOrder): UserInventoriesSortDirection | nu
 
 export function MyInventoriesPage() {
   const [activeRelation, setActiveRelation] = useState<InventoryRelation>('owned')
-  const { currentUser } = useCurrentUser()
+  const { currentUser, permissions } = useCurrentUser()
   const {
     tables,
     updateDraftQuery,
@@ -326,6 +327,16 @@ export function MyInventoriesPage() {
         <Space wrap size={8}>
           <Tag color="blue">{currentUser.displayName}</Tag>
           <Tag>@{currentUser.userName}</Tag>
+          {permissions.canCreateInventory ? (
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => navigate(routes.createInventory.path)}
+            >
+              Create Inventory
+            </Button>
+          ) : null}
         </Space>
       </Card>
 

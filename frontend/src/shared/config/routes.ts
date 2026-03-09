@@ -5,6 +5,7 @@ export type AppRouteKey =
   | 'inventory'
   | 'item'
   | 'myInventories'
+  | 'createInventory'
   | 'adminUsers'
   | 'authError'
   | 'notFound'
@@ -47,6 +48,11 @@ export const routes = {
     key: 'myInventories',
     path: '/my/inventories',
     label: 'My Inventories',
+  },
+  createInventory: {
+    key: 'createInventory',
+    path: '/inventories/create',
+    label: 'Create Inventory',
   },
   adminUsers: {
     key: 'adminUsers',

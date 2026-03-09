@@ -11,6 +11,7 @@ export interface CurrentUserPermissions {
 
 export interface GlobalAccessModel {
   canAccessMyInventories: boolean
+  canAccessCreateInventory: boolean
   canAccessAdminUsers: boolean
 }
 
@@ -35,6 +36,7 @@ export const guestPermissions: CurrentUserPermissions = {
 
 export const guestAccessModel: GlobalAccessModel = {
   canAccessMyInventories: false,
+  canAccessCreateInventory: false,
   canAccessAdminUsers: false,
 }
 
