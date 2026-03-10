@@ -123,6 +123,7 @@ export function InventoryPage() {
                 inventoryId={details.id}
                 enabled={activeTabKey === 'items'}
                 canWriteItems={details.permissions.canWriteItems}
+                canEditInventory={details.permissions.canEditInventory}
               />
             ),
           },
