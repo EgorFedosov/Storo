@@ -1,9 +1,16 @@
-import { ReloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Result, Space, Spin, Typography } from 'antd'
-import { useMemo } from 'react'
+﻿import { ReloadOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Result, Space, Spin, Tabs, Typography } from 'antd'
+import { useMemo, useState } from 'react'
 import { useInventoryDetailsModel } from '../../../features/inventory-details/model/useInventoryDetailsModel.ts'
 import { InventoryDetailsView } from '../../../features/inventory-details/ui/InventoryDetailsView.tsx'
+import { InventoryDiscussionTab } from '../../../features/inventory-discussion/ui/InventoryDiscussionTab.tsx'
 import { navigate, useLocationSnapshot } from '../../../shared/lib/router/navigation.ts'
+
+type InventoryPageTabKey = 'overview' | 'discussion'
+
+function isInventoryPageTabKey(value: string): value is InventoryPageTabKey {
+  return value === 'overview' || value === 'discussion'
+}
 
 function parseInventoryIdFromPath(pathname: string): string | null {
   const normalizedPath = pathname.trim().replace(/\/+$/, '')
@@ -17,10 +24,13 @@ function parseInventoryIdFromPath(pathname: string): string | null {
 
 export function InventoryPage() {
   const locationSnapshot = useLocationSnapshot()
+  const [activeTabKey, setActiveTabKey] = useState<InventoryPageTabKey>('overview')
+
   const inventoryId = useMemo(
     () => parseInventoryIdFromPath(locationSnapshot.pathname),
     [locationSnapshot.pathname],
   )
+
   const { details, errorMessage, errorStatus, etag, retryLoad, status } = useInventoryDetailsModel(inventoryId)
 
   if (status === 'loading' || status === 'idle') {
@@ -92,5 +102,35 @@ export function InventoryPage() {
     )
   }
 
-  return <InventoryDetailsView details={details} etag={etag} />
+  return (
+    <Card>
+      <Tabs
+        destroyInactiveTabPane
+        activeKey={activeTabKey}
+        onChange={(nextTabKey) => {
+          if (isInventoryPageTabKey(nextTabKey)) {
+            setActiveTabKey(nextTabKey)
+          }
+        }}
+        items={[
+          {
+            key: 'overview',
+            label: 'Overview',
+            children: <InventoryDetailsView details={details} etag={etag} />,
+          },
+          {
+            key: 'discussion',
+            label: 'Discussion',
+            children: (
+              <InventoryDiscussionTab
+                inventoryId={details.id}
+                canComment={details.permissions.canComment}
+                enabled={activeTabKey === 'discussion'}
+              />
+            ),
+          },
+        ]}
+      />
+    </Card>
+  )
 }

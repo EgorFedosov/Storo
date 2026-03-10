@@ -30,6 +30,36 @@ export function InventoryEditorPage() {
     tabStates,
     activeTabKey,
     setActiveTabKey,
+    categoryOptions,
+    referencesStatus,
+    referencesErrorMessage,
+    retryReferences,
+    concurrencyProblem,
+    clearConcurrencyProblem,
+    settingsAutosave,
+    tagsAutosave,
+    customIdTemplate,
+    customFieldDrafts,
+    selectedCustomFieldKey,
+    customFieldValidationByKey,
+    customFieldGlobalValidationErrors,
+    customFieldsSaveStatus,
+    customFieldsSaveErrorMessage,
+    customFieldsLastSavedAt,
+    isCustomFieldsMutating,
+    updateSettingsDraft,
+    saveSettingsNow,
+    resetSettingsDraft,
+    updateTagsDraft,
+    saveTagsNow,
+    resetTagsDraft,
+    setSelectedCustomFieldKey,
+    addCustomFieldDraft,
+    updateCustomFieldDraft,
+    removeSelectedCustomFieldDraft,
+    moveSelectedCustomFieldDraftUp,
+    moveSelectedCustomFieldDraftDown,
+    resetCustomFieldDrafts,
     retryLoad,
   } = useInventoryEditorModel(inventoryId)
 
@@ -148,6 +178,37 @@ export function InventoryEditorPage() {
       etag={etag}
       activeTabKey={activeTabKey}
       tabStates={tabStates}
+      categoryOptions={categoryOptions}
+      referencesStatus={referencesStatus}
+      referencesErrorMessage={referencesErrorMessage}
+      retryReferences={retryReferences}
+      concurrencyProblem={concurrencyProblem}
+      settingsAutosave={settingsAutosave}
+      tagsAutosave={tagsAutosave}
+      customIdTemplate={customIdTemplate}
+      customFieldDrafts={customFieldDrafts}
+      selectedCustomFieldKey={selectedCustomFieldKey}
+      customFieldValidationByKey={customFieldValidationByKey}
+      customFieldGlobalValidationErrors={customFieldGlobalValidationErrors}
+      customFieldsSaveStatus={customFieldsSaveStatus}
+      customFieldsSaveErrorMessage={customFieldsSaveErrorMessage}
+      customFieldsLastSavedAt={customFieldsLastSavedAt}
+      isCustomFieldsMutating={isCustomFieldsMutating}
+      onReloadEditor={retryLoad}
+      onClearConcurrencyProblem={clearConcurrencyProblem}
+      onUpdateSettingsDraft={updateSettingsDraft}
+      onSaveSettingsNow={saveSettingsNow}
+      onResetSettingsDraft={resetSettingsDraft}
+      onUpdateTagsDraft={updateTagsDraft}
+      onSaveTagsNow={saveTagsNow}
+      onResetTagsDraft={resetTagsDraft}
+      onSelectCustomField={setSelectedCustomFieldKey}
+      onAddCustomField={addCustomFieldDraft}
+      onUpdateCustomField={updateCustomFieldDraft}
+      onRemoveSelectedCustomField={removeSelectedCustomFieldDraft}
+      onMoveSelectedCustomFieldUp={moveSelectedCustomFieldDraftUp}
+      onMoveSelectedCustomFieldDown={moveSelectedCustomFieldDraftDown}
+      onResetCustomFieldsDrafts={resetCustomFieldDrafts}
       onTabChange={setActiveTabKey}
     />
   )

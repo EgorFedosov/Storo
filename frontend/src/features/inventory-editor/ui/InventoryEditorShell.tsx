@@ -1,14 +1,68 @@
-import { Card, Empty, Space, Table, Tabs, Tag, Typography } from 'antd'
+import { Alert, Button, Card, Empty, Input, Select, Space, Table, Tabs, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { inventoryEditorTagsContract } from '../../../entities/inventory/model/inventoryEditorApi.ts'
+import type { ConcurrencyProblem } from '../../../shared/api/concurrency.ts'
+import { ConcurrencyAlert } from '../../../shared/ui/kit/ConcurrencyAlert.tsx'
+import type { InventoryCategoryOption } from '../../../entities/reference/model/types.ts'
 import type { InventoryEditor } from '../../../entities/inventory/model/inventoryEditorTypes.ts'
-import type { InventoryEditorTabKey, InventoryEditorTabState } from '../model/useInventoryEditorModel.ts'
+import { CustomFieldsAutosaveTab } from './CustomFieldsAutosaveTab.tsx'
+import { CustomIdTemplateBuilderTab } from './CustomIdTemplateBuilderTab.tsx'
+import {
+  tagAutocompleteContract,
+  useTagAutocompleteModel,
+} from '../../../features/tags/model/useTagAutocompleteModel.ts'
+import type {
+  CustomFieldsAutosaveStatus,
+  InventoryCustomIdTemplateBuilderModel,
+  InventoryEditorCustomFieldDraft,
+  InventoryEditorCustomFieldDraftErrors,
+  InventoryEditorSettingsDraft,
+  InventoryEditorTabKey,
+  InventoryEditorTabState,
+  InventorySettingsAutosaveState,
+  InventoryTagsAutosaveState,
+} from '../model/useInventoryEditorModel.ts'
 
 type InventoryEditorShellProps = {
   editor: InventoryEditor
   etag: string | null
   activeTabKey: InventoryEditorTabKey
   tabStates: ReadonlyArray<InventoryEditorTabState>
+  categoryOptions: ReadonlyArray<InventoryCategoryOption>
+  referencesStatus: 'loading' | 'ready' | 'error'
+  referencesErrorMessage: string | null
+  retryReferences: () => void
+  concurrencyProblem: ConcurrencyProblem | null
+  settingsAutosave: InventorySettingsAutosaveState
+  tagsAutosave: InventoryTagsAutosaveState
+  customIdTemplate: InventoryCustomIdTemplateBuilderModel
+  customFieldDrafts: ReadonlyArray<InventoryEditorCustomFieldDraft>
+  selectedCustomFieldKey: string | null
+  customFieldValidationByKey: Readonly<Record<string, InventoryEditorCustomFieldDraftErrors>>
+  customFieldGlobalValidationErrors: ReadonlyArray<string>
+  customFieldsSaveStatus: CustomFieldsAutosaveStatus
+  customFieldsSaveErrorMessage: string | null
+  customFieldsLastSavedAt: number | null
+  isCustomFieldsMutating: boolean
+  onReloadEditor: () => void
+  onClearConcurrencyProblem: () => void
+  onUpdateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
+  onSaveSettingsNow: () => void
+  onResetSettingsDraft: () => void
+  onUpdateTagsDraft: (nextTags: ReadonlyArray<string>) => void
+  onSaveTagsNow: () => void
+  onResetTagsDraft: () => void
+  onSelectCustomField: (fieldKey: string | null) => void
+  onAddCustomField: () => void
+  onUpdateCustomField: (
+    fieldKey: string,
+    patch: Partial<Pick<InventoryEditorCustomFieldDraft, 'fieldType' | 'title' | 'description' | 'showInTable'>>,
+  ) => void
+  onRemoveSelectedCustomField: () => void
+  onMoveSelectedCustomFieldUp: () => void
+  onMoveSelectedCustomFieldDown: () => void
+  onResetCustomFieldsDrafts: () => void
   onTabChange: (nextTabKey: InventoryEditorTabKey) => void
 }
 
@@ -37,71 +91,363 @@ function isInventoryEditorTabKey(value: string): value is InventoryEditorTabKey 
   )
 }
 
-function renderSettingsTab(editor: InventoryEditor) {
-  const rows: PropertyValueRow[] = [
-    { key: 'title', property: 'Title', value: editor.settings.title },
-    { key: 'description', property: 'Description', value: editor.settings.descriptionMarkdown || '(empty)' },
-    { key: 'category', property: 'Category', value: editor.settings.category.name },
-    { key: 'imageUrl', property: 'Image URL', value: editor.settings.imageUrl ?? '(none)' },
-  ]
+function toFieldErrorMessage(state: InventorySettingsAutosaveState, field: keyof InventoryEditorSettingsDraft): string | null {
+  const fieldErrors = state.fieldErrors[field]
+  return fieldErrors !== undefined && fieldErrors.length > 0 ? fieldErrors[0] : null
+}
 
-  const columns: NonNullable<TableProps<PropertyValueRow>['columns']> = [
-    {
-      title: 'Property',
-      dataIndex: 'property',
-      key: 'property',
-      width: 220,
-    },
-    {
-      title: 'Value',
-      dataIndex: 'value',
-      key: 'value',
-    },
-  ]
+function hasFieldErrors(state: InventorySettingsAutosaveState): boolean {
+  return Object.values(state.fieldErrors).some((messages) => (messages?.length ?? 0) > 0)
+}
+
+function firstTagFieldError(state: InventoryTagsAutosaveState): string | null {
+  for (const messages of Object.values(state.fieldErrors)) {
+    if (messages.length > 0) {
+      return messages[0]
+    }
+  }
+
+  return null
+}
+
+function hasTagFieldErrors(state: InventoryTagsAutosaveState): boolean {
+  return Object.values(state.fieldErrors).some((messages) => messages.length > 0)
+}
+
+type AutosaveBadgeState = {
+  isSaving: boolean
+  isQueued: boolean
+  isDirty: boolean
+  lastSavedAt: string | null
+}
+
+function renderAutosaveBadge(state: AutosaveBadgeState) {
+  if (state.isSaving) {
+    return <Tag color="processing">Saving...</Tag>
+  }
+
+  if (state.isQueued) {
+    return <Tag color="gold">Changes queued</Tag>
+  }
+
+  if (state.isDirty) {
+    return <Tag color="orange">Unsaved changes</Tag>
+  }
+
+  if (state.lastSavedAt !== null) {
+    const timestamp = new Date(state.lastSavedAt)
+    const savedLabel = Number.isNaN(timestamp.valueOf())
+      ? 'Saved'
+      : `Saved ${timestamp.toLocaleTimeString()}`
+    return <Tag color="green">{savedLabel}</Tag>
+  }
+
+  return <Tag color="default">No local changes</Tag>
+}
+
+function renderSettingsTab({
+  editor,
+  categoryOptions,
+  referencesStatus,
+  referencesErrorMessage,
+  retryReferences,
+  concurrencyProblem,
+  settingsAutosave,
+  onReloadEditor,
+  onClearConcurrencyProblem,
+  onUpdateSettingsDraft,
+  onSaveSettingsNow,
+  onResetSettingsDraft,
+}: {
+  editor: InventoryEditor
+  categoryOptions: ReadonlyArray<InventoryCategoryOption>
+  referencesStatus: 'loading' | 'ready' | 'error'
+  referencesErrorMessage: string | null
+  retryReferences: () => void
+  concurrencyProblem: ConcurrencyProblem | null
+  settingsAutosave: InventorySettingsAutosaveState
+  onReloadEditor: () => void
+  onClearConcurrencyProblem: () => void
+  onUpdateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
+  onSaveSettingsNow: () => void
+  onResetSettingsDraft: () => void
+}) {
+  const draft = settingsAutosave.draft
+  if (draft === null) {
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="Settings draft is not initialized."
+      />
+    )
+  }
+
+  const titleError = toFieldErrorMessage(settingsAutosave, 'title')
+  const descriptionError = toFieldErrorMessage(settingsAutosave, 'descriptionMarkdown')
+  const categoryError = toFieldErrorMessage(settingsAutosave, 'categoryId')
+  const imageUrlError = toFieldErrorMessage(settingsAutosave, 'imageUrl')
+  const saveDisabled = (
+    !settingsAutosave.canAutosave
+    || settingsAutosave.isSaving
+    || !settingsAutosave.isDirty
+    || hasFieldErrors(settingsAutosave)
+  )
+  const resetDisabled = !settingsAutosave.isDirty || settingsAutosave.isSaving
+  const selectDisabled = !settingsAutosave.canAutosave || settingsAutosave.isSaving || referencesStatus === 'loading'
 
   return (
-    <Table<PropertyValueRow>
-      rowKey="key"
-      columns={columns}
-      dataSource={rows}
-      pagination={false}
-      size="middle"
-    />
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <ConcurrencyAlert
+        problem={concurrencyProblem}
+        onReload={onReloadEditor}
+        onClose={onClearConcurrencyProblem}
+      />
+
+      {referencesStatus === 'error' ? (
+        <Alert
+          showIcon
+          type="warning"
+          message="Categories reference is unavailable"
+          description={referencesErrorMessage ?? 'Failed to load /categories.'}
+          action={(
+            <Button size="small" onClick={retryReferences}>
+              Retry
+            </Button>
+          )}
+        />
+      ) : null}
+
+      {settingsAutosave.errorMessage !== null ? (
+        <Alert
+          showIcon
+          type="error"
+          message="Settings autosave failed"
+          description={settingsAutosave.errorMessage}
+        />
+      ) : null}
+
+      <Space size={8} wrap>
+        {renderAutosaveBadge(settingsAutosave)}
+        <Tag>Autosave: {String(Math.floor(settingsAutosave.autosaveIntervalMs / 1000))}s</Tag>
+        <Tag>Dirty fields: {settingsAutosave.dirtyFields.length}</Tag>
+      </Space>
+
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+        <Typography.Text strong>Title</Typography.Text>
+        <Input
+          value={draft.title}
+          maxLength={200}
+          status={titleError !== null ? 'error' : undefined}
+          onChange={(event) => {
+            onUpdateSettingsDraft({ title: event.target.value })
+          }}
+          disabled={!settingsAutosave.canAutosave || settingsAutosave.isSaving}
+          placeholder="Inventory title"
+          autoComplete="off"
+        />
+        {titleError !== null ? <Typography.Text type="danger">{titleError}</Typography.Text> : null}
+      </Space>
+
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+        <Typography.Text strong>Category</Typography.Text>
+        <Select<number>
+          value={draft.categoryId ?? undefined}
+          options={[...categoryOptions]}
+          showSearch
+          optionFilterProp="label"
+          loading={referencesStatus === 'loading'}
+          status={categoryError !== null ? 'error' : undefined}
+          onChange={(nextCategoryId) => {
+            onUpdateSettingsDraft({ categoryId: nextCategoryId })
+          }}
+          disabled={selectDisabled}
+          placeholder="Select category"
+        />
+        {categoryError !== null ? <Typography.Text type="danger">{categoryError}</Typography.Text> : null}
+      </Space>
+
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+        <Typography.Text strong>Description (Markdown)</Typography.Text>
+        <Input.TextArea
+          value={draft.descriptionMarkdown}
+          rows={5}
+          maxLength={10_000}
+          showCount
+          status={descriptionError !== null ? 'error' : undefined}
+          onChange={(event) => {
+            onUpdateSettingsDraft({ descriptionMarkdown: event.target.value })
+          }}
+          disabled={!settingsAutosave.canAutosave || settingsAutosave.isSaving}
+          placeholder="Inventory description"
+        />
+        {descriptionError !== null ? <Typography.Text type="danger">{descriptionError}</Typography.Text> : null}
+      </Space>
+
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+        <Typography.Text strong>Image URL</Typography.Text>
+        <Input
+          value={draft.imageUrl}
+          maxLength={2_048}
+          status={imageUrlError !== null ? 'error' : undefined}
+          onChange={(event) => {
+            onUpdateSettingsDraft({ imageUrl: event.target.value })
+          }}
+          disabled={!settingsAutosave.canAutosave || settingsAutosave.isSaving}
+          placeholder="https://cdn.example.com/inventory.jpg"
+          autoComplete="off"
+        />
+        {imageUrlError !== null ? <Typography.Text type="danger">{imageUrlError}</Typography.Text> : null}
+      </Space>
+
+      <Space wrap>
+        <Button type="primary" onClick={onSaveSettingsNow} loading={settingsAutosave.isSaving} disabled={saveDisabled}>
+          Save now
+        </Button>
+        <Button onClick={onResetSettingsDraft} disabled={resetDisabled}>
+          Reset changes
+        </Button>
+      </Space>
+
+      <Typography.Text type="secondary">
+        Settings are saved via `PUT /api/v1/inventories/{editor.id}/settings` with `If-Match`.
+      </Typography.Text>
+    </Space>
   )
 }
 
-function renderTagsTab(editor: InventoryEditor) {
-  const columns: NonNullable<TableProps<InventoryEditor['tags'][number]>['columns']> = [
-    {
-      title: 'Tag',
-      dataIndex: 'name',
-      key: 'name',
-      render: (value: string) => <Tag>{value}</Tag>,
-    },
-    {
-      title: 'Tag ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 180,
-    },
-  ]
+function TagsAutosaveTab({
+  editor,
+  tagsAutosave,
+  concurrencyProblem,
+  onReloadEditor,
+  onClearConcurrencyProblem,
+  onUpdateTagsDraft,
+  onSaveTagsNow,
+  onResetTagsDraft,
+}: {
+  editor: InventoryEditor
+  tagsAutosave: InventoryTagsAutosaveState
+  concurrencyProblem: ConcurrencyProblem | null
+  onReloadEditor: () => void
+  onClearConcurrencyProblem: () => void
+  onUpdateTagsDraft: (nextTags: ReadonlyArray<string>) => void
+  onSaveTagsNow: () => void
+  onResetTagsDraft: () => void
+}) {
+  const [searchPrefix, setSearchPrefix] = useState('')
+  const {
+    status: autocompleteStatus,
+    items: autocompleteItems,
+    errorMessage: autocompleteErrorMessage,
+    requestSuggestions,
+    resetSuggestions,
+  } = useTagAutocompleteModel()
+
+  useEffect(() => {
+    const debounceHandle = window.setTimeout(() => {
+      requestSuggestions(searchPrefix)
+    }, tagAutocompleteContract.debounceMs)
+
+    return () => {
+      window.clearTimeout(debounceHandle)
+    }
+  }, [requestSuggestions, searchPrefix])
+
+  const options = useMemo(
+    () => autocompleteItems.map((item) => ({ value: item.name, label: item.name })),
+    [autocompleteItems],
+  )
+
+  const tagsError = firstTagFieldError(tagsAutosave)
+  const saveDisabled = (
+    !tagsAutosave.canAutosave
+    || tagsAutosave.isSaving
+    || !tagsAutosave.isDirty
+    || hasTagFieldErrors(tagsAutosave)
+  )
+  const resetDisabled = tagsAutosave.isSaving || !tagsAutosave.isDirty
 
   return (
-    <Table<InventoryEditor['tags'][number]>
-      rowKey="id"
-      columns={columns}
-      dataSource={[...editor.tags]}
-      pagination={false}
-      size="middle"
-      locale={{
-        emptyText: (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No tags configured for this inventory."
-          />
-        ),
-      }}
-    />
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <ConcurrencyAlert
+        problem={concurrencyProblem}
+        onReload={onReloadEditor}
+        onClose={onClearConcurrencyProblem}
+      />
+
+      {tagsAutosave.errorMessage !== null ? (
+        <Alert
+          showIcon
+          type="error"
+          message="Tags autosave failed"
+          description={tagsAutosave.errorMessage}
+        />
+      ) : null}
+
+      {autocompleteErrorMessage !== null ? (
+        <Alert
+          showIcon
+          type="warning"
+          message="Tag autocomplete request failed"
+          description={autocompleteErrorMessage}
+        />
+      ) : null}
+
+      <Space size={8} wrap>
+        {renderAutosaveBadge(tagsAutosave)}
+        <Tag>Autosave: {String(Math.floor(tagsAutosave.autosaveIntervalMs / 1000))}s</Tag>
+        <Tag>Tags: {tagsAutosave.draft.length}</Tag>
+      </Space>
+
+      <Select<string[]>
+        mode="tags"
+        value={[...tagsAutosave.draft]}
+        options={options}
+        tokenSeparators={[',']}
+        maxTagCount="responsive"
+        maxTagTextLength={inventoryEditorTagsContract.maxTagLength}
+        placeholder="Add tags"
+        disabled={!tagsAutosave.canAutosave || tagsAutosave.isSaving}
+        status={tagsError !== null ? 'error' : undefined}
+        notFoundContent={autocompleteStatus === 'loading' ? 'Loading...' : undefined}
+        onSearch={(nextPrefix) => {
+          setSearchPrefix(nextPrefix)
+        }}
+        onDropdownVisibleChange={(open) => {
+          if (!open) {
+            resetSuggestions()
+          }
+        }}
+        onChange={(nextValue) => {
+          onUpdateTagsDraft(nextValue)
+        }}
+      />
+
+      {searchPrefix.trim().length > 0 && searchPrefix.trim().length < tagAutocompleteContract.minPrefixLength ? (
+        <Typography.Text type="secondary">
+          Type at least {String(tagAutocompleteContract.minPrefixLength)} characters to get suggestions.
+        </Typography.Text>
+      ) : null}
+
+      {tagsError !== null ? (
+        <Typography.Text type="danger">
+          {tagsError}
+        </Typography.Text>
+      ) : null}
+
+      <Space wrap>
+        <Button type="primary" onClick={onSaveTagsNow} loading={tagsAutosave.isSaving} disabled={saveDisabled}>
+          Save now
+        </Button>
+        <Button onClick={onResetTagsDraft} disabled={resetDisabled}>
+          Reset changes
+        </Button>
+      </Space>
+
+      <Typography.Text type="secondary">
+        Tags are saved via `PUT /api/v1/inventories/{editor.id}/tags` with `If-Match`.
+      </Typography.Text>
+    </Space>
   )
 }
 
@@ -175,147 +521,36 @@ function renderAccessTab(editor: InventoryEditor) {
   )
 }
 
-function renderCustomFieldsTab(editor: InventoryEditor) {
-  const columns: NonNullable<TableProps<InventoryEditor['customFields'][number]>['columns']> = [
-    {
-      title: 'Field',
-      dataIndex: 'title',
-      key: 'title',
-    },
-    {
-      title: 'Type',
-      dataIndex: 'fieldType',
-      key: 'fieldType',
-      width: 160,
-      render: (fieldType: string) => <Tag>{fieldType}</Tag>,
-    },
-    {
-      title: 'Show In Table',
-      dataIndex: 'showInTable',
-      key: 'showInTable',
-      width: 140,
-      render: (showInTable: boolean) => (
-        <Tag color={showInTable ? 'green' : 'default'}>
-          {showInTable ? 'Yes' : 'No'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      render: (description: string) => (description.trim().length > 0 ? description : '(empty)'),
-    },
+function renderOverviewTable(editor: InventoryEditor, etag: string | null) {
+  const rows: PropertyValueRow[] = [
+    { key: 'id', property: 'Inventory ID', value: editor.id },
+    { key: 'version', property: 'Version', value: String(editor.version) },
+    { key: 'etag', property: 'ETag', value: etag ?? '(missing)' },
+    { key: 'title', property: 'Current title', value: editor.settings.title },
   ]
 
-  return (
-    <Table<InventoryEditor['customFields'][number]>
-      rowKey="id"
-      columns={columns}
-      dataSource={[...editor.customFields]}
-      pagination={false}
-      size="middle"
-      locale={{
-        emptyText: (
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="Custom fields are not configured yet."
-          />
-        ),
-      }}
-    />
-  )
-}
-
-function renderCustomIdTemplateTab(editor: InventoryEditor) {
-  const partColumns: NonNullable<TableProps<InventoryEditor['customIdTemplate']['parts'][number]>['columns']> = [
+  const columns: NonNullable<TableProps<PropertyValueRow>['columns']> = [
     {
-      title: 'Part Type',
-      dataIndex: 'partType',
-      key: 'partType',
-      width: 180,
-      render: (partType: string) => <Tag>{partType}</Tag>,
-    },
-    {
-      title: 'Fixed Text',
-      dataIndex: 'fixedText',
-      key: 'fixedText',
-      width: 260,
-      render: (fixedText: string | null) => fixedText ?? '(none)',
-    },
-    {
-      title: 'Format Pattern',
-      dataIndex: 'formatPattern',
-      key: 'formatPattern',
+      title: 'Property',
+      dataIndex: 'property',
+      key: 'property',
       width: 220,
-      render: (formatPattern: string | null) => formatPattern ?? '(none)',
     },
     {
-      title: 'Part ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 140,
-    },
-  ]
-
-  const warningRows = editor.customIdTemplate.preview.warnings.map((warning, index) => ({
-    key: `${warning}-${String(index)}`,
-    warning,
-  }))
-
-  const warningColumns: NonNullable<TableProps<{ key: string; warning: string }>['columns']> = [
-    {
-      title: 'Preview Warning',
-      dataIndex: 'warning',
-      key: 'warning',
-      render: (warning: string) => <Tag color="orange">{warning}</Tag>,
+      title: 'Value',
+      dataIndex: 'value',
+      key: 'value',
     },
   ]
 
   return (
-    <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Space size={8} wrap>
-        <Tag color={editor.customIdTemplate.isEnabled ? 'green' : 'default'}>
-          {editor.customIdTemplate.isEnabled ? 'Template Enabled' : 'Template Disabled'}
-        </Tag>
-        <Tag>Preview: {editor.customIdTemplate.preview.sampleCustomId || '(empty)'}</Tag>
-        <Tag>
-          Regex: {editor.customIdTemplate.derivedValidationRegex ?? '(none)'}
-        </Tag>
-      </Space>
-
-      <Table<InventoryEditor['customIdTemplate']['parts'][number]>
-        rowKey="id"
-        columns={partColumns}
-        dataSource={[...editor.customIdTemplate.parts]}
-        pagination={false}
-        size="middle"
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Template parts are not configured."
-            />
-          ),
-        }}
-      />
-
-      <Table<{ key: string; warning: string }>
-        rowKey="key"
-        columns={warningColumns}
-        dataSource={warningRows}
-        pagination={false}
-        size="middle"
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No preview warnings."
-            />
-          ),
-        }}
-      />
-    </Space>
+    <Table<PropertyValueRow>
+      rowKey="key"
+      columns={columns}
+      dataSource={rows}
+      pagination={false}
+      size="small"
+    />
   )
 }
 
@@ -324,6 +559,37 @@ export function InventoryEditorShell({
   etag,
   activeTabKey,
   tabStates,
+  categoryOptions,
+  referencesStatus,
+  referencesErrorMessage,
+  retryReferences,
+  concurrencyProblem,
+  settingsAutosave,
+  tagsAutosave,
+  customIdTemplate,
+  customFieldDrafts,
+  selectedCustomFieldKey,
+  customFieldValidationByKey,
+  customFieldGlobalValidationErrors,
+  customFieldsSaveStatus,
+  customFieldsSaveErrorMessage,
+  customFieldsLastSavedAt,
+  isCustomFieldsMutating,
+  onReloadEditor,
+  onClearConcurrencyProblem,
+  onUpdateSettingsDraft,
+  onSaveSettingsNow,
+  onResetSettingsDraft,
+  onUpdateTagsDraft,
+  onSaveTagsNow,
+  onResetTagsDraft,
+  onSelectCustomField,
+  onAddCustomField,
+  onUpdateCustomField,
+  onRemoveSelectedCustomField,
+  onMoveSelectedCustomFieldUp,
+  onMoveSelectedCustomFieldDown,
+  onResetCustomFieldsDrafts,
   onTabChange,
 }: InventoryEditorShellProps) {
   const tabs = useMemo(
@@ -334,32 +600,112 @@ export function InventoryEditorShell({
         disabled: tab.disabled,
         children:
           tab.key === 'settings'
-            ? renderSettingsTab(editor)
+            ? renderSettingsTab({
+              editor,
+              categoryOptions,
+              referencesStatus,
+              referencesErrorMessage,
+              retryReferences,
+              concurrencyProblem,
+              settingsAutosave,
+              onReloadEditor,
+              onClearConcurrencyProblem,
+              onUpdateSettingsDraft,
+              onSaveSettingsNow,
+              onResetSettingsDraft,
+            })
             : tab.key === 'tags'
-              ? renderTagsTab(editor)
+              ? (
+                <TagsAutosaveTab
+                  editor={editor}
+                  tagsAutosave={tagsAutosave}
+                  concurrencyProblem={concurrencyProblem}
+                  onReloadEditor={onReloadEditor}
+                  onClearConcurrencyProblem={onClearConcurrencyProblem}
+                  onUpdateTagsDraft={onUpdateTagsDraft}
+                  onSaveTagsNow={onSaveTagsNow}
+                  onResetTagsDraft={onResetTagsDraft}
+                />
+              )
               : tab.key === 'access'
                 ? renderAccessTab(editor)
                 : tab.key === 'customFields'
-                  ? renderCustomFieldsTab(editor)
-                  : renderCustomIdTemplateTab(editor),
+                  ? (
+                    <CustomFieldsAutosaveTab
+                      fields={customFieldDrafts}
+                      selectedFieldKey={selectedCustomFieldKey}
+                      validationByKey={customFieldValidationByKey}
+                      globalValidationErrors={customFieldGlobalValidationErrors}
+                      saveStatus={customFieldsSaveStatus}
+                      saveErrorMessage={customFieldsSaveErrorMessage}
+                      lastSavedAt={customFieldsLastSavedAt}
+                      isMutating={isCustomFieldsMutating}
+                      concurrencyProblem={concurrencyProblem}
+                      onSelectField={onSelectCustomField}
+                      onAddField={onAddCustomField}
+                      onUpdateField={onUpdateCustomField}
+                      onRemoveSelected={onRemoveSelectedCustomField}
+                      onMoveSelectedUp={onMoveSelectedCustomFieldUp}
+                      onMoveSelectedDown={onMoveSelectedCustomFieldDown}
+                      onResetDrafts={onResetCustomFieldsDrafts}
+                      onReloadEditor={onReloadEditor}
+                    />
+                  )
+                  : (
+                    <CustomIdTemplateBuilderTab
+                      model={customIdTemplate}
+                      onReloadEditor={onReloadEditor}
+                      onCloseConcurrencyAlert={onClearConcurrencyProblem}
+                    />
+                  ),
       })),
-    [editor, tabStates],
+    [
+      categoryOptions,
+      concurrencyProblem,
+      customIdTemplate,
+      customFieldDrafts,
+      customFieldGlobalValidationErrors,
+      customFieldValidationByKey,
+      customFieldsLastSavedAt,
+      customFieldsSaveErrorMessage,
+      customFieldsSaveStatus,
+      editor,
+      isCustomFieldsMutating,
+      onAddCustomField,
+      onClearConcurrencyProblem,
+      onMoveSelectedCustomFieldDown,
+      onMoveSelectedCustomFieldUp,
+      onRemoveSelectedCustomField,
+      onReloadEditor,
+      onResetCustomFieldsDrafts,
+      onResetSettingsDraft,
+      onSaveSettingsNow,
+      onResetTagsDraft,
+      onSaveTagsNow,
+      onSelectCustomField,
+      onUpdateCustomField,
+      onUpdateSettingsDraft,
+      onUpdateTagsDraft,
+      referencesErrorMessage,
+      referencesStatus,
+      retryReferences,
+      selectedCustomFieldKey,
+      settingsAutosave,
+      tagsAutosave,
+      tabStates,
+    ],
   )
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
-        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
             {editor.settings.title} Editor
           </Typography.Title>
-          <Space size={8} wrap>
-            <Tag color="blue">Inventory #{editor.id}</Tag>
-            <Tag>Version: {String(editor.version)}</Tag>
-            <Tag>ETag: {etag ?? '(missing)'}</Tag>
-          </Space>
+          {renderOverviewTable(editor, etag)}
           <Typography.Text type="secondary">
-            Editor aggregate loaded from `GET /api/v1/inventories/:inventoryId/edit`.
+            Settings, tags, and custom fields tabs use autosave with `If-Match` optimistic locking.
           </Typography.Text>
         </Space>
       </Card>

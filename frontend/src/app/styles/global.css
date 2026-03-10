@@ -215,6 +215,22 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
   justify-content: center;
 }
 
+.inventory-discussion-markdown p {
+  margin: 0 0 8px;
+}
+
+.inventory-discussion-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.inventory-discussion-markdown pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
+  padding: 8px;
+  background: rgba(148, 163, 184, 0.15);
+}
+
 @media (max-width: 900px) {
   .app-shell-header {
     align-items: flex-start;

@@ -1,5 +1,5 @@
 import { extractVersionStamp, normalizeETag, type VersionStamp } from '../../../shared/api/concurrency.ts'
-import { apiRequest } from '../../../shared/api/httpClient.ts'
+import { apiRequest, type ApiRequestOptions, type ApiResult } from '../../../shared/api/httpClient.ts'
 import type { InventoryEditor, InventoryEditorCustomField, InventoryEditorCustomIdTemplatePart } from './inventoryEditorTypes.ts'
 
 type InventoryEditorFailure = {
@@ -17,6 +17,21 @@ type InventoryEditorSuccess = {
 }
 
 export type InventoryEditorRequestResult = InventoryEditorSuccess | InventoryEditorFailure
+
+export const inventoryEditorTagsContract = {
+  maxTagLength: 100,
+} as const
+
+export type UpdateInventorySettingsPayload = {
+  title: string
+  descriptionMarkdown: string
+  categoryId: number
+  imageUrl: string | null
+}
+
+export type InventoryVersionPayload = {
+  version: number
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -409,6 +424,19 @@ function pickFirstValidationError(validationErrors: Record<string, string[]>): s
   return null
 }
 
+function normalizeInventoryVersionPayload(payload: unknown): InventoryVersionPayload | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const version = normalizePositiveInteger(payload.version)
+  if (version === null) {
+    return null
+  }
+
+  return { version }
+}
+
 export async function requestInventoryEditor(
   inventoryId: string,
   signal: AbortSignal,
@@ -454,5 +482,79 @@ export async function requestInventoryEditor(
     data: normalizedPayload,
     etag: normalizeETag(response.meta.etag),
     versionStamp,
+  }
+}
+
+export async function updateInventorySettings(
+  inventoryId: string,
+  payload: UpdateInventorySettingsPayload,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<InventoryVersionPayload>> {
+  const response = await apiRequest<unknown>(`/inventories/${inventoryId}/settings`, {
+    ...options,
+    method: 'PUT',
+    body: payload,
+  })
+
+  if (!response.ok) {
+    return response
+  }
+
+  const normalizedPayload = normalizeInventoryVersionPayload(response.data)
+  if (normalizedPayload === null) {
+    return {
+      ok: false,
+      status: response.status,
+      problem: null,
+      error: {
+        kind: 'invalid_json',
+        message: 'Received invalid response format from /inventories/{id}/settings.',
+        problem: null,
+      },
+      meta: response.meta,
+    }
+  }
+
+  return {
+    ...response,
+    data: normalizedPayload,
+  }
+}
+
+export async function replaceInventoryTags(
+  inventoryId: string,
+  tags: ReadonlyArray<string>,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<InventoryVersionPayload>> {
+  const response = await apiRequest<unknown>(`/inventories/${inventoryId}/tags`, {
+    ...options,
+    method: 'PUT',
+    body: {
+      tags: [...tags],
+    },
+  })
+
+  if (!response.ok) {
+    return response
+  }
+
+  const normalizedPayload = normalizeInventoryVersionPayload(response.data)
+  if (normalizedPayload === null) {
+    return {
+      ok: false,
+      status: response.status,
+      problem: null,
+      error: {
+        kind: 'invalid_json',
+        message: 'Received invalid response format from /inventories/{id}/tags.',
+        problem: null,
+      },
+      meta: response.meta,
+    }
+  }
+
+  return {
+    ...response,
+    data: normalizedPayload,
   }
 }

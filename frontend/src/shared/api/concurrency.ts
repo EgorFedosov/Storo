@@ -114,10 +114,6 @@ function inferConcurrencyCode(failure: ApiFailure): ConcurrencyProblemCode | nul
     return 'if_match_required'
   }
 
-  if (failure.status === 400) {
-    return 'invalid_if_match'
-  }
-
   return null
 }
 
