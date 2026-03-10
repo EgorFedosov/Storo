@@ -558,3 +558,22 @@ export async function replaceInventoryTags(
     data: normalizedPayload,
   }
 }
+
+export async function deleteInventory(
+  inventoryId: string,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<null>> {
+  const response = await apiRequest<unknown>(`/inventories/${inventoryId}`, {
+    ...options,
+    method: 'DELETE',
+  })
+
+  if (!response.ok) {
+    return response
+  }
+
+  return {
+    ...response,
+    data: null,
+  }
+}

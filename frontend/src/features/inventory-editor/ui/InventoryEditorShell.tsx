@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Empty, Input, Select, Space, Table, Tabs, Tag, Typography } from 'antd'
+import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Empty, Input, Popconfirm, Progress, Select, Space, Table, Tabs, Tag, Typography, Upload } from 'antd'
 import type { TableProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { inventoryEditorTagsContract } from '../../../entities/inventory/model/inventoryEditorApi.ts'
@@ -14,6 +15,7 @@ import {
 } from '../../../features/tags/model/useTagAutocompleteModel.ts'
 import type {
   CustomFieldsAutosaveStatus,
+  InventoryDeleteState,
   InventoryCustomIdTemplateBuilderModel,
   InventoryEditorCustomFieldDraft,
   InventoryEditorCustomFieldDraftErrors,
@@ -45,9 +47,13 @@ type InventoryEditorShellProps = {
   customFieldsSaveErrorMessage: string | null
   customFieldsLastSavedAt: number | null
   isCustomFieldsMutating: boolean
+  deleteFlow: InventoryDeleteState
   onReloadEditor: () => void
   onClearConcurrencyProblem: () => void
   onUpdateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
+  onUploadSettingsImage: (file: File) => Promise<boolean>
+  onCancelSettingsImageUpload: () => void
+  onDeleteInventory: () => Promise<void>
   onSaveSettingsNow: () => void
   onResetSettingsDraft: () => void
   onUpdateTagsDraft: (nextTags: ReadonlyArray<string>) => void
@@ -156,6 +162,10 @@ function renderSettingsTab({
   onReloadEditor,
   onClearConcurrencyProblem,
   onUpdateSettingsDraft,
+  onUploadSettingsImage,
+  onCancelSettingsImageUpload,
+  deleteFlow,
+  onDeleteInventory,
   onSaveSettingsNow,
   onResetSettingsDraft,
 }: {
@@ -169,6 +179,10 @@ function renderSettingsTab({
   onReloadEditor: () => void
   onClearConcurrencyProblem: () => void
   onUpdateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
+  onUploadSettingsImage: (file: File) => Promise<boolean>
+  onCancelSettingsImageUpload: () => void
+  deleteFlow: InventoryDeleteState
+  onDeleteInventory: () => Promise<void>
   onSaveSettingsNow: () => void
   onResetSettingsDraft: () => void
 }) {
@@ -194,6 +208,12 @@ function renderSettingsTab({
   )
   const resetDisabled = !settingsAutosave.isDirty || settingsAutosave.isSaving
   const selectDisabled = !settingsAutosave.canAutosave || settingsAutosave.isSaving || referencesStatus === 'loading'
+  const imageUpload = settingsAutosave.imageUpload
+  const isImageUploading = imageUpload.status === 'requesting_presign' || imageUpload.status === 'uploading'
+  const uploadDisabled = !settingsAutosave.canAutosave || settingsAutosave.isSaving || isImageUploading
+  const deleteDisabled = !settingsAutosave.canAutosave || settingsAutosave.isSaving || deleteFlow.isDeleting
+  const normalizedImageUrl = draft.imageUrl.trim()
+  const canShowImagePreview = normalizedImageUrl.length > 0 && imageUrlError === null
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -299,6 +319,81 @@ function renderSettingsTab({
         {imageUrlError !== null ? <Typography.Text type="danger">{imageUrlError}</Typography.Text> : null}
       </Space>
 
+      <Space direction="vertical" size={10} style={{ width: '100%' }}>
+        <Typography.Text strong>Upload Image</Typography.Text>
+        <Space wrap>
+          <Upload
+            accept="image/*"
+            maxCount={1}
+            showUploadList={false}
+            disabled={uploadDisabled}
+            customRequest={async (requestOptions) => {
+              const { file, onError, onSuccess } = requestOptions
+              if (!(file instanceof File)) {
+                onError?.(new Error('Selected upload payload is not a file.'))
+                return
+              }
+
+              const uploadCompleted = await onUploadSettingsImage(file)
+              if (uploadCompleted) {
+                onSuccess?.({})
+                return
+              }
+
+              onError?.(new Error('Image upload was not completed.'))
+            }}
+          >
+            <Button icon={<UploadOutlined />} loading={isImageUploading} disabled={uploadDisabled}>
+              {isImageUploading ? 'Uploading image...' : 'Upload image from device'}
+            </Button>
+          </Upload>
+          {isImageUploading ? (
+            <Button onClick={onCancelSettingsImageUpload}>
+              Cancel upload
+            </Button>
+          ) : null}
+        </Space>
+
+        <Space size={8} wrap>
+          {imageUpload.fileName !== null ? <Tag>{imageUpload.fileName}</Tag> : null}
+          {imageUpload.status === 'requesting_presign' ? <Tag color="processing">Preparing upload contract</Tag> : null}
+          {imageUpload.status === 'uploading' ? <Tag color="processing">Uploading to storage</Tag> : null}
+          {imageUpload.status === 'success' ? <Tag color="green">Upload completed</Tag> : null}
+        </Space>
+
+        {isImageUploading || imageUpload.status === 'success' ? (
+          <Progress percent={imageUpload.progressPercent ?? 0} size="small" />
+        ) : null}
+
+        {imageUpload.errorMessage !== null ? (
+          <Alert
+            showIcon
+            type="error"
+            message="Image upload failed"
+            description={imageUpload.errorMessage}
+          />
+        ) : null}
+
+        {imageUpload.status === 'success' && imageUpload.uploadedPublicUrl !== null ? (
+          <Typography.Text type="secondary">
+            Uploaded image URL was applied to settings and queued for autosave.
+          </Typography.Text>
+        ) : null}
+      </Space>
+
+      {canShowImagePreview ? (
+        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            Current image preview
+          </Typography.Text>
+          <img
+            src={normalizedImageUrl}
+            alt="Inventory illustration preview"
+            style={{ maxWidth: 320, width: '100%', borderRadius: 8, objectFit: 'cover' }}
+          />
+        </Space>
+      ) : null}
+
       <Space wrap>
         <Button type="primary" onClick={onSaveSettingsNow} loading={settingsAutosave.isSaving} disabled={saveDisabled}>
           Save now
@@ -307,6 +402,46 @@ function renderSettingsTab({
           Reset changes
         </Button>
       </Space>
+
+      <Card size="small" title="Danger Zone">
+        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          <Typography.Text type="danger">
+            Deleting this inventory is permanent and removes related items, access rules, tags, and discussions.
+          </Typography.Text>
+
+          {deleteFlow.errorMessage !== null ? (
+            <Alert
+              showIcon
+              type="error"
+              message="Inventory deletion failed"
+              description={deleteFlow.errorMessage}
+            />
+          ) : null}
+
+          <Popconfirm
+            title="Delete inventory permanently?"
+            description={`Inventory #${editor.id} will be removed and cannot be restored.`}
+            okText="Delete inventory"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true, loading: deleteFlow.isDeleting }}
+            onConfirm={onDeleteInventory}
+            disabled={deleteDisabled}
+          >
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              loading={deleteFlow.isDeleting}
+              disabled={deleteDisabled}
+            >
+              Delete inventory
+            </Button>
+          </Popconfirm>
+
+          <Typography.Text type="secondary">
+            Deletion uses `DELETE /api/v1/inventories/{editor.id}` with `If-Match`.
+          </Typography.Text>
+        </Space>
+      </Card>
 
       <Typography.Text type="secondary">
         Settings are saved via `PUT /api/v1/inventories/{editor.id}/settings` with `If-Match`.
@@ -575,9 +710,13 @@ export function InventoryEditorShell({
   customFieldsSaveErrorMessage,
   customFieldsLastSavedAt,
   isCustomFieldsMutating,
+  deleteFlow,
   onReloadEditor,
   onClearConcurrencyProblem,
   onUpdateSettingsDraft,
+  onUploadSettingsImage,
+  onCancelSettingsImageUpload,
+  onDeleteInventory,
   onSaveSettingsNow,
   onResetSettingsDraft,
   onUpdateTagsDraft,
@@ -611,6 +750,10 @@ export function InventoryEditorShell({
               onReloadEditor,
               onClearConcurrencyProblem,
               onUpdateSettingsDraft,
+              onUploadSettingsImage,
+              onCancelSettingsImageUpload,
+              deleteFlow,
+              onDeleteInventory,
               onSaveSettingsNow,
               onResetSettingsDraft,
             })
@@ -669,21 +812,25 @@ export function InventoryEditorShell({
       customFieldsLastSavedAt,
       customFieldsSaveErrorMessage,
       customFieldsSaveStatus,
+      deleteFlow,
       editor,
       isCustomFieldsMutating,
       onAddCustomField,
       onClearConcurrencyProblem,
+      onDeleteInventory,
       onMoveSelectedCustomFieldDown,
       onMoveSelectedCustomFieldUp,
       onRemoveSelectedCustomField,
       onReloadEditor,
       onResetCustomFieldsDrafts,
+      onCancelSettingsImageUpload,
       onResetSettingsDraft,
       onSaveSettingsNow,
       onResetTagsDraft,
       onSaveTagsNow,
       onSelectCustomField,
       onUpdateCustomField,
+      onUploadSettingsImage,
       onUpdateSettingsDraft,
       onUpdateTagsDraft,
       referencesErrorMessage,

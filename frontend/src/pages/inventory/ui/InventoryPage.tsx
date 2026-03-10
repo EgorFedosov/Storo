@@ -4,12 +4,13 @@ import { useMemo, useState } from 'react'
 import { useInventoryDetailsModel } from '../../../features/inventory-details/model/useInventoryDetailsModel.ts'
 import { InventoryDetailsView } from '../../../features/inventory-details/ui/InventoryDetailsView.tsx'
 import { InventoryDiscussionTab } from '../../../features/inventory-discussion/ui/InventoryDiscussionTab.tsx'
+import { InventoryItemsTableTab } from '../../../features/inventory-items-table/ui/InventoryItemsTableTab.tsx'
 import { navigate, useLocationSnapshot } from '../../../shared/lib/router/navigation.ts'
 
-type InventoryPageTabKey = 'overview' | 'discussion'
+type InventoryPageTabKey = 'items' | 'overview' | 'discussion'
 
 function isInventoryPageTabKey(value: string): value is InventoryPageTabKey {
-  return value === 'overview' || value === 'discussion'
+  return value === 'items' || value === 'overview' || value === 'discussion'
 }
 
 function parseInventoryIdFromPath(pathname: string): string | null {
@@ -24,7 +25,7 @@ function parseInventoryIdFromPath(pathname: string): string | null {
 
 export function InventoryPage() {
   const locationSnapshot = useLocationSnapshot()
-  const [activeTabKey, setActiveTabKey] = useState<InventoryPageTabKey>('overview')
+  const [activeTabKey, setActiveTabKey] = useState<InventoryPageTabKey>('items')
 
   const inventoryId = useMemo(
     () => parseInventoryIdFromPath(locationSnapshot.pathname),
@@ -113,6 +114,18 @@ export function InventoryPage() {
           }
         }}
         items={[
+          {
+            key: 'items',
+            label: 'Items',
+            children: (
+              <InventoryItemsTableTab
+                key={details.id}
+                inventoryId={details.id}
+                enabled={activeTabKey === 'items'}
+                canWriteItems={details.permissions.canWriteItems}
+              />
+            ),
+          },
           {
             key: 'overview',
             label: 'Overview',

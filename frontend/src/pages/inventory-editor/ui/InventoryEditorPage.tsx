@@ -47,7 +47,11 @@ export function InventoryEditorPage() {
     customFieldsSaveErrorMessage,
     customFieldsLastSavedAt,
     isCustomFieldsMutating,
+    deleteFlow,
     updateSettingsDraft,
+    uploadSettingsImage,
+    cancelSettingsImageUpload,
+    deleteInventory,
     saveSettingsNow,
     resetSettingsDraft,
     updateTagsDraft,
@@ -194,9 +198,18 @@ export function InventoryEditorPage() {
       customFieldsSaveErrorMessage={customFieldsSaveErrorMessage}
       customFieldsLastSavedAt={customFieldsLastSavedAt}
       isCustomFieldsMutating={isCustomFieldsMutating}
+      deleteFlow={deleteFlow}
       onReloadEditor={retryLoad}
       onClearConcurrencyProblem={clearConcurrencyProblem}
       onUpdateSettingsDraft={updateSettingsDraft}
+      onUploadSettingsImage={uploadSettingsImage}
+      onCancelSettingsImageUpload={cancelSettingsImageUpload}
+      onDeleteInventory={async () => {
+        const deleted = await deleteInventory()
+        if (deleted) {
+          navigate('/my/inventories')
+        }
+      }}
       onSaveSettingsNow={saveSettingsNow}
       onResetSettingsDraft={resetSettingsDraft}
       onUpdateTagsDraft={updateTagsDraft}

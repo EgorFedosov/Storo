@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  deleteInventory as requestDeleteInventory,
   inventoryEditorTagsContract,
   replaceInventoryTags,
   requestInventoryEditor,
@@ -16,6 +17,10 @@ import {
   replaceInventoryCustomFields,
   type ReplaceInventoryCustomFieldsRequestPayload,
 } from '../../../entities/inventory/model/inventoryCustomFieldsApi.ts'
+import {
+  requestInventoryImageUploadPresign,
+  uploadFileToStorage,
+} from '../../../entities/inventory/model/inventoryImageUploadApi.ts'
 import type {
   InventoryCustomFieldType,
   InventoryCustomIdPartType,
@@ -40,6 +45,15 @@ export type InventoryEditorSettingsDraft = {
   imageUrl: string
 }
 type InventoryEditorSettingsFieldErrors = Partial<Record<InventoryEditorSettingsField, string[]>>
+export type InventorySettingsImageUploadStatus = 'idle' | 'requesting_presign' | 'uploading' | 'success' | 'error'
+export type InventorySettingsImageUploadState = {
+  status: InventorySettingsImageUploadStatus
+  fileName: string | null
+  progressPercent: number | null
+  errorMessage: string | null
+  uploadedPublicUrl: string | null
+  expiresAtUtc: string | null
+}
 
 export type InventorySettingsAutosaveState = {
   draft: InventoryEditorSettingsDraft | null
@@ -52,6 +66,7 @@ export type InventorySettingsAutosaveState = {
   lastSavedAt: string | null
   errorMessage: string | null
   autosaveIntervalMs: number
+  imageUpload: InventorySettingsImageUploadState
 }
 
 export type InventoryTagsAutosaveState = {
@@ -64,6 +79,11 @@ export type InventoryTagsAutosaveState = {
   lastSavedAt: string | null
   errorMessage: string | null
   autosaveIntervalMs: number
+}
+
+export type InventoryDeleteState = {
+  isDeleting: boolean
+  errorMessage: string | null
 }
 
 export type CustomFieldsAutosaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error' | 'conflict'
@@ -167,7 +187,11 @@ type InventoryEditorModel = InventoryEditorState & {
   customFieldsSaveErrorMessage: string | null
   customFieldsLastSavedAt: number | null
   isCustomFieldsMutating: boolean
+  deleteFlow: InventoryDeleteState
   updateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
+  uploadSettingsImage: (file: File) => Promise<boolean>
+  cancelSettingsImageUpload: () => void
+  deleteInventory: () => Promise<boolean>
   saveSettingsNow: () => void
   resetSettingsDraft: () => void
   updateTagsDraft: (nextTags: ReadonlyArray<string>) => void
@@ -196,6 +220,8 @@ const initialState: InventoryEditorState = {
 }
 const settingsAutosaveIntervalMs = 8_000
 const tagsAutosaveIntervalMs = 8_000
+const maxImageUploadFileNameLength = 255
+const maxImageUploadContentTypeLength = 255
 const customFieldTypeOrder: ReadonlyArray<InventoryCustomFieldType> = [
   'single_line',
   'multi_line',
@@ -226,6 +252,17 @@ const initialCustomFieldsState: CustomFieldsEditorState = {
 }
 const maxCustomIdFixedTextLength = 500
 const maxCustomIdFormatPatternLength = 200
+
+function createInitialSettingsImageUploadState(): InventorySettingsImageUploadState {
+  return {
+    status: 'idle',
+    fileName: null,
+    progressPercent: null,
+    errorMessage: null,
+    uploadedPublicUrl: null,
+    expiresAtUtc: null,
+  }
+}
 
 type CustomIdTemplateEditorState = {
   draftIsEnabled: boolean
@@ -340,6 +377,56 @@ function settingsFailureMessage(failure: ApiFailure): string {
   return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
 }
 
+function validateImageUploadFile(file: File): string | null {
+  const normalizedFileName = file.name.trim()
+  const normalizedContentType = file.type.trim()
+
+  if (normalizedFileName.length === 0) {
+    return 'Image file name is required.'
+  }
+
+  if (normalizedFileName.length > maxImageUploadFileNameLength) {
+    return `Image file name must be ${String(maxImageUploadFileNameLength)} characters or less.`
+  }
+
+  if (normalizedContentType.length === 0) {
+    return 'Image content type is required.'
+  }
+
+  if (normalizedContentType.length > maxImageUploadContentTypeLength) {
+    return `Image content type must be ${String(maxImageUploadContentTypeLength)} characters or less.`
+  }
+
+  if (!normalizedContentType.toLocaleLowerCase().startsWith('image/')) {
+    return 'Only image files are allowed.'
+  }
+
+  if (!Number.isFinite(file.size) || file.size <= 0) {
+    return 'Image file must be a positive size.'
+  }
+
+  return null
+}
+
+function imageUploadPresignFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 401) {
+    return 'Sign in to upload inventory images.'
+  }
+
+  if (failure.status === 403) {
+    return 'You do not have permission to upload images.'
+  }
+
+  return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
+}
+
+function isAbortLikeError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError')
+    || (typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
+  )
+}
+
 function tagsFailureMessage(failure: ApiFailure): string {
   if (failure.status === 403) {
     return 'Only inventory creator or admin can modify tags.'
@@ -359,6 +446,18 @@ function customFieldsFailureMessage(failure: ApiFailure): string {
 
   if (failure.status === 404) {
     return 'Inventory was not found.'
+  }
+
+  return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
+}
+
+function deleteInventoryFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 403) {
+    return 'Only inventory creator or admin can delete this inventory.'
+  }
+
+  if (failure.status === 404) {
+    return 'Inventory was not found or is already deleted.'
   }
 
   return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
@@ -908,6 +1007,9 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
   const [settingsLastSavedAt, setSettingsLastSavedAt] = useState<string | null>(null)
   const [isSettingsSaving, setIsSettingsSaving] = useState(false)
   const [isSettingsQueued, setIsSettingsQueued] = useState(false)
+  const [settingsImageUpload, setSettingsImageUpload] = useState<InventorySettingsImageUploadState>(
+    createInitialSettingsImageUploadState(),
+  )
 
   const [persistedTags, setPersistedTags] = useState<ReadonlyArray<string>>([])
   const [tagsDraft, setTagsDraft] = useState<ReadonlyArray<string>>([])
@@ -920,6 +1022,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
   const [customFieldsState, setCustomFieldsState] = useState<CustomFieldsEditorState>(initialCustomFieldsState)
   const [isCustomFieldsSaving, setIsCustomFieldsSaving] = useState(false)
   const [isCustomFieldsQueued, setIsCustomFieldsQueued] = useState(false)
+  const [isDeletingInventory, setIsDeletingInventory] = useState(false)
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null)
   const [customIdTemplateState, setCustomIdTemplateState] = useState<CustomIdTemplateEditorState>(
     initialCustomIdTemplateState,
   )
@@ -933,6 +1037,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
   const customIdPartKeyRef = useRef(0)
   const customIdPreviewRequestRef = useRef(0)
   const customIdPreviewAbortRef = useRef<AbortController | null>(null)
+  const settingsImageUploadRequestRef = useRef(0)
+  const settingsImageUploadAbortRef = useRef<AbortController | null>(null)
 
   const {
     versionStamp,
@@ -960,6 +1066,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         clearTimeout(customFieldsTimerRef.current)
       }
       customIdPreviewAbortRef.current?.abort()
+      settingsImageUploadAbortRef.current?.abort()
     },
     [],
   )
@@ -976,6 +1083,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       clearTimeout(customFieldsTimerRef.current)
     }
     customIdPreviewAbortRef.current?.abort()
+    settingsImageUploadAbortRef.current?.abort()
 
     if (inventoryId === null) {
       clearConcurrencyProblem()
@@ -995,6 +1103,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setSettingsLastSavedAt(null)
       setIsSettingsSaving(false)
       setIsSettingsQueued(false)
+      setSettingsImageUpload(createInitialSettingsImageUploadState())
 
       setPersistedTags([])
       setTagsDraft([])
@@ -1007,6 +1116,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setCustomFieldsState(initialCustomFieldsState)
       setIsCustomFieldsSaving(false)
       setIsCustomFieldsQueued(false)
+      setIsDeletingInventory(false)
+      setDeleteErrorMessage(null)
       setCustomIdTemplateState(initialCustomIdTemplateState)
       return
     }
@@ -1032,6 +1143,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
 
       if (!response.ok) {
         resetVersionStamp()
+        setIsDeletingInventory(false)
+        setDeleteErrorMessage(null)
         setState({
           status: 'error',
           editor: null,
@@ -1058,6 +1171,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setSettingsLastSavedAt(null)
       setIsSettingsSaving(false)
       setIsSettingsQueued(false)
+      setSettingsImageUpload(createInitialSettingsImageUploadState())
 
       setPersistedTags(nextTags)
       setTagsDraft([...nextTags])
@@ -1070,6 +1184,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setCustomFieldsState(nextCustomFields)
       setIsCustomFieldsSaving(false)
       setIsCustomFieldsQueued(false)
+      setIsDeletingInventory(false)
+      setDeleteErrorMessage(null)
       setCustomIdTemplateState(nextCustomIdTemplate)
 
       setVersionStamp(response.versionStamp)
@@ -1129,6 +1245,240 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       customIdTemplateState.persistedParts,
     ],
   )
+
+  const applySettingsDraftPatch = useCallback(
+    (
+      patch: Partial<InventoryEditorSettingsDraft>,
+      options: { queueSave: boolean } = { queueSave: false },
+    ) => {
+      clearConcurrencyProblem()
+      setSettingsErrorMessage(null)
+      setSettingsFieldErrors((current) => {
+        const nextErrors = { ...current }
+        for (const fieldName of Object.keys(patch)) {
+          delete nextErrors[fieldName as InventoryEditorSettingsField]
+        }
+        return nextErrors
+      })
+      setSettingsDraft((current) => (
+        current === null
+          ? current
+          : {
+            ...current,
+            ...patch,
+          }
+      ))
+      if (isSettingsSaving || options.queueSave) {
+        setIsSettingsQueued(true)
+      }
+    },
+    [clearConcurrencyProblem, isSettingsSaving],
+  )
+
+  const cancelSettingsImageUpload = useCallback(() => {
+    settingsImageUploadAbortRef.current?.abort()
+    settingsImageUploadAbortRef.current = null
+    setSettingsImageUpload(createInitialSettingsImageUploadState())
+  }, [])
+
+  const uploadSettingsImage = useCallback(async (file: File): Promise<boolean> => {
+    if (inventoryId === null || state.editor === null || settingsDraft === null || !canAutosaveSettings) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: file.name,
+        progressPercent: null,
+        errorMessage: 'Settings tab is not ready for image upload.',
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      return false
+    }
+
+    const validationError = validateImageUploadFile(file)
+    if (validationError !== null) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: file.name,
+        progressPercent: null,
+        errorMessage: validationError,
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      return false
+    }
+
+    settingsImageUploadAbortRef.current?.abort()
+    const abortController = new AbortController()
+    settingsImageUploadAbortRef.current = abortController
+    settingsImageUploadRequestRef.current += 1
+    const requestId = settingsImageUploadRequestRef.current
+
+    setSettingsImageUpload({
+      status: 'requesting_presign',
+      fileName: file.name,
+      progressPercent: 0,
+      errorMessage: null,
+      uploadedPublicUrl: null,
+      expiresAtUtc: null,
+    })
+
+    const presignResult = await requestInventoryImageUploadPresign(
+      {
+        filename: file.name.trim(),
+        contentType: file.type.trim(),
+        size: file.size,
+      },
+      { signal: abortController.signal },
+    )
+
+    if (abortController.signal.aborted || requestId !== settingsImageUploadRequestRef.current) {
+      return false
+    }
+
+    if (!presignResult.ok) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: file.name,
+        progressPercent: null,
+        errorMessage: imageUploadPresignFailureMessage(presignResult),
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      settingsImageUploadAbortRef.current = null
+      return false
+    }
+
+    setSettingsImageUpload({
+      status: 'uploading',
+      fileName: file.name,
+      progressPercent: 0,
+      errorMessage: null,
+      uploadedPublicUrl: presignResult.data.publicUrl,
+      expiresAtUtc: presignResult.data.upload.expiresAtUtc,
+    })
+
+    try {
+      await uploadFileToStorage({
+        upload: presignResult.data.upload,
+        file,
+        signal: abortController.signal,
+        onProgress: (progressPercent) => {
+          if (requestId !== settingsImageUploadRequestRef.current) {
+            return
+          }
+
+          setSettingsImageUpload((current) => ({
+            ...current,
+            status: 'uploading',
+            progressPercent,
+          }))
+        },
+      })
+    } catch (error) {
+      if (abortController.signal.aborted || isAbortLikeError(error)) {
+        if (requestId === settingsImageUploadRequestRef.current) {
+          setSettingsImageUpload(createInitialSettingsImageUploadState())
+        }
+        return false
+      }
+
+      if (requestId === settingsImageUploadRequestRef.current) {
+        setSettingsImageUpload({
+          status: 'error',
+          fileName: file.name,
+          progressPercent: null,
+          errorMessage: error instanceof Error ? error.message : 'Image upload failed.',
+          uploadedPublicUrl: null,
+          expiresAtUtc: null,
+        })
+      }
+      return false
+    } finally {
+      if (requestId === settingsImageUploadRequestRef.current) {
+        settingsImageUploadAbortRef.current = null
+      }
+    }
+
+    if (abortController.signal.aborted || requestId !== settingsImageUploadRequestRef.current) {
+      return false
+    }
+
+    setSettingsImageUpload({
+      status: 'success',
+      fileName: file.name,
+      progressPercent: 100,
+      errorMessage: null,
+      uploadedPublicUrl: presignResult.data.publicUrl,
+      expiresAtUtc: presignResult.data.upload.expiresAtUtc,
+    })
+    setSettingsLastSavedAt(null)
+    applySettingsDraftPatch(
+      {
+        imageUrl: presignResult.data.publicUrl,
+      },
+      { queueSave: true },
+    )
+    return true
+  }, [applySettingsDraftPatch, canAutosaveSettings, inventoryId, settingsDraft, state.editor])
+
+  const deleteInventory = useCallback(async (): Promise<boolean> => {
+    if (inventoryId === null || state.editor === null) {
+      setDeleteErrorMessage('Inventory editor data is not ready for deletion.')
+      return false
+    }
+
+    if (isDeletingInventory) {
+      return false
+    }
+
+    clearConcurrencyProblem()
+    setDeleteErrorMessage(null)
+    setIsDeletingInventory(true)
+
+    const result = await executeVersionedMutation((options) => requestDeleteInventory(inventoryId, options))
+    setIsDeletingInventory(false)
+
+    if (result === null) {
+      if (versionStamp !== null) {
+        setDeleteErrorMessage('Another save operation is in progress. Retry after it completes.')
+      }
+
+      return false
+    }
+
+    if (!result.ok) {
+      if (getConcurrencyProblem(result) === null) {
+        setDeleteErrorMessage(deleteInventoryFailureMessage(result))
+      }
+
+      return false
+    }
+
+    if (settingsTimerRef.current !== null) {
+      clearTimeout(settingsTimerRef.current)
+    }
+
+    if (tagsTimerRef.current !== null) {
+      clearTimeout(tagsTimerRef.current)
+    }
+
+    if (customFieldsTimerRef.current !== null) {
+      clearTimeout(customFieldsTimerRef.current)
+    }
+
+    setIsSettingsQueued(false)
+    setIsTagsQueued(false)
+    setIsCustomFieldsQueued(false)
+    setDeleteErrorMessage(null)
+    return true
+  }, [
+    clearConcurrencyProblem,
+    executeVersionedMutation,
+    inventoryId,
+    isDeletingInventory,
+    state.editor,
+    versionStamp,
+  ])
 
   const saveSettings = useCallback(async () => {
     if (inventoryId === null || state.editor === null || settingsDraft === null) {
@@ -1938,6 +2288,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       lastSavedAt: settingsLastSavedAt,
       errorMessage: settingsErrorMessage,
       autosaveIntervalMs: settingsAutosaveIntervalMs,
+      imageUpload: settingsImageUpload,
     }),
     [
       canAutosaveSettings,
@@ -1948,6 +2299,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       settingsDraft,
       settingsErrorMessage,
       settingsFieldErrors,
+      settingsImageUpload,
       settingsLastSavedAt,
     ],
   )
@@ -2198,28 +2550,16 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       customFieldsSaveErrorMessage: customFieldsState.saveErrorMessage,
       customFieldsLastSavedAt: customFieldsState.lastSavedAt,
       isCustomFieldsMutating: isCustomFieldsSaving,
-      updateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => {
-        clearConcurrencyProblem()
-        setSettingsErrorMessage(null)
-        setSettingsFieldErrors((current) => ({
-          ...current,
-          ...(Object.keys(patch).reduce((acc, key) => {
-            delete acc[key as InventoryEditorSettingsField]
-            return acc
-          }, { ...current } as InventoryEditorSettingsFieldErrors)),
-        }))
-        setSettingsDraft((current) => (
-          current === null
-            ? current
-            : {
-              ...current,
-              ...patch,
-            }
-        ))
-        if (isSettingsSaving) {
-          setIsSettingsQueued(true)
-        }
+      deleteFlow: {
+        isDeleting: isDeletingInventory,
+        errorMessage: deleteErrorMessage,
       },
+      updateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => {
+        applySettingsDraftPatch(patch)
+      },
+      uploadSettingsImage,
+      cancelSettingsImageUpload,
+      deleteInventory,
       saveSettingsNow: () => {
         if (settingsTimerRef.current !== null) {
           clearTimeout(settingsTimerRef.current)
@@ -2227,10 +2567,13 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         void saveSettings()
       },
       resetSettingsDraft: () => {
+        settingsImageUploadAbortRef.current?.abort()
+        settingsImageUploadAbortRef.current = null
         clearConcurrencyProblem()
         setSettingsErrorMessage(null)
         setSettingsFieldErrors({})
         setIsSettingsQueued(false)
+        setSettingsImageUpload(createInitialSettingsImageUploadState())
         if (persistedSettingsDraft !== null) {
           setSettingsDraft({ ...persistedSettingsDraft })
         }
@@ -2270,6 +2613,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
     }),
     [
       addCustomFieldDraft,
+      applySettingsDraftPatch,
+      cancelSettingsImageUpload,
       clearConcurrencyProblem,
       concurrencyProblem,
       customFieldsState.draftFields,
@@ -2280,8 +2625,10 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       customFieldsState.validation.byFieldKey,
       customFieldsState.validation.globalErrors,
       customIdTemplate,
+      deleteErrorMessage,
+      deleteInventory,
       isCustomFieldsSaving,
-      isSettingsSaving,
+      isDeletingInventory,
       isTagsSaving,
       moveSelectedCustomFieldDraftDown,
       moveSelectedCustomFieldDraftUp,
@@ -2300,8 +2647,10 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       saveTags,
       setSelectedCustomFieldKey,
       settingsAutosave,
+      setSettingsImageUpload,
       state,
       tagsAutosave,
+      uploadSettingsImage,
       updateCustomFieldDraft,
       versionStamp?.etag,
     ],
