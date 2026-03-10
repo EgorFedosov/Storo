@@ -59,10 +59,10 @@ export function ItemPage() {
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-            Item
+            Предмет
           </Typography.Title>
           <Typography.Text type="secondary">
-            Loading item details...
+            Загрузка данных предмета...
           </Typography.Text>
           <div className="inventory-details-loader" role="status" aria-live="polite">
             <Spin size="large" />
@@ -77,15 +77,15 @@ export function ItemPage() {
       return (
         <Result
           status="404"
-          title="Item not found"
-          subTitle="Requested item does not exist or was removed."
+          title="Предмет не найден"
+          subTitle="Запрошенный предмет не существует или был удален."
           extra={(
             <Space wrap>
               <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-                Retry
+                Повторить
               </Button>
               <Button onClick={() => navigate('/home')}>
-                Go to Home
+                На главную
               </Button>
             </Space>
           )}
@@ -97,11 +97,11 @@ export function ItemPage() {
       <Alert
         showIcon
         type="error"
-        message="Failed to load item details"
-        description={errorMessage ?? 'Item details request failed.'}
+        message="Не удалось загрузить данные предмета"
+        description={errorMessage ?? 'Запрос данных предмета завершился ошибкой.'}
         action={(
           <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />
@@ -112,11 +112,11 @@ export function ItemPage() {
     return (
       <Result
         status="error"
-        title="Item details are unavailable"
-        subTitle="API returned an unexpected response."
+        title="Данные предмета недоступны"
+        subTitle="API вернул неожиданный ответ."
         extra={(
           <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />
@@ -147,4 +147,3 @@ export function ItemPage() {
     />
   )
 }
-

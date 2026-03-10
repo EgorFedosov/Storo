@@ -1,15 +1,15 @@
 import { App as AntdApp, ConfigProvider, theme as antdThemeRuntime } from 'antd'
+import ruRU from 'antd/locale/ru_RU'
 import { useEffect, useMemo } from 'react'
 import type { PropsWithChildren } from 'react'
-import { useCurrentUser } from '../../features/auth/model/useCurrentUser.ts'
+import { useUiPreferences } from '../../features/preferences/model/uiPreferencesStore.tsx'
 import { antdTheme } from '../../shared/ui/theme/antdTheme.ts'
 
 type AntdConfigProviderProps = PropsWithChildren
 
 export function AntdConfigProvider({ children }: AntdConfigProviderProps) {
-  const { currentUser } = useCurrentUser()
-  const normalizedLanguage = currentUser.language.trim().toLowerCase() || 'en'
-  const normalizedTheme = currentUser.theme === 'dark' ? 'dark' : 'light'
+  const { theme } = useUiPreferences()
+  const normalizedTheme = theme === 'dark' ? 'dark' : 'light'
 
   const configuredTheme = useMemo(
     () => ({
@@ -23,12 +23,12 @@ export function AntdConfigProvider({ children }: AntdConfigProviderProps) {
   )
 
   useEffect(() => {
-    document.documentElement.lang = normalizedLanguage
+    document.documentElement.lang = 'ru'
     document.documentElement.dataset.uiTheme = normalizedTheme
-  }, [normalizedLanguage, normalizedTheme])
+  }, [normalizedTheme])
 
   return (
-    <ConfigProvider theme={configuredTheme}>
+    <ConfigProvider theme={configuredTheme} locale={ruRU}>
       <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   )

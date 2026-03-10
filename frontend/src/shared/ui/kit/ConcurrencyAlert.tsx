@@ -25,7 +25,7 @@ export function ConcurrencyAlert({ problem, onReload, onClose, style }: Concurre
       action={
         ui.requiresReload && onReload !== undefined ? (
           <Button size="small" onClick={onReload}>
-            Reload
+            Перезагрузить
           </Button>
         ) : undefined
       }

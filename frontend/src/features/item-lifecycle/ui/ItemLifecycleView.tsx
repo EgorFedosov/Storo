@@ -65,21 +65,21 @@ const modelMappedFieldPattern = /^fields\.(\d+)$/i
 
 function formatUtcDateTime(value: string): string {
   const parsedValue = dayjs(value)
-  return parsedValue.isValid() ? parsedValue.format('YYYY-MM-DD HH:mm') : value
+  return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm') : value
 }
 
 function toFieldTypeLabel(fieldType: InventoryCustomFieldType): string {
   switch (fieldType) {
     case 'single_line':
-      return 'Single line'
+      return 'Однострочное'
     case 'multi_line':
-      return 'Multi line'
+      return 'Многострочное'
     case 'number':
-      return 'Number'
+      return 'Число'
     case 'link':
-      return 'Link'
+      return 'Ссылка'
     case 'bool':
-      return 'Boolean'
+      return 'Логическое'
     default:
       return fieldType
   }
@@ -181,11 +181,11 @@ function applyServerFieldErrors(
 
 function toSnapshotRows(item: ItemDetails, etag: string | null): ItemSnapshotRow[] {
   return [
-    { key: 'itemId', property: 'Item ID', value: item.id },
-    { key: 'customId', property: 'Custom ID', value: item.customId },
+    { key: 'itemId', property: 'ID элемента', value: item.id },
+    { key: 'customId', property: 'Пользовательский ID', value: item.customId },
     {
       key: 'inventory',
-      property: 'Inventory',
+      property: 'Инвентарь',
       value: (
         <Typography.Link onClick={() => navigate(`/inventories/${item.inventory.id}`)}>
           {item.inventory.title} (#{item.inventory.id})
@@ -194,29 +194,29 @@ function toSnapshotRows(item: ItemDetails, etag: string | null): ItemSnapshotRow
     },
     {
       key: 'createdBy',
-      property: 'Created by',
+      property: 'Создал',
       value: item.fixedFields.createdBy === null
-        ? 'Unknown'
+        ? 'Неизвестно'
         : `${item.fixedFields.createdBy.displayName} (@${item.fixedFields.createdBy.userName})`,
     },
     {
       key: 'updatedBy',
-      property: 'Updated by',
+      property: 'Обновил',
       value: item.fixedFields.updatedBy === null
-        ? 'Unknown'
+        ? 'Неизвестно'
         : `${item.fixedFields.updatedBy.displayName} (@${item.fixedFields.updatedBy.userName})`,
     },
-    { key: 'createdAt', property: 'Created at (UTC)', value: formatUtcDateTime(item.fixedFields.createdAt) },
-    { key: 'updatedAt', property: 'Updated at (UTC)', value: formatUtcDateTime(item.fixedFields.updatedAt) },
-    { key: 'version', property: 'Version', value: String(item.version) },
-    { key: 'etag', property: 'ETag', value: etag ?? `(missing; fallback "${String(item.version)}")` },
+    { key: 'createdAt', property: 'Создано (UTC)', value: formatUtcDateTime(item.fixedFields.createdAt) },
+    { key: 'updatedAt', property: 'Обновлено (UTC)', value: formatUtcDateTime(item.fixedFields.updatedAt) },
+    { key: 'version', property: 'Версия', value: String(item.version) },
+    { key: 'etag', property: 'ETag', value: etag ?? `(отсутствует, используется версия "${String(item.version)}")` },
     {
       key: 'likes',
-      property: 'Likes',
+      property: 'Лайки',
       value: (
         <Space size={6} wrap>
           <Tag color="blue">{String(item.like.count)}</Tag>
-          {item.like.likedByCurrentUser ? <Tag color="green">Liked by you</Tag> : <Tag>Not liked</Tag>}
+          {item.like.likedByCurrentUser ? <Tag color="green">Вы поставили лайк</Tag> : <Tag>Лайк не поставлен</Tag>}
         </Space>
       ),
     },
@@ -270,13 +270,13 @@ export function ItemLifecycleView({
   const snapshotColumns = useMemo<NonNullable<TableProps<ItemSnapshotRow>['columns']>>(
     () => [
       {
-        title: 'Property',
+        title: 'Параметр',
         dataIndex: 'property',
         key: 'property',
         width: 240,
       },
       {
-        title: 'Value',
+        title: 'Значение',
         dataIndex: 'value',
         key: 'value',
       },
@@ -300,7 +300,7 @@ export function ItemLifecycleView({
 
     const result = await onSubmitUpdate(normalizeFormInput(values))
     if (result.ok) {
-      messageApi.success('Item was updated.')
+      messageApi.success('Элемент обновлен.')
       return
     }
 
@@ -314,17 +314,17 @@ export function ItemLifecycleView({
       <Card>
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space size={8} wrap>
-            <Tag color="blue">Item #{item.id}</Tag>
-            <Tag>Inventory #{item.inventory.id}</Tag>
-            <Tag>Version: {String(item.version)}</Tag>
+            <Tag color="blue">Элемент #{item.id}</Tag>
+            <Tag>Инвентарь #{item.inventory.id}</Tag>
+            <Tag>Версия: {String(item.version)}</Tag>
             <Tag color={canEdit ? 'green' : 'default'}>
-              {canEdit ? 'Editable' : 'Read-only'}
+              {canEdit ? 'Можно редактировать' : 'Только чтение'}
             </Tag>
             <Tag color={canDelete ? 'volcano' : 'default'}>
-              {canDelete ? 'Can delete' : 'Cannot delete'}
+              {canDelete ? 'Можно удалить' : 'Удаление запрещено'}
             </Tag>
             <Tag color={canLike ? 'green' : 'default'}>
-              {canLike ? 'Can like' : 'Cannot like'}
+              {canLike ? 'Можно ставить лайк' : 'Лайки запрещены'}
             </Tag>
           </Space>
 
@@ -342,13 +342,13 @@ export function ItemLifecycleView({
                 void onSubmitLike(!item.like.likedByCurrentUser)
               }}
             >
-              {item.like.likedByCurrentUser ? 'Unlike' : 'Like'}
+              {item.like.likedByCurrentUser ? 'Убрать лайк' : 'Лайк'}
             </Button>
-            <Tag color="blue">Likes: {String(item.like.count)}</Tag>
+            <Tag color="blue">Лайков: {String(item.like.count)}</Tag>
           </Space>
 
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Item lifecycle contract: `GET/PUT/DELETE /api/v1/items/{item.id}` with `If-Match` on mutation endpoints.
+            Контракт жизненного цикла элемента: `GET/PUT/DELETE /api/v1/items/{item.id}` с `If-Match` на изменяющих endpoints.
           </Typography.Paragraph>
         </Space>
       </Card>
@@ -363,8 +363,8 @@ export function ItemLifecycleView({
         <Alert
           showIcon
           type="info"
-          message="Guest read-only mode"
-          description="Sign in to edit or delete this item if your access level allows it."
+          message="Гостевой режим только для чтения"
+          description="Войдите в аккаунт, чтобы редактировать или удалять этот элемент, если уровень доступа это позволяет."
         />
       ) : null}
 
@@ -372,8 +372,8 @@ export function ItemLifecycleView({
         <Alert
           showIcon
           type="warning"
-          message="Account is blocked"
-          description="Blocked users cannot perform mutating operations."
+          message="Аккаунт заблокирован"
+          description="Заблокированные пользователи не могут выполнять изменяющие операции."
         />
       ) : null}
 
@@ -381,7 +381,7 @@ export function ItemLifecycleView({
         <Alert
           showIcon
           type="error"
-          message="Failed to update item"
+          message="Не удалось обновить элемент"
           description={updateErrorMessage}
         />
       ) : null}
@@ -390,7 +390,7 @@ export function ItemLifecycleView({
         <Alert
           showIcon
           type="error"
-          message="Failed to delete item"
+          message="Не удалось удалить элемент"
           description={deleteErrorMessage}
         />
       ) : null}
@@ -399,16 +399,16 @@ export function ItemLifecycleView({
         <Alert
           showIcon
           type="error"
-          message="Failed to update like"
+          message="Не удалось обновить лайк"
           description={likeErrorMessage}
         />
       ) : null}
 
       <Card
-        title="Item Snapshot"
+        title="Снимок элемента"
         extra={(
           <Button icon={<ReloadOutlined />} onClick={onReloadLatest} disabled={isUpdating || isDeleting}>
-            Reload
+            Обновить
           </Button>
         )}
       >
@@ -422,15 +422,15 @@ export function ItemLifecycleView({
       </Card>
 
       <Card
-        title="Edit Item"
+        title="Редактирование элемента"
         extra={(
           <Space wrap>
             {canDelete ? (
               <Popconfirm
-                title="Delete item permanently?"
-                description={`Item ${item.customId} will be removed.`}
-                okText="Delete item"
-                cancelText="Cancel"
+                title="Удалить элемент безвозвратно?"
+                description={`Элемент ${item.customId} будет удален.`}
+                okText="Удалить элемент"
+                cancelText="Отмена"
                 okButtonProps={{ danger: true, loading: isDeleting }}
                 onConfirm={onDelete}
                 disabled={isUpdating || isDeleting}
@@ -441,12 +441,12 @@ export function ItemLifecycleView({
                   loading={isDeleting}
                   disabled={isUpdating || isDeleting}
                 >
-                  Delete item
+                  Удалить элемент
                 </Button>
               </Popconfirm>
             ) : null}
             <Button onClick={handleReset} disabled={isUpdating || isDeleting}>
-              Reset
+              Сбросить
             </Button>
             <Button
               type="primary"
@@ -456,7 +456,7 @@ export function ItemLifecycleView({
               loading={isUpdating}
               disabled={!canEdit || isUpdating || isDeleting}
             >
-              Save changes
+              Сохранить изменения
             </Button>
           </Space>
         )}
@@ -473,18 +473,18 @@ export function ItemLifecycleView({
           onFinish={handleSubmit}
         >
           <Form.Item<ItemFormValues>
-            label="Custom ID"
+            label="Пользовательский ID"
             name="customId"
             validateFirst
             rules={[
               {
                 required: true,
                 whitespace: true,
-                message: 'customId is required.',
+                message: 'Поле customId обязательно.',
               },
               {
                 max: itemLifecycleContract.maxCustomIdLength,
-                message: `customId must be ${String(itemLifecycleContract.maxCustomIdLength)} characters or less.`,
+                message: `customId не должен превышать ${String(itemLifecycleContract.maxCustomIdLength)} символов.`,
               },
             ]}
           >
@@ -497,7 +497,7 @@ export function ItemLifecycleView({
           {item.fields.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No active custom fields for this item."
+              description="Для этого элемента нет активных пользовательских полей."
             />
           ) : null}
 
@@ -516,7 +516,7 @@ export function ItemLifecycleView({
                   rules={[
                     {
                       max: maxLength,
-                      message: `Value must be ${String(maxLength)} characters or less.`,
+                      message: `Значение не должно превышать ${String(maxLength)} символов.`,
                     },
                   ]}
                 >
@@ -535,7 +535,7 @@ export function ItemLifecycleView({
                   rules={[
                     {
                       max: itemLifecycleContract.maxMultiLineLength,
-                      message: `Value must be ${String(itemLifecycleContract.maxMultiLineLength)} characters or less.`,
+                      message: `Значение не должно превышать ${String(itemLifecycleContract.maxMultiLineLength)} символов.`,
                     },
                   ]}
                 >
@@ -563,7 +563,7 @@ export function ItemLifecycleView({
                         }
 
                         if (typeof value !== 'number' || !Number.isFinite(value)) {
-                          throw new Error('Number value must be numeric.')
+                          throw new Error('Значение должно быть числом.')
                         }
                       },
                     },
@@ -588,7 +588,7 @@ export function ItemLifecycleView({
                 valuePropName="checked"
                 extra={field.description.trim().length > 0 ? field.description : undefined}
               >
-                <Switch checkedChildren="True" unCheckedChildren="False" />
+                <Switch checkedChildren="Да" unCheckedChildren="Нет" />
               </Form.Item>
             )
           })}
@@ -597,6 +597,3 @@ export function ItemLifecycleView({
     </Space>
   )
 }
-
-
-

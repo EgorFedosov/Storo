@@ -27,13 +27,13 @@ import {
 import { useMyInventoriesModel } from '../model/useMyInventoriesModel.ts'
 
 const relationLabels: Record<InventoryRelation, string> = {
-  owned: 'Owned',
-  writable: 'Writable',
+  owned: 'Собственные',
+  writable: 'Доступные для редактирования',
 }
 
 const relationDescriptions: Record<InventoryRelation, string> = {
-  owned: 'Inventories created by you.',
-  writable: 'Inventories where you can add or edit items.',
+  owned: 'Инвентари, которые создали вы.',
+  writable: 'Инвентари, в которых вы можете добавлять и редактировать предметы.',
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -104,7 +104,7 @@ export function MyInventoriesPage() {
 
         const columns: NonNullable<TableProps<UserInventoryRow>['columns']> = [
           {
-            title: 'Title',
+            title: 'Название',
             dataIndex: 'title',
             key: 'title',
             sorter: true,
@@ -120,13 +120,13 @@ export function MyInventoriesPage() {
             ),
           },
           {
-            title: 'Category',
+            title: 'Категория',
             dataIndex: ['category', 'name'],
             key: 'category',
             width: 180,
           },
           {
-            title: 'Owner',
+            title: 'Владелец',
             dataIndex: 'owner',
             key: 'owner',
             width: 220,
@@ -138,18 +138,18 @@ export function MyInventoriesPage() {
             ),
           },
           {
-            title: 'Access',
+            title: 'Доступ',
             dataIndex: 'isPublic',
             key: 'isPublic',
             width: 120,
             render: (isPublic: boolean) => (
               <Tag color={isPublic ? 'green' : 'gold'}>
-                {isPublic ? 'Public' : 'Restricted'}
+                {isPublic ? 'Публичный' : 'Ограниченный'}
               </Tag>
             ),
           },
           {
-            title: 'Items',
+            title: 'Предметы',
             dataIndex: 'itemsCount',
             key: 'itemsCount',
             align: 'right',
@@ -162,7 +162,7 @@ export function MyInventoriesPage() {
             ),
           },
           {
-            title: 'Created',
+            title: 'Создан',
             dataIndex: 'createdAt',
             key: 'createdAt',
             width: 190,
@@ -175,7 +175,7 @@ export function MyInventoriesPage() {
             render: (value: string) => formatUtcDate(value),
           },
           {
-            title: 'Updated',
+            title: 'Обновлен',
             dataIndex: 'updatedAt',
             key: 'updatedAt',
             width: 190,
@@ -239,7 +239,7 @@ export function MyInventoriesPage() {
                   <Space wrap>
                     <Input
                       allowClear
-                      placeholder="Filter by inventory title"
+                      placeholder="Фильтр по названию инвентаря"
                       value={tableState.draftQuery}
                       maxLength={myInventoriesContract.maxQueryLength}
                       onChange={(event) => updateDraftQuery(relation, event.target.value)}
@@ -251,17 +251,17 @@ export function MyInventoriesPage() {
                       type="primary"
                       onClick={() => applyQuery(relation)}
                     >
-                      Apply
+                      Применить
                     </Button>
                     <Button onClick={() => resetQuery(relation)}>
-                      Reset
+                      Сбросить
                     </Button>
                     <Button
                       icon={<ReloadOutlined />}
                       onClick={() => refreshRelation(relation)}
                       loading={tableState.status === 'loading'}
                     >
-                      Refresh
+                      Обновить
                     </Button>
                   </Space>
                 </Space>
@@ -271,11 +271,11 @@ export function MyInventoriesPage() {
                 <Alert
                   showIcon
                   type="error"
-                  message={`Failed to load ${relationLabels[relation].toLowerCase()} inventories`}
+                  message={`Не удалось загрузить список "${relationLabels[relation]}"`}
                   description={tableState.errorMessage}
                   action={(
                     <Button size="small" type="primary" onClick={() => refreshRelation(relation)}>
-                      Retry
+                      Повторить
                     </Button>
                   )}
                 />
@@ -295,7 +295,7 @@ export function MyInventoriesPage() {
                   emptyText: (
                     <Empty
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="No inventories found for current filters."
+                      description="По текущим фильтрам инвентари не найдены."
                     />
                   ),
                 }}
@@ -305,7 +305,7 @@ export function MyInventoriesPage() {
                   total: tableState.data?.totalCount ?? 0,
                   showSizeChanger: true,
                   pageSizeOptions: ['10', '20', '50', '100'],
-                  showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+                  showTotal: (total, range) => `${range[0]}-${range[1]} из ${total}`,
                 }}
               />
             </Space>
@@ -319,10 +319,10 @@ export function MyInventoriesPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 4 }}>
-          My Inventories
+          Мои инвентари
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          Table-first personal workspace with separate views for owned and writable inventories.
+          Рабочее пространство в табличном формате с отдельными вкладками для собственных и доступных для редактирования инвентарей.
         </Typography.Paragraph>
         <Space wrap size={8}>
           <Tag color="blue">{currentUser.displayName}</Tag>
@@ -334,7 +334,7 @@ export function MyInventoriesPage() {
               icon={<PlusOutlined />}
               onClick={() => navigate(routes.createInventory.path)}
             >
-              Create Inventory
+              Создать инвентарь
             </Button>
           ) : null}
         </Space>

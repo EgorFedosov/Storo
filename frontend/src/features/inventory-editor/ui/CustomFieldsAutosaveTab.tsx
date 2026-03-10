@@ -41,35 +41,35 @@ type SaveStatusMeta = {
 }
 
 const customFieldTypeOptions = [
-  { label: 'Single line', value: 'single_line' },
-  { label: 'Multi line', value: 'multi_line' },
-  { label: 'Number', value: 'number' },
-  { label: 'Link', value: 'link' },
-  { label: 'Boolean', value: 'bool' },
+  { label: 'Однострочное', value: 'single_line' },
+  { label: 'Многострочное', value: 'multi_line' },
+  { label: 'Число', value: 'number' },
+  { label: 'Ссылка', value: 'link' },
+  { label: 'Логическое', value: 'bool' },
 ] as const
 
 function getSaveStatusMeta(status: CustomFieldsAutosaveStatus): SaveStatusMeta {
   if (status === 'pending') {
-    return { color: 'gold', label: 'Pending autosave' }
+    return { color: 'gold', label: 'Ожидает автосохранения' }
   }
 
   if (status === 'saving') {
-    return { color: 'processing', label: 'Saving' }
+    return { color: 'processing', label: 'Сохранение' }
   }
 
   if (status === 'saved') {
-    return { color: 'green', label: 'Saved' }
+    return { color: 'green', label: 'Сохранено' }
   }
 
   if (status === 'error') {
-    return { color: 'red', label: 'Save failed' }
+    return { color: 'red', label: 'Ошибка сохранения' }
   }
 
   if (status === 'conflict') {
-    return { color: 'red', label: 'Concurrency conflict' }
+    return { color: 'red', label: 'Конфликт версий' }
   }
 
-  return { color: 'default', label: 'No pending changes' }
+  return { color: 'default', label: 'Нет несохраненных изменений' }
 }
 
 function formatLastSavedAt(timestamp: number | null): string | null {
@@ -120,7 +120,7 @@ export function CustomFieldsAutosaveTab({
         render: (_value: unknown, _record: InventoryEditorCustomFieldDraft, index: number) => String(index + 1),
       },
       {
-        title: 'Field Type',
+        title: 'Тип поля',
         dataIndex: 'fieldType',
         key: 'fieldType',
         width: 180,
@@ -137,7 +137,7 @@ export function CustomFieldsAutosaveTab({
         ),
       },
       {
-        title: 'Title',
+        title: 'Название',
         dataIndex: 'title',
         key: 'title',
         render: (value: string, record: InventoryEditorCustomFieldDraft) => (
@@ -145,7 +145,7 @@ export function CustomFieldsAutosaveTab({
             value={value}
             status={validationByKey[record.key]?.title === null ? undefined : 'error'}
             maxLength={inventoryCustomFieldsAutosaveContract.maxTitleLength}
-            placeholder="Field title"
+            placeholder="Название поля"
             disabled={isMutating}
             onChange={(event) => {
               onUpdateField(record.key, { title: event.target.value })
@@ -154,7 +154,7 @@ export function CustomFieldsAutosaveTab({
         ),
       },
       {
-        title: 'Description',
+        title: 'Описание',
         dataIndex: 'description',
         key: 'description',
         render: (value: string, record: InventoryEditorCustomFieldDraft) => (
@@ -162,7 +162,7 @@ export function CustomFieldsAutosaveTab({
             value={value}
             status={validationByKey[record.key]?.description === null ? undefined : 'error'}
             maxLength={inventoryCustomFieldsAutosaveContract.maxDescriptionLength}
-            placeholder="Optional field description"
+            placeholder="Необязательное описание поля"
             disabled={isMutating}
             onChange={(event) => {
               onUpdateField(record.key, { description: event.target.value })
@@ -171,7 +171,7 @@ export function CustomFieldsAutosaveTab({
         ),
       },
       {
-        title: 'Show In Table',
+        title: 'Показывать в таблице',
         dataIndex: 'showInTable',
         key: 'showInTable',
         width: 140,
@@ -186,11 +186,11 @@ export function CustomFieldsAutosaveTab({
         ),
       },
       {
-        title: 'Field ID',
+        title: 'ID поля',
         dataIndex: 'id',
         key: 'id',
         width: 140,
-        render: (value: string | null) => value ?? '(new)',
+        render: (value: string | null) => value ?? '(новое)',
       },
     ],
     [isMutating, onUpdateField, validationByKey],
@@ -200,8 +200,8 @@ export function CustomFieldsAutosaveTab({
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space size={8} wrap>
         <Tag color={saveStatusMeta.color}>{saveStatusMeta.label}</Tag>
-        {lastSavedLabel === null ? null : <Tag>Last saved at {lastSavedLabel}</Tag>}
-        <Tag>Autosave every {String(inventoryCustomFieldsAutosaveContract.autosaveDelayMs / 1000)}s</Tag>
+        {lastSavedLabel === null ? null : <Tag>Последнее сохранение: {lastSavedLabel}</Tag>}
+        <Tag>Автосохранение каждые {String(inventoryCustomFieldsAutosaveContract.autosaveDelayMs / 1000)}с</Tag>
       </Space>
 
       {concurrencyProblemUi === null ? null : (
@@ -212,7 +212,7 @@ export function CustomFieldsAutosaveTab({
           description={concurrencyProblemUi.description}
           action={(
             <Button size="small" type="primary" onClick={onReloadEditor}>
-              Reload
+              Перезагрузить
             </Button>
           )}
         />
@@ -223,7 +223,7 @@ export function CustomFieldsAutosaveTab({
           key={errorMessage}
           showIcon
           type="error"
-          message="Validation error"
+          message="Ошибка валидации"
           description={errorMessage}
         />
       ))}
@@ -232,26 +232,26 @@ export function CustomFieldsAutosaveTab({
         <Alert
           showIcon
           type="error"
-          message="Autosave failed"
+          message="Сбой автосохранения"
           description={saveErrorMessage}
         />
       )}
 
       <Space size={8} wrap>
         <Button type="primary" onClick={onAddField} disabled={isMutating}>
-          Add field
+          Добавить поле
         </Button>
         <Button onClick={onRemoveSelected} disabled={isMutating || selectedFieldIndex < 0}>
-          Remove selected
+          Удалить выбранное
         </Button>
         <Button onClick={onMoveSelectedUp} disabled={isMutating || !canMoveSelectedUp}>
-          Move up
+          Вверх
         </Button>
         <Button onClick={onMoveSelectedDown} disabled={isMutating || !canMoveSelectedDown}>
-          Move down
+          Вниз
         </Button>
         <Button onClick={onResetDrafts} disabled={isMutating}>
-          Reset unsaved
+          Сбросить несохраненное
         </Button>
       </Space>
 
@@ -275,7 +275,7 @@ export function CustomFieldsAutosaveTab({
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={(
                 <Typography.Text>
-                  No custom fields configured. Add a field to start schema autosave.
+                  Пользовательские поля не настроены. Добавьте поле, чтобы запустить автосохранение схемы.
                 </Typography.Text>
               )}
             />

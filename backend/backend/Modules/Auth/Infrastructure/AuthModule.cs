@@ -4,6 +4,7 @@ using backend.Modules.Auth.UseCases.AuthProviders;
 using backend.Modules.Auth.UseCases.Authorization;
 using backend.Modules.Auth.UseCases.CurrentUser;
 using backend.Modules.Auth.UseCases.ExternalLogin;
+using backend.Modules.Auth.UseCases.Logout;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -27,6 +28,7 @@ public sealed class AuthModule : IApiModule
         services.AddScoped<IAuthorizationCheckUseCase, AuthorizationCheckUseCase>();
         services.AddScoped<IListAuthProvidersUseCase, ListAuthProvidersUseCase>();
         services.AddScoped<IGetCurrentUserUseCase, GetCurrentUserUseCase>();
+        services.AddScoped<ILogoutUseCase, LogoutUseCase>();
         services.AddScoped<IStartGoogleLoginUseCase, StartGoogleLoginUseCase>();
         services.AddScoped<ICompleteGoogleLoginUseCase, CompleteGoogleLoginUseCase>();
         services.AddScoped<IExternalAuthService, AspNetExternalAuthService>();
@@ -115,5 +117,6 @@ public sealed class AuthModule : IApiModule
         apiGroup.MapAuthProvidersEndpoint();
         apiGroup.MapCurrentUserEndpoint();
         apiGroup.MapExternalGoogleLoginEndpoints();
+        apiGroup.MapLogoutEndpoint();
     }
 }

@@ -20,19 +20,6 @@ type GlobalSearchEntryProps = {
   disabled?: boolean
 }
 
-const scopeOptions: Array<{ value: SearchScope; label: string }> = [
-  { value: 'inventories', label: 'Inventories' },
-  { value: 'items', label: 'Items' },
-]
-
-function toSubmitErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message.trim()
-  }
-
-  return 'Failed to navigate to search results.'
-}
-
 export function GlobalSearchEntry({ pathname, search, disabled = false }: GlobalSearchEntryProps) {
   const [form] = Form.useForm<GlobalSearchFormValues>()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -42,6 +29,14 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
   const routeState = useMemo(
     () => parseSearchRouteState(pathname, search),
     [pathname, search],
+  )
+
+  const scopeOptions: Array<{ value: SearchScope; label: string }> = useMemo(
+    () => [
+      { value: 'inventories', label: 'Инвентари' },
+      { value: 'items', label: 'Предметы' },
+    ],
+    [],
   )
 
   useEffect(() => {
@@ -69,7 +64,11 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
 
         navigate(targetPath)
       } catch (error) {
-        setSubmitErrorMessage(toSubmitErrorMessage(error))
+        if (error instanceof Error && error.message.trim().length > 0) {
+          setSubmitErrorMessage(error.message.trim())
+        } else {
+          setSubmitErrorMessage('Не удалось открыть страницу с результатами поиска.')
+        }
       } finally {
         queueMicrotask(() => {
           submitLockRef.current = false
@@ -95,7 +94,7 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
           <Select<SearchScope>
             options={scopeOptions}
             disabled={disabled || isSubmitting}
-            aria-label="Search scope"
+            aria-label="Область поиска"
           />
         </Form.Item>
 
@@ -108,12 +107,12 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
               validator: (_, value: string | undefined) => {
                 const normalizedQuery = value?.trim() ?? ''
                 if (normalizedQuery.length === 0) {
-                  return Promise.reject(new Error('Enter a search query.'))
+                  return Promise.reject(new Error('Введите поисковый запрос.'))
                 }
 
                 if (normalizedQuery.length > searchRouteContract.maxQueryLength) {
                   return Promise.reject(
-                    new Error(`Query must be ${String(searchRouteContract.maxQueryLength)} characters or less.`),
+                    new Error(`Запрос должен быть не длиннее ${String(searchRouteContract.maxQueryLength)} символов.`),
                   )
                 }
 
@@ -124,10 +123,10 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
         >
           <Input
             allowClear
-            placeholder="Search across inventories or items"
+            placeholder="Поиск по инвентарям и предметам"
             maxLength={searchRouteContract.maxQueryLength}
             disabled={disabled || isSubmitting}
-            aria-label="Global search query"
+            aria-label="Глобальный поисковый запрос"
           />
         </Form.Item>
 
@@ -139,7 +138,7 @@ export function GlobalSearchEntry({ pathname, search, disabled = false }: Global
             loading={isSubmitting}
             disabled={disabled}
           >
-            Search
+            Найти
           </Button>
         </Form.Item>
       </Form>

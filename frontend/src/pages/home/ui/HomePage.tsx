@@ -21,7 +21,7 @@ function formatUtcDateTime(value: string): string {
 function createLatestInventoriesColumns(openInventory: (inventoryId: string) => void): InventoryTableColumns {
   return [
     {
-      title: 'Inventory',
+      title: 'Инвентарь',
       key: 'inventory',
       render: (_, record) => (
         <Space direction="vertical" size={0}>
@@ -41,14 +41,14 @@ function createLatestInventoriesColumns(openInventory: (inventoryId: string) => 
       ),
     },
     {
-      title: 'Description',
+      title: 'Описание',
       dataIndex: 'descriptionMarkdown',
       render: (value: string, record) => (
         <Space direction="vertical" size={8}>
           {record.imageUrl !== null ? (
             <img
               src={record.imageUrl}
-              alt={`Preview for ${record.title}`}
+              alt={`Превью для ${record.title}`}
               className="home-inventory-image-preview"
             />
           ) : null}
@@ -56,13 +56,13 @@ function createLatestInventoriesColumns(openInventory: (inventoryId: string) => 
             ellipsis={{ rows: 2 }}
             style={{ marginBottom: 0 }}
           >
-            {value.trim().length > 0 ? value : 'No description.'}
+            {value.trim().length > 0 ? value : 'Описание отсутствует.'}
           </Typography.Paragraph>
         </Space>
       ),
     },
     {
-      title: 'Creator',
+      title: 'Автор',
       key: 'creator',
       render: (_, record) => (
         <Space direction="vertical" size={0}>
@@ -77,13 +77,13 @@ function createLatestInventoriesColumns(openInventory: (inventoryId: string) => 
       width: 200,
     },
     {
-      title: 'Items',
+      title: 'Предметы',
       dataIndex: 'itemsCount',
       width: 110,
       align: 'right',
     },
     {
-      title: 'Created',
+      title: 'Создан',
       dataIndex: 'createdAt',
       width: 170,
       render: (value: string) => formatUtcDateTime(value),
@@ -94,13 +94,13 @@ function createLatestInventoriesColumns(openInventory: (inventoryId: string) => 
 function createTopInventoriesColumns(openInventory: (inventoryId: string) => void): InventoryTableColumns {
   return [
     {
-      title: '#',
+      title: '№',
       key: 'rank',
       width: 72,
       render: (_, __, index) => String(index + 1),
     },
     {
-      title: 'Inventory',
+      title: 'Инвентарь',
       key: 'inventory',
       render: (_, record) => (
         <Typography.Link
@@ -115,19 +115,19 @@ function createTopInventoriesColumns(openInventory: (inventoryId: string) => voi
       ),
     },
     {
-      title: 'Creator',
+      title: 'Автор',
       key: 'creator',
       render: (_, record) => record.creator.displayName,
       width: 220,
     },
     {
-      title: 'Items',
+      title: 'Предметы',
       dataIndex: 'itemsCount',
       width: 110,
       align: 'right',
     },
     {
-      title: 'Updated',
+      title: 'Обновлен',
       dataIndex: 'updatedAt',
       width: 170,
       render: (value: string) => formatUtcDateTime(value),
@@ -187,10 +187,10 @@ export function HomePage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Home
+          Главная
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Public read-only dashboard with latest inventories, top popular inventories and tag cloud.
+          Публичная панель только для чтения: последние инвентари, популярные инвентари и облако тегов.
         </Typography.Paragraph>
       </Card>
 
@@ -198,17 +198,17 @@ export function HomePage() {
         <Alert
           showIcon
           type="error"
-          message="Failed to load home data"
+          message="Не удалось загрузить данные главной страницы"
           description={errorMessage}
           action={(
             <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-              Retry
+              Повторить
             </Button>
           )}
         />
       ) : null}
 
-      <Card title={`Latest Inventories (${String(data.latestInventories.length)})`}>
+      <Card title={`Последние инвентари (${String(data.latestInventories.length)})`}>
         <Table<HomeInventorySummary>
           rowKey="id"
           columns={latestInventoriesColumns}
@@ -220,7 +220,7 @@ export function HomePage() {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Latest inventories are not available yet."
+                description="Последние инвентари пока недоступны."
               />
             ),
           }}
@@ -231,7 +231,7 @@ export function HomePage() {
         />
       </Card>
 
-      <Card title={`Top Popular Inventories (${String(data.topPopularInventories.length)})`}>
+      <Card title={`Самые популярные инвентари (${String(data.topPopularInventories.length)})`}>
         <Table<HomeInventorySummary>
           rowKey="id"
           columns={topInventoriesColumns}
@@ -243,7 +243,7 @@ export function HomePage() {
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Popular inventories are not available yet."
+                description="Популярные инвентари пока недоступны."
               />
             ),
           }}
@@ -255,17 +255,17 @@ export function HomePage() {
       </Card>
 
       <Card
-        title={`Tag Cloud (${String(data.tagCloud.length)})`}
+        title={`Облако тегов (${String(data.tagCloud.length)})`}
         extra={(
           <Typography.Text type="secondary">
-            Click tag to open search results
+            Нажмите на тег, чтобы открыть результаты поиска
           </Typography.Text>
         )}
       >
         {data.tagCloud.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No tags available."
+            description="Теги отсутствуют."
           />
         ) : (
           <Space size={[8, 8]} wrap>

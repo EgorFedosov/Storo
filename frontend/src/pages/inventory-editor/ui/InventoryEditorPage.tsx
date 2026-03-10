@@ -72,10 +72,10 @@ export function InventoryEditorPage() {
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-            Inventory Editor
+            Редактор инвентаря
           </Typography.Title>
           <Typography.Text type="secondary">
-            Loading editor aggregate and tabs model...
+            Загружается агрегат редактора и модель вкладок...
           </Typography.Text>
           <div className="inventory-details-loader" role="status" aria-live="polite">
             <Spin size="large" />
@@ -90,15 +90,15 @@ export function InventoryEditorPage() {
       return (
         <Result
           status="403"
-          title="Sign in required"
-          subTitle="Inventory editor is available only for authenticated users."
+          title="Требуется вход"
+          subTitle="Редактор инвентаря доступен только авторизованным пользователям."
           extra={(
             <Space wrap>
               <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-                Retry
+                Повторить
               </Button>
               <Button onClick={() => navigate('/home')}>
-                Go to Home
+                На главную
               </Button>
             </Space>
           )}
@@ -110,15 +110,15 @@ export function InventoryEditorPage() {
       return (
         <Result
           status="403"
-          title="Editor access denied"
-          subTitle="Only inventory creator or admin can open this editor."
+          title="Доступ к редактору запрещен"
+          subTitle="Открывать редактор может только создатель инвентаря или администратор."
           extra={(
             <Space wrap>
               <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-                Retry
+                Повторить
               </Button>
               <Button onClick={() => navigate(`/inventories/${inventoryId ?? ''}`)}>
-                Open Inventory Details
+                Открыть страницу инвентаря
               </Button>
             </Space>
           )}
@@ -130,15 +130,15 @@ export function InventoryEditorPage() {
       return (
         <Result
           status="404"
-          title="Inventory editor not found"
-          subTitle="Requested inventory does not exist or was removed."
+          title="Редактор инвентаря не найден"
+          subTitle="Запрошенный инвентарь не существует или был удален."
           extra={(
             <Space wrap>
               <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-                Retry
+                Повторить
               </Button>
               <Button onClick={() => navigate('/home')}>
-                Go to Home
+                На главную
               </Button>
             </Space>
           )}
@@ -150,11 +150,11 @@ export function InventoryEditorPage() {
       <Alert
         showIcon
         type="error"
-        message="Failed to load inventory editor"
-        description={errorMessage ?? 'Inventory editor request failed.'}
+        message="Не удалось загрузить редактор инвентаря"
+        description={errorMessage ?? 'Ошибка запроса редактора инвентаря.'}
         action={(
           <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />
@@ -165,11 +165,11 @@ export function InventoryEditorPage() {
     return (
       <Result
         status="error"
-        title="Inventory editor is unavailable"
-        subTitle="API returned an unexpected response."
+        title="Редактор инвентаря недоступен"
+        subTitle="API вернул неожиданный ответ."
         extra={(
           <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />

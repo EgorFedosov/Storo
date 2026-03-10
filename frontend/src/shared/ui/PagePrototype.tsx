@@ -28,15 +28,15 @@ type FilterValues = {
 const checklistStatusOptions: Array<{ value: 'all' | ChecklistStatus; label: string }> = [
   {
     value: 'all',
-    label: 'All',
+    label: 'Все',
   },
   {
     value: 'in_scope',
-    label: 'In Scope',
+    label: 'В зоне охвата',
   },
   {
     value: 'pending',
-    label: 'Pending',
+    label: 'В ожидании',
   },
 ]
 
@@ -97,16 +97,16 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
         width: 72,
       },
       {
-        title: 'UI contract rule',
+        title: 'Правило UI-контракта',
         dataIndex: 'rule',
       },
       {
-        title: 'Status',
+        title: 'Статус',
         dataIndex: 'status',
         width: 140,
         render: (value: ChecklistStatus) => (
           <Tag color={checklistStatusColor[value]}>
-            {value === 'in_scope' ? 'In Scope' : 'Pending'}
+            {value === 'in_scope' ? 'В зоне охвата' : 'В ожидании'}
           </Tag>
         ),
       },
@@ -151,7 +151,7 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
   const handleSimulateFailure = useCallback(() => {
     void execute(async () => {
       await wait(uiKitContract.interactions.simulatedLatencyMs)
-      throw new Error('Failed to apply a batch action. Retry the operation.')
+      throw new Error('Не удалось применить групповое действие. Повторите попытку.')
     })
   }, [execute])
 
@@ -166,7 +166,7 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
         </Typography.Paragraph>
       </Card>
 
-      <Card title="Filters and actions">
+      <Card title="Фильтры и действия">
         <Form<FilterValues>
           form={form}
           layout="inline"
@@ -174,12 +174,12 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
           onFinish={handleApplyFilters}
         >
           <Form.Item<FilterValues>
-            label="Search"
+            label="Поиск"
             name="query"
             rules={[
               {
                 max: uiKitContract.filters.maxQueryLength,
-                message: `Max ${uiKitContract.filters.maxQueryLength} characters.`,
+                message: `Максимум ${uiKitContract.filters.maxQueryLength} символов.`,
               },
               {
                 validator: (_, value: string | undefined) => {
@@ -192,7 +192,7 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
                   }
 
                   return Promise.reject(
-                    new Error(`At least ${uiKitContract.filters.minQueryLength} characters.`),
+                    new Error(`Минимум ${uiKitContract.filters.minQueryLength} символа(ов).`),
                   )
                 },
               },
@@ -200,12 +200,12 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
           >
             <Input
               allowClear
-              placeholder="Filter by contract text"
+              placeholder="Фильтр по тексту контракта"
               style={{ width: 260 }}
             />
           </Form.Item>
 
-          <Form.Item<FilterValues> label="Status" name="status">
+          <Form.Item<FilterValues> label="Статус" name="status">
             <Select
               options={checklistStatusOptions}
               style={{ width: 170 }}
@@ -215,13 +215,13 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" loading={isLoading}>
-                Apply
+                Применить
               </Button>
               <Button onClick={handleReset} disabled={isLoading}>
-                Reset
+                Сбросить
               </Button>
               <Button onClick={handleSimulateFailure} disabled={isLoading}>
-                Simulate Error
+                Смоделировать ошибку
               </Button>
             </Space>
           </Form.Item>
@@ -230,13 +230,13 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
         <Alert
           showIcon
           type="info"
-          message="Table-first UX baseline: actions are handled from the toolbar, not from row buttons."
+          message="Базовый табличный UX: действия выполняются из панели инструментов, а не из кнопок в строках."
           style={{ marginTop: 12 }}
         />
       </Card>
 
       <TableFirstCard<ChecklistRow>
-        title="Table contract baseline"
+        title="Базовый контракт таблицы"
         columns={columns}
         dataSource={rows}
         rowKey="id"
@@ -244,17 +244,18 @@ export function PagePrototype({ title, description, checklist }: PagePrototypePr
         selectedRowKeys={selectedRowKeys}
         onSelectionChange={handleSelectionChange}
         errorMessage={errorMessage}
-        emptyDescription="No rules matched current filters."
+        emptyDescription="По текущим фильтрам правила не найдены."
         toolbar={(
           <Button
             danger
             onClick={handleRemoveSelected}
             disabled={selectedRowKeys.length === 0 || isLoading}
           >
-            Remove selected
+            Удалить выбранные
           </Button>
         )}
       />
     </Space>
   )
 }
+

@@ -309,7 +309,7 @@ function normalizeAuthFailure(error: unknown): string {
     return error.message.trim()
   }
 
-  return 'Failed to bootstrap current user context.'
+  return 'Не удалось инициализировать контекст текущего пользователя.'
 }
 
 function normalizePreferencesPayload(payload: unknown): UserPreferencesPayload | null {
@@ -342,7 +342,7 @@ function getFirstValidationErrorMessage(failure: ApiFailure): string | null {
 
 function normalizePreferencesFailureMessage(failure: ApiFailure): string {
   if (failure.status === 404) {
-    return 'Preferences endpoint is not available in current backend runtime.'
+    return 'Эндпоинт настроек недоступен в текущей конфигурации бэкенда.'
   }
 
   const validationMessage = getFirstValidationErrorMessage(failure)
@@ -405,7 +405,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (normalizedPayload === null) {
           dispatch({
             type: 'bootstrap_failed',
-            payload: { errorMessage: 'Received invalid response format from /auth/me.' },
+            payload: { errorMessage: 'Получен некорректный формат ответа от /auth/me.' },
           })
           return
         }
@@ -439,7 +439,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (!state.isAuthenticated || state.currentUser === null) {
         dispatch({
           type: 'preferences_sync_failed',
-          payload: { errorMessage: 'Only authenticated users can update preferences.' },
+          payload: { errorMessage: 'Обновлять настройки могут только авторизованные пользователи.' },
         })
         return false
       }
@@ -480,7 +480,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           dispatch({
             type: 'preferences_sync_failed',
             payload: {
-              errorMessage: 'Received invalid response format from /users/me/preferences.',
+              errorMessage: 'Получен некорректный формат ответа от /users/me/preferences.',
             },
           })
           return false
@@ -542,3 +542,5 @@ export function useAuthModel(): AuthContextValue {
 
   return contextValue
 }
+
+

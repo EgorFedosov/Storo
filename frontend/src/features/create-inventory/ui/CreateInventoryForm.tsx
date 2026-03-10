@@ -125,7 +125,7 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
       })
 
       if (result.ok) {
-        messageApi.success('Inventory created.')
+        messageApi.success('Инвентарь создан.')
         navigate(`/inventories/${result.inventoryId}`)
         return
       }
@@ -153,7 +153,7 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         <Alert
           showIcon
           type="error"
-          message="Failed to create inventory"
+          message="Не удалось создать инвентарь"
           description={submitErrorMessage}
         />
       ) : null}
@@ -174,31 +174,31 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         disabled={disabled || isSubmitting}
       >
         <Form.Item<CreateInventoryFormValues>
-          label="Title"
+          label="Название"
           name="title"
           validateFirst
           rules={[
-            { required: true, whitespace: true, message: 'Title is required.' },
+            { required: true, whitespace: true, message: 'Укажите название.' },
             {
               max: createInventoryContract.maxTitleLength,
-              message: `Title must be ${String(createInventoryContract.maxTitleLength)} characters or less.`,
+              message: `Название должно быть не длиннее ${String(createInventoryContract.maxTitleLength)} символов.`,
             },
           ]}
         >
           <Input
             maxLength={createInventoryContract.maxTitleLength}
-            placeholder="Office laptops"
+            placeholder="Ноутбуки офиса"
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Category"
+          label="Категория"
           name="categoryId"
-          rules={[{ required: true, message: 'Select a category.' }]}
+          rules={[{ required: true, message: 'Выберите категорию.' }]}
         >
           <Select<number>
-            placeholder="Select category"
+            placeholder="Выберите категорию"
             options={[...categoryOptions]}
             showSearch
             optionFilterProp="label"
@@ -207,13 +207,13 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Description (Markdown)"
+          label="Описание (Markdown)"
           name="descriptionMarkdown"
           rules={[
             {
               max: createInventoryContract.maxDescriptionLength,
               message: (
-                `Description must be ${String(createInventoryContract.maxDescriptionLength)} characters or less.`
+                `Описание должно быть не длиннее ${String(createInventoryContract.maxDescriptionLength)} символов.`
               ),
             },
           ]}
@@ -222,12 +222,12 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
             rows={5}
             maxLength={createInventoryContract.maxDescriptionLength}
             showCount
-            placeholder="Inventory for office devices"
+            placeholder="Инвентарь офисной техники"
           />
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Image URL"
+          label="Ссылка на изображение"
           name="imageUrl"
           validateFirst
           rules={[
@@ -240,12 +240,12 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
 
                 if (normalizedImageUrl.length > createInventoryContract.maxImageUrlLength) {
                   throw new Error(
-                    `Image URL must be ${String(createInventoryContract.maxImageUrlLength)} characters or less.`,
+                    `Ссылка на изображение должна быть не длиннее ${String(createInventoryContract.maxImageUrlLength)} символов.`,
                   )
                 }
 
                 if (!isAbsoluteUrl(normalizedImageUrl)) {
-                  throw new Error('Image URL must be a valid absolute URL.')
+                  throw new Error('Укажите корректный абсолютный URL изображения.')
                 }
               },
             },
@@ -259,7 +259,7 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Tags"
+          label="Теги"
           name="tags"
           validateFirst
           rules={[
@@ -273,12 +273,12 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
                   const normalizedTag = value[index]?.trim() ?? ''
 
                   if (normalizedTag.length === 0) {
-                    throw new Error('Tags must not be empty.')
+                    throw new Error('Теги не могут быть пустыми.')
                   }
 
                   if (normalizedTag.length > createInventoryContract.maxTagLength) {
                     throw new Error(
-                      `Each tag must be ${String(createInventoryContract.maxTagLength)} characters or less.`,
+                      `Каждый тег должен быть не длиннее ${String(createInventoryContract.maxTagLength)} символов.`,
                     )
                   }
                 }
@@ -289,13 +289,13 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
           <Select
             mode="tags"
             tokenSeparators={[',']}
-            placeholder="Add tags"
+            placeholder="Добавьте теги"
             maxTagCount="responsive"
           />
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Public write access"
+          label="Публичный доступ на запись"
           name="isPublic"
           valuePropName="checked"
         >
@@ -303,21 +303,21 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         </Form.Item>
 
         <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-          Public inventories allow any authenticated user to create and edit items.
+          В публичных инвентарях любой авторизованный пользователь может создавать и редактировать предметы.
         </Typography.Paragraph>
 
         <Space wrap>
           <Button type="primary" htmlType="submit" loading={isSubmitting} disabled={disabled}>
-            Create Inventory
+            Создать инвентарь
           </Button>
           <Button onClick={handleReset} disabled={isSubmitting || disabled}>
-            Reset
+            Сбросить
           </Button>
           <Button
             onClick={() => navigate(routes.myInventories.path)}
             disabled={isSubmitting}
           >
-            Back to My Inventories
+            Назад к моим инвентарям
           </Button>
         </Space>
       </Form>

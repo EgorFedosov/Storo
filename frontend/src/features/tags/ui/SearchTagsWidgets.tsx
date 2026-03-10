@@ -35,7 +35,7 @@ function normalizeUnexpectedError(error: unknown): string {
     return error.message.trim()
   }
 
-  return 'Failed to navigate to tag search route.'
+  return 'Не удалось перейти на страницу поиска по тегу.'
 }
 
 export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
@@ -83,7 +83,7 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
 
     if (normalizedTag === null) {
       setNavigationErrorMessage(
-        `Tag must be between 1 and ${String(searchRouteContract.maxTagLength)} characters.`,
+        `Тег должен содержать от 1 до ${String(searchRouteContract.maxTagLength)} символов.`,
       )
       return
     }
@@ -108,20 +108,20 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
 
   return (
     <Card
-      title="Tags Widgets"
+      title="Виджеты тегов"
       extra={(
         <Button
           icon={<ReloadOutlined />}
           onClick={reloadTagCloud}
           loading={tagCloudStatus === 'loading'}
         >
-          Refresh cloud
+          Обновить облако
         </Button>
       )}
     >
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Typography.Paragraph style={{ marginBottom: 0 }} type="secondary">
-          Tag input supports API autocomplete. Tag click navigates to inventory search with `tag` query.
+          Поле тега поддерживает автодополнение API. Нажатие на тег открывает поиск инвентарей с параметром `tag`.
         </Typography.Paragraph>
 
         <Space.Compact block>
@@ -148,7 +148,7 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
               allowClear
               maxLength={searchRouteContract.maxTagLength}
               prefix={<TagOutlined />}
-              placeholder="Enter tag name"
+              placeholder="Введите тег"
               onPressEnter={(event) => {
                 event.preventDefault()
                 handleTagApply()
@@ -157,19 +157,19 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
           </AutoComplete>
 
           <Button type="primary" onClick={handleTagApply} disabled={!canApplyTag}>
-            Apply
+            Применить
           </Button>
         </Space.Compact>
 
         {normalizedTagInput.length > 0 && normalizedTagInput.length < tagAutocompleteContract.minPrefixLength ? (
           <Typography.Text type="secondary">
-            Type at least {String(tagAutocompleteContract.minPrefixLength)} characters to get suggestions.
+            Введите минимум {String(tagAutocompleteContract.minPrefixLength)} символа(ов), чтобы получить подсказки.
           </Typography.Text>
         ) : null}
 
         {isTagLengthExceeded ? (
           <Typography.Text type="danger">
-            Tag must be {String(searchRouteContract.maxTagLength)} characters or less.
+            Тег должен быть не длиннее {String(searchRouteContract.maxTagLength)} символов.
           </Typography.Text>
         ) : null}
 
@@ -177,7 +177,7 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
           <Alert
             showIcon
             type="warning"
-            message="Tag autocomplete request failed"
+            message="Не удалось получить подсказки по тегам"
             description={autocompleteErrorMessage}
           />
         ) : null}
@@ -186,7 +186,7 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
           <Alert
             showIcon
             type="error"
-            message="Tag navigation failed"
+            message="Ошибка перехода по тегу"
             description={navigationErrorMessage}
           />
         ) : null}
@@ -195,11 +195,11 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
           <Alert
             showIcon
             type="error"
-            message="Tag cloud request failed"
+            message="Не удалось загрузить облако тегов"
             description={tagCloudErrorMessage}
             action={(
               <Button size="small" type="primary" onClick={reloadTagCloud}>
-                Retry
+                Повторить
               </Button>
             )}
           />
@@ -212,7 +212,7 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
         ) : tagCloudItems.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="No tags available in cloud."
+            description="В облаке пока нет тегов."
           />
         ) : (
           <div className="search-tags-cloud">

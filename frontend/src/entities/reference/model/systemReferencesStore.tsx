@@ -182,7 +182,7 @@ function normalizeBootstrapFailure(error: unknown): string {
     return error.message.trim()
   }
 
-  return 'Failed to bootstrap system references.'
+  return 'Не удалось инициализировать системные справочники.'
 }
 
 function normalizeCategoryId(categoryId: number | string | null | undefined): string | null {
@@ -240,7 +240,7 @@ export function SystemReferencesProvider({ children }: PropsWithChildren) {
         if (normalizedHealth === null) {
           dispatch({
             type: 'bootstrap_failed',
-            payload: { errorMessage: 'Received invalid response format from /ping.' },
+            payload: { errorMessage: 'Получен некорректный формат ответа от /ping.' },
           })
           return
         }
@@ -249,7 +249,7 @@ export function SystemReferencesProvider({ children }: PropsWithChildren) {
         if (normalizedCategories === null) {
           dispatch({
             type: 'bootstrap_failed',
-            payload: { errorMessage: 'Received invalid response format from /categories.' },
+            payload: { errorMessage: 'Получен некорректный формат ответа от /categories.' },
           })
           return
         }
@@ -309,3 +309,4 @@ export function SystemReferencesProvider({ children }: PropsWithChildren) {
     </systemReferencesContext.Provider>
   )
 }
+

@@ -1,23 +1,8 @@
 import { SettingOutlined } from '@ant-design/icons'
-import { Alert, Button, Input, Popover, Select, Space, Typography } from 'antd'
+import { Alert, Button, Popover, Select, Space, Typography } from 'antd'
 import { useCallback, useMemo, useState } from 'react'
 import type { UiTheme } from '../../../entities/user/model/types.ts'
-import {
-  normalizeLanguage,
-  useUserPreferencesSettingsModel,
-  validateLanguage,
-} from '../model/useUserPreferencesSettingsModel.ts'
-
-const themeOptions: Array<{ label: string; value: UiTheme }> = [
-  {
-    label: 'Light',
-    value: 'light',
-  },
-  {
-    label: 'Dark',
-    value: 'dark',
-  },
-]
+import { useUserPreferencesSettingsModel } from '../model/useUserPreferencesSettingsModel.ts'
 
 export function UserPreferencesControl() {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -27,7 +12,6 @@ export function UserPreferencesControl() {
     currentTheme,
     isAuthenticated,
     isSaving,
-    isUserBlocked,
     normalizeThemeValue,
     preferencesSyncErrorMessage,
     preferencesSyncStatus,
@@ -35,46 +19,41 @@ export function UserPreferencesControl() {
     savePreferences,
   } = useUserPreferencesSettingsModel()
 
-  const [languageDraft, setLanguageDraft] = useState(currentLanguage)
   const [themeDraft, setThemeDraft] = useState<UiTheme>(currentTheme)
 
-  const normalizedLanguageDraft = useMemo(
-    () => normalizeLanguage(languageDraft),
-    [languageDraft],
+  const themeOptions: Array<{ label: string; value: UiTheme }> = useMemo(
+    () => [
+      { label: 'Светлая', value: 'light' },
+      { label: 'Темная', value: 'dark' },
+    ],
+    [],
   )
-  const languageErrorMessage = useMemo(
-    () => validateLanguage(normalizedLanguageDraft),
-    [normalizedLanguageDraft],
-  )
-  const isDirty =
-    normalizedLanguageDraft !== currentLanguage ||
-    themeDraft !== currentTheme
 
-  const saveDisabled = !canEditPreferences || !isDirty || languageErrorMessage !== null || isSaving
+  const isDirty = themeDraft !== currentTheme
+
+  const saveDisabled = !canEditPreferences || !isDirty || isSaving
   const isSaveSuccessful = preferencesSyncStatus === 'success' && !isDirty
 
   const preferenceBadgeLabel = useMemo(
-    () => `${currentLanguage} / ${currentTheme}`,
-    [currentLanguage, currentTheme],
+    () => `${currentTheme}`,
+    [currentTheme],
   )
 
   const resetDraftToCurrent = useCallback(() => {
-    setLanguageDraft(currentLanguage)
     setThemeDraft(currentTheme)
     resetPreferencesState()
-  }, [currentLanguage, currentTheme, resetPreferencesState])
+  }, [currentTheme, resetPreferencesState])
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
       setIsPopoverOpen(nextOpen)
       if (nextOpen) {
-        setLanguageDraft(currentLanguage)
         setThemeDraft(currentTheme)
       }
 
       resetPreferencesState()
     },
-    [currentLanguage, currentTheme, resetPreferencesState],
+    [currentTheme, resetPreferencesState],
   )
 
   const handleThemeChange = useCallback((value: string) => {
@@ -82,8 +61,8 @@ export function UserPreferencesControl() {
   }, [normalizeThemeValue])
 
   const handleSaveClick = useCallback(() => {
-    void savePreferences(languageDraft, themeDraft)
-  }, [languageDraft, savePreferences, themeDraft])
+    void savePreferences(currentLanguage, themeDraft)
+  }, [currentLanguage, savePreferences, themeDraft])
 
   return (
     <Popover
@@ -93,26 +72,10 @@ export function UserPreferencesControl() {
       placement="bottomRight"
       content={(
         <Space direction="vertical" size={12} style={{ width: 280 }}>
-          <Typography.Text strong>Preferences</Typography.Text>
+          <Typography.Text strong>Настройки</Typography.Text>
 
           <div>
-            <Typography.Text type="secondary">Language</Typography.Text>
-            <Input
-              value={languageDraft}
-              placeholder="en"
-              disabled={!canEditPreferences || isSaving}
-              status={languageErrorMessage === null ? undefined : 'error'}
-              onChange={(event) => {
-                setLanguageDraft(event.target.value)
-              }}
-            />
-            {languageErrorMessage !== null ? (
-              <Typography.Text type="danger">{languageErrorMessage}</Typography.Text>
-            ) : null}
-          </div>
-
-          <div>
-            <Typography.Text type="secondary">Theme</Typography.Text>
+            <Typography.Text type="secondary">Тема</Typography.Text>
             <Select
               value={themeDraft}
               options={themeOptions}
@@ -123,19 +86,21 @@ export function UserPreferencesControl() {
           </div>
 
           {!isAuthenticated ? (
-            <Alert showIcon type="info" message="Sign in to persist preferences on the server." />
-          ) : null}
-
-          {isUserBlocked ? (
-            <Alert showIcon type="warning" message="Blocked users cannot update preferences." />
+            <Alert showIcon type="info" message="Войдите в аккаунт, чтобы синхронизировать настройки с сервером." />
           ) : null}
 
           {preferencesSyncStatus === 'error' && preferencesSyncErrorMessage !== null ? (
-            <Alert showIcon type="error" message={preferencesSyncErrorMessage} />
+            <Alert
+              showIcon
+              type="warning"
+              message={preferencesSyncErrorMessage === 'Сохранено локально, но синхронизация с сервером не удалась.'
+                ? 'Локально сохранено, но синхронизация с сервером не удалась.'
+                : preferencesSyncErrorMessage}
+            />
           ) : null}
 
           {isSaveSuccessful ? (
-            <Alert showIcon type="success" message="Preferences saved." />
+            <Alert showIcon type="success" message="Настройки сохранены." />
           ) : null}
 
           <Space>
@@ -145,13 +110,13 @@ export function UserPreferencesControl() {
               disabled={saveDisabled}
               onClick={handleSaveClick}
             >
-              Save
+              Сохранить
             </Button>
             <Button
               onClick={resetDraftToCurrent}
               disabled={isSaving || !isDirty}
             >
-              Reset
+              Сбросить
             </Button>
           </Space>
         </Space>
@@ -160,10 +125,11 @@ export function UserPreferencesControl() {
       <Button
         size="small"
         icon={<SettingOutlined />}
-        title="User preferences"
+        title="Настройки интерфейса"
       >
         {preferenceBadgeLabel}
       </Button>
     </Popover>
   )
 }
+

@@ -35,15 +35,15 @@ const numberValidationTolerance = 1e-7
 function toFieldTypeLabel(fieldType: InventoryCustomFieldType): string {
   switch (fieldType) {
     case 'single_line':
-      return 'Single line'
+      return 'Однострочное'
     case 'multi_line':
-      return 'Multi line'
+      return 'Многострочное'
     case 'number':
-      return 'Number'
+      return 'Число'
     case 'link':
-      return 'Link'
+      return 'Ссылка'
     case 'bool':
-      return 'Boolean'
+      return 'Логическое'
     default:
       return fieldType
   }
@@ -232,7 +232,7 @@ export function InventoryItemCreateModal({
 
     const result = await submit(normalizeFormInput(values), fieldDefinitions)
     if (result.ok) {
-      messageApi.success(`Item ${result.item.customId} created.`)
+      messageApi.success(`Элемент ${result.item.customId} создан.`)
       onCreated({ item: result.item, etag: result.etag })
       handleClose()
       return
@@ -248,9 +248,9 @@ export function InventoryItemCreateModal({
   return (
     <Modal
       open={open}
-      title="Create Item"
-      okText="Create Item"
-      cancelText="Cancel"
+      title="Создание элемента"
+      okText="Создать элемент"
+      cancelText="Отмена"
       confirmLoading={isSubmitting}
       okButtonProps={{ disabled: !canWriteItems }}
       cancelButtonProps={{ disabled: isSubmitting }}
@@ -268,8 +268,8 @@ export function InventoryItemCreateModal({
           <Alert
             showIcon
             type="warning"
-            message="Write access is required"
-            description="You can view items, but creating items is not available for your account in this inventory."
+            message="Требуется доступ на запись"
+            description="Вы можете просматривать элементы, но создание элементов для вашей учетной записи в этом инвентаре недоступно."
           />
         ) : null}
 
@@ -277,17 +277,17 @@ export function InventoryItemCreateModal({
           <Alert
             showIcon
             type="error"
-            message="Failed to create item"
+            message="Не удалось создать элемент"
             description={submitErrorMessage}
           />
         ) : null}
 
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          `customId` is optional. If left empty, backend generates it by the current inventory custom ID template.
+          `customId` не обязателен. Если оставить поле пустым, сервер сгенерирует значение по текущему шаблону ID инвентаря.
         </Typography.Paragraph>
         {customIdValidationRegex !== null ? (
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Template regex:
+            Регулярное выражение шаблона:
             {' '}
             <Typography.Text code>{customIdValidationRegex}</Typography.Text>
             {customIdPreviewSample === null || customIdPreviewSample.trim().length === 0
@@ -295,7 +295,7 @@ export function InventoryItemCreateModal({
               : (
                   <>
                     {' '}
-                    Sample:
+                    Пример:
                     {' '}
                     <Typography.Text code>{customIdPreviewSample}</Typography.Text>
                   </>
@@ -315,13 +315,13 @@ export function InventoryItemCreateModal({
           onFinish={handleSubmit}
         >
           <Form.Item<InventoryItemCreateFormValues>
-            label="Custom ID"
+            label="Пользовательский ID"
             name="customId"
             validateFirst
             rules={[
               {
                 max: inventoryItemCreateContract.maxCustomIdLength,
-                message: `customId must be ${String(inventoryItemCreateContract.maxCustomIdLength)} characters or less.`,
+                message: `customId не должен превышать ${String(inventoryItemCreateContract.maxCustomIdLength)} символов.`,
               },
               {
                 validator: async (_, value: string | undefined) => {
@@ -335,14 +335,14 @@ export function InventoryItemCreateModal({
                   }
 
                   if (!matchesCustomIdRegex(normalizedValue, compiledCustomIdValidationRegex)) {
-                    throw new Error('customId does not match current template format.')
+                    throw new Error('Значение customId не соответствует текущему формату шаблона.')
                   }
                 },
               },
             ]}
           >
             <Input
-              placeholder="Leave empty for auto-generation"
+              placeholder="Оставьте пустым для автогенерации"
               maxLength={inventoryItemCreateContract.maxCustomIdLength}
               autoComplete="off"
             />
@@ -352,8 +352,8 @@ export function InventoryItemCreateModal({
             <Alert
               showIcon
               type="info"
-              message="No active custom fields"
-              description="This inventory has no active custom fields. You can still create an item with generated customId."
+              message="Нет активных пользовательских полей"
+              description="В этом инвентаре нет активных пользовательских полей. Вы все равно можете создать элемент с автосгенерированным customId."
             />
           ) : null}
 
@@ -372,7 +372,7 @@ export function InventoryItemCreateModal({
                   rules={[
                     {
                       max: maxLength,
-                      message: `Value must be ${String(maxLength)} characters or less.`,
+                      message: `Значение не должно превышать ${String(maxLength)} символов.`,
                     },
                   ]}
                 >
@@ -395,7 +395,7 @@ export function InventoryItemCreateModal({
                     {
                       max: inventoryItemCreateContract.maxMultiLineLength,
                       message: (
-                        `Value must be ${String(inventoryItemCreateContract.maxMultiLineLength)} characters or less.`
+                        `Значение не должно превышать ${String(inventoryItemCreateContract.maxMultiLineLength)} символов.`
                       ),
                     },
                   ]}
@@ -424,20 +424,20 @@ export function InventoryItemCreateModal({
                         }
 
                         if (typeof value !== 'number' || !Number.isFinite(value)) {
-                          throw new Error('Number value must be numeric.')
+                          throw new Error('Значение должно быть числом.')
                         }
 
                         if (
                           value < inventoryItemCreateContract.minNumberValue
                           || value > inventoryItemCreateContract.maxNumberValue
                         ) {
-                          throw new Error('Number value is out of supported range.')
+                          throw new Error('Число вне допустимого диапазона.')
                         }
 
                         const decimals = countNumberDecimals(value)
                         if (decimals > inventoryItemCreateContract.maxNumberDecimals + numberValidationTolerance) {
                           throw new Error(
-                            `Number value must have at most ${String(inventoryItemCreateContract.maxNumberDecimals)} decimal places.`,
+                            `Допускается не более ${String(inventoryItemCreateContract.maxNumberDecimals)} знаков после запятой.`,
                           )
                         }
                       },
@@ -462,7 +462,7 @@ export function InventoryItemCreateModal({
                 name={['fields', field.fieldId]}
                 valuePropName="checked"
               >
-                <Switch checkedChildren="True" unCheckedChildren="False" />
+                <Switch checkedChildren="Да" unCheckedChildren="Нет" />
               </Form.Item>
             )
           })}

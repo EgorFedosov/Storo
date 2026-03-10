@@ -16,6 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(postgresConnectionString));
 builder.Services.AddApiModules(builder.Configuration);
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DatabaseExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -27,6 +28,27 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+var autoMigrateDatabase = app.Configuration.GetValue("Database:AutoMigrate", app.Environment.IsDevelopment());
+if (autoMigrateDatabase)
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("DatabaseStartup");
+
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await dbContext.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
+    }
+    catch (Exception exception)
+    {
+        logger.LogWarning(
+            exception,
+            "Database migration at startup failed. Endpoints that require database access may return 503 until the database becomes available.");
+    }
+}
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();

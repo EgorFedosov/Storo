@@ -18,14 +18,14 @@ type PartTypeOption = {
 }
 
 const partTypeOptions: ReadonlyArray<PartTypeOption> = [
-  { value: 'fixed_text', label: 'Fixed text' },
-  { value: 'random_20_bit', label: 'Random 20-bit' },
-  { value: 'random_32_bit', label: 'Random 32-bit' },
-  { value: 'random_6_digit', label: 'Random 6-digit' },
-  { value: 'random_9_digit', label: 'Random 9-digit' },
+  { value: 'fixed_text', label: 'Фиксированный текст' },
+  { value: 'random_20_bit', label: 'Случайное 20-бит' },
+  { value: 'random_32_bit', label: 'Случайное 32-бит' },
+  { value: 'random_6_digit', label: 'Случайное 6-значное' },
+  { value: 'random_9_digit', label: 'Случайное 9-значное' },
   { value: 'guid', label: 'GUID' },
-  { value: 'datetime', label: 'Date/time' },
-  { value: 'sequence', label: 'Sequence' },
+  { value: 'datetime', label: 'Дата/время' },
+  { value: 'sequence', label: 'Последовательность' },
 ]
 
 function toPartTypeLabel(partType: InventoryCustomIdPartType): string {
@@ -81,7 +81,7 @@ export function CustomIdTemplateBuilderTab({
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: 'Part Type',
+      title: 'Тип части',
       dataIndex: 'partType',
       key: 'partType',
       width: 200,
@@ -99,7 +99,7 @@ export function CustomIdTemplateBuilderTab({
       ),
     },
     {
-      title: 'Fixed Text',
+      title: 'Фиксированный текст',
       dataIndex: 'fixedText',
       key: 'fixedText',
       width: 320,
@@ -114,7 +114,7 @@ export function CustomIdTemplateBuilderTab({
               disabled={disabled}
               maxLength={500}
               status={errorMessage !== null ? 'error' : undefined}
-              placeholder={disabled ? '(not used)' : 'e.g. EQ-'}
+              placeholder={disabled ? '(не используется)' : 'например, EQ-'}
               onChange={(event) => model.updatePartFixedText(part.clientId, event.target.value)}
             />
             {errorMessage !== null ? (
@@ -127,7 +127,7 @@ export function CustomIdTemplateBuilderTab({
       },
     },
     {
-      title: 'Format Pattern',
+      title: 'Шаблон формата',
       dataIndex: 'formatPattern',
       key: 'formatPattern',
       width: 320,
@@ -142,7 +142,7 @@ export function CustomIdTemplateBuilderTab({
               disabled={disabled}
               maxLength={200}
               status={errorMessage !== null ? 'error' : undefined}
-              placeholder={disabled ? '(not used)' : (part.partType === 'sequence' ? 'e.g. D4' : 'e.g. yyyy')}
+              placeholder={disabled ? '(не используется)' : (part.partType === 'sequence' ? 'например, D4' : 'например, yyyy')}
               onChange={(event) => model.updatePartFormatPattern(part.clientId, event.target.value)}
             />
             {errorMessage !== null ? (
@@ -160,7 +160,7 @@ export function CustomIdTemplateBuilderTab({
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space wrap>
         <Typography.Text strong>
-          Template enabled
+          Шаблон включен
         </Typography.Text>
         <Switch
           checked={model.isEnabled}
@@ -168,7 +168,7 @@ export function CustomIdTemplateBuilderTab({
           onChange={(nextValue) => model.setIsEnabled(nextValue)}
         />
         <Tag color={model.isEnabled ? 'green' : 'default'}>
-          {model.isEnabled ? 'Enabled' : 'Disabled'}
+          {model.isEnabled ? 'Включен' : 'Выключен'}
         </Tag>
       </Space>
 
@@ -188,21 +188,21 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy}
           onClick={() => model.addPart(nextPartType)}
         >
-          Add Part
+          Добавить часть
         </Button>
         <Button
           icon={<ArrowUpOutlined />}
           disabled={isBusy || selectedPartIndex <= 0}
           onClick={model.moveSelectedPartUp}
         >
-          Move Up
+          Вверх
         </Button>
         <Button
           icon={<ArrowDownOutlined />}
           disabled={isBusy || selectedPartIndex < 0 || selectedPartIndex >= model.parts.length - 1}
           onClick={model.moveSelectedPartDown}
         >
-          Move Down
+          Вниз
         </Button>
         <Button
           danger
@@ -210,7 +210,7 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy || model.selectedPartId === null}
           onClick={model.removeSelectedPart}
         >
-          Remove
+          Удалить
         </Button>
       </Space>
 
@@ -220,7 +220,7 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy || !model.isDirty}
           onClick={model.resetDraft}
         >
-          Reset
+          Сбросить
         </Button>
         <Button
           icon={<EyeOutlined />}
@@ -228,7 +228,7 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy}
           onClick={() => { void model.previewTemplate() }}
         >
-          Preview
+          Предпросмотр
         </Button>
         <Button
           type="primary"
@@ -237,7 +237,7 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy || !model.isDirty}
           onClick={() => { void model.saveTemplate() }}
         >
-          Save Template
+          Сохранить шаблон
         </Button>
       </Space>
 
@@ -251,7 +251,7 @@ export function CustomIdTemplateBuilderTab({
         <Alert
           showIcon
           type="error"
-          message="Preview failed"
+          message="Ошибка предпросмотра"
           description={model.previewErrorMessage}
         />
       ) : null}
@@ -260,7 +260,7 @@ export function CustomIdTemplateBuilderTab({
         <Alert
           showIcon
           type="error"
-          message="Save failed"
+          message="Ошибка сохранения"
           description={model.saveErrorMessage}
         />
       ) : null}
@@ -291,7 +291,7 @@ export function CustomIdTemplateBuilderTab({
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Template parts are not configured."
+              description="Части шаблона не настроены."
             />
           ),
         }}
@@ -299,8 +299,8 @@ export function CustomIdTemplateBuilderTab({
 
       <Space direction="vertical" size={6} style={{ width: '100%' }}>
         <Space wrap>
-          <Tag color="blue">Preview: {model.previewSampleCustomId || '(empty)'}</Tag>
-          <Tag>Regex: {model.derivedValidationRegex ?? '(none)'}</Tag>
+          <Tag color="blue">Предпросмотр: {model.previewSampleCustomId || '(пусто)'}</Tag>
+          <Tag>Regex: {model.derivedValidationRegex ?? '(нет)'}</Tag>
         </Space>
 
         {model.previewWarnings.length > 0 ? (
@@ -313,13 +313,13 @@ export function CustomIdTemplateBuilderTab({
           </Space>
         ) : (
           <Typography.Text type="secondary">
-            No preview warnings.
+            Предупреждений предпросмотра нет.
           </Typography.Text>
         )}
       </Space>
 
       <Typography.Text type="secondary">
-        Current parts: {model.parts.map((part) => toPartTypeLabel(part.partType)).join(' + ') || '(none)'}
+        Текущие части: {model.parts.map((part) => toPartTypeLabel(part.partType)).join(' + ') || '(нет)'}
       </Typography.Text>
     </Space>
   )

@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react'
 import type { AppBootstrapConfig } from '../../shared/config/bootstrap.ts'
 import { AuthProvider } from '../../features/auth/model/authStore.tsx'
 import { SystemReferencesProvider } from '../../entities/reference/model/systemReferencesStore.tsx'
+import { UiPreferencesProvider } from '../../features/preferences/model/uiPreferencesStore.tsx'
 import { AntdConfigProvider } from './AntdConfigProvider.tsx'
 import { BootstrapConfigProvider } from './BootstrapConfigProvider.tsx'
 
@@ -14,7 +15,9 @@ export function AppProviders({ bootstrapConfig, children }: AppProvidersProps) {
     <BootstrapConfigProvider value={bootstrapConfig}>
       <SystemReferencesProvider>
         <AuthProvider>
-          <AntdConfigProvider>{children}</AntdConfigProvider>
+          <UiPreferencesProvider>
+            <AntdConfigProvider>{children}</AntdConfigProvider>
+          </UiPreferencesProvider>
         </AuthProvider>
       </SystemReferencesProvider>
     </BootstrapConfigProvider>

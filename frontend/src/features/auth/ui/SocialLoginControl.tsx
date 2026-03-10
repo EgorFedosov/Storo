@@ -13,18 +13,6 @@ type SocialLoginControlProps = {
   disabled?: boolean
 }
 
-function formatProviderLabel(provider: string): string {
-  if (provider === 'google') {
-    return 'Google'
-  }
-
-  if (provider === 'facebook') {
-    return 'Facebook'
-  }
-
-  return provider.slice(0, 1).toUpperCase() + provider.slice(1)
-}
-
 function buildReturnUrl(pathname: string, search: string, hash: string): string {
   if (pathname === routes.authError.path) {
     return routes.home.path
@@ -55,6 +43,21 @@ export function SocialLoginControl({
     [hash, pathname, search],
   )
 
+  const formatProviderLabel = useCallback(
+    (provider: string): string => {
+      if (provider === 'google') {
+        return 'Google'
+      }
+
+      if (provider === 'facebook') {
+        return 'Facebook'
+      }
+
+      return provider.slice(0, 1).toUpperCase() + provider.slice(1)
+    },
+    [],
+  )
+
   const handleProviderClick = useCallback(
     (provider: string) => {
       startSocialLogin(provider, returnUrl)
@@ -68,7 +71,7 @@ export function SocialLoginControl({
         key: provider,
         label: formatProviderLabel(provider),
       })),
-    [providers],
+    [formatProviderLabel, providers],
   )
 
   const handleMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(
@@ -84,14 +87,15 @@ export function SocialLoginControl({
 
   if (status === 'error') {
     return (
-      <Tooltip title={errorMessage ?? 'Failed to load social login providers.'}>
+      <Tooltip title={errorMessage ?? 'Не удалось загрузить провайдеров социального входа.'}>
         <Button
+          className="social-login-control-btn"
           size="small"
           icon={<ReloadOutlined />}
           onClick={retryProvidersBootstrap}
           disabled={disabled || isRedirecting}
         >
-          Retry Login
+          Повторить вход
         </Button>
       </Tooltip>
     )
@@ -100,25 +104,27 @@ export function SocialLoginControl({
   if (status === 'loading') {
     return (
       <Button
+        className="social-login-control-btn"
         size="small"
         icon={<LoginOutlined />}
         loading
         disabled
       >
-        Loading Login
+        Загрузка входа
       </Button>
     )
   }
 
   if (providers.length === 0) {
     return (
-      <Tooltip title="No social providers are available in backend configuration.">
+      <Tooltip title="В текущей конфигурации бэкенда нет доступных соцпровайдеров.">
         <Button
+          className="social-login-control-btn"
           size="small"
           icon={<LoginOutlined />}
           disabled
         >
-          Sign In
+          Войти
         </Button>
       </Tooltip>
     )
@@ -129,6 +135,7 @@ export function SocialLoginControl({
 
     return (
       <Button
+        className="social-login-control-btn"
         type="primary"
         size="small"
         icon={<LoginOutlined />}
@@ -136,7 +143,7 @@ export function SocialLoginControl({
         disabled={disabled || isRedirecting}
         onClick={() => handleProviderClick(provider)}
       >
-        Sign in with {formatProviderLabel(provider)}
+        Войти через {formatProviderLabel(provider)}
       </Button>
     )
   }
@@ -145,6 +152,7 @@ export function SocialLoginControl({
 
   return (
     <Dropdown.Button
+      className="social-login-control-btn"
       type="primary"
       size="small"
       icon={<LoginOutlined />}
@@ -156,7 +164,8 @@ export function SocialLoginControl({
       }}
       onClick={() => handleProviderClick(defaultProvider)}
     >
-      Sign in with {formatProviderLabel(defaultProvider)}
+      Войти через {formatProviderLabel(defaultProvider)}
     </Dropdown.Button>
   )
 }
+

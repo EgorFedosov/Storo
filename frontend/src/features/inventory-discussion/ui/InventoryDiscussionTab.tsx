@@ -1,4 +1,4 @@
-﻿import {
+import {
   Alert,
   Button,
   Empty,
@@ -32,7 +32,7 @@ type DiscussionRow = {
 
 function formatCreatedAt(value: string): string {
   const parsedValue = dayjs(value)
-  return parsedValue.isValid() ? parsedValue.format('YYYY-MM-DD HH:mm:ss [UTC]') : value
+  return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm:ss [UTC]') : value
 }
 
 function toRows(posts: ReadonlyArray<{ id: string; createdAt: string; author: { displayName: string; userName: string }; contentMarkdown: string }>): DiscussionRow[] {
@@ -73,14 +73,14 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
   const columns = useMemo<NonNullable<TableProps<DiscussionRow>['columns']>>(
     () => [
       {
-        title: 'Created At',
+        title: 'Создано',
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 220,
         render: (value: string) => formatCreatedAt(value),
       },
       {
-        title: 'Author',
+        title: 'Автор',
         dataIndex: 'authorDisplayName',
         key: 'author',
         width: 220,
@@ -92,7 +92,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         ),
       },
       {
-        title: 'Message',
+        title: 'Сообщение',
         dataIndex: 'contentMarkdown',
         key: 'contentMarkdown',
         render: (value: string) => (
@@ -102,7 +102,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         ),
       },
       {
-        title: 'Post ID',
+        title: 'ID поста',
         dataIndex: 'id',
         key: 'id',
         width: 140,
@@ -121,18 +121,18 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space size={8} wrap>
-        <Tag color="blue">Inventory #{inventoryId}</Tag>
+        <Tag color="blue">Инвентарь #{inventoryId}</Tag>
         <Tag color={realtimeStatus === 'connected' ? 'green' : realtimeStatus === 'connecting' ? 'gold' : 'default'}>
-          Realtime: {realtimeStatus}
+          Реалтайм: {realtimeStatus}
         </Tag>
-        <Tag>Posts: {String(rows.length)}</Tag>
+        <Tag>Посты: {String(rows.length)}</Tag>
       </Space>
 
       {realtimeErrorMessage !== null ? (
         <Alert
           showIcon
           type="warning"
-          message="Realtime channel is unavailable"
+          message="Канал обновлений недоступен"
           description={realtimeErrorMessage}
         />
       ) : null}
@@ -141,11 +141,11 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         <Alert
           showIcon
           type="error"
-          message="Failed to load discussion history"
+          message="Не удалось загрузить историю обсуждения"
           description={errorMessage}
           action={(
             <Button type="primary" size="small" onClick={retryLoad}>
-              Retry
+              Повторить
             </Button>
           )}
         />
@@ -157,10 +157,10 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
           loading={isLoadingMore}
           disabled={!hasMoreHistory || status === 'loading'}
         >
-          Load Older
+          Загрузить более ранние
         </Button>
         <Typography.Text type="secondary">
-          HTTP history + SignalR updates (`discussion.posted`).
+          История через HTTP + обновления по SignalR (`discussion.posted`).
         </Typography.Text>
       </Space>
 
@@ -175,7 +175,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No discussion posts yet."
+              description="Постов в обсуждении пока нет."
             />
           ),
         }}
@@ -185,10 +185,10 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         <Alert
           showIcon
           type="info"
-          message="Posting disabled"
+          message="Публикация недоступна"
           description={isAuthenticated
-            ? 'Current account has no permission to publish posts in this discussion.'
-            : 'Sign in to publish discussion posts.'}
+            ? 'У вашей учетной записи нет прав публиковать сообщения в этом обсуждении.'
+            : 'Войдите, чтобы публиковать сообщения в обсуждении.'}
         />
       ) : null}
 
@@ -196,11 +196,11 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         <Alert
           showIcon
           type="error"
-          message="Failed to publish post"
+          message="Не удалось опубликовать сообщение"
           description={postErrorMessage}
           action={(
             <Button size="small" onClick={clearPostError}>
-              Dismiss
+              Закрыть
             </Button>
           )}
         />
@@ -215,7 +215,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         rows={4}
         maxLength={10000}
         showCount
-        placeholder="Write a discussion message in Markdown..."
+        placeholder="Напишите сообщение для обсуждения в Markdown..."
         disabled={!canSubmitPost || isPosting}
       />
 
@@ -226,13 +226,13 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
           onClick={handleSubmit}
           disabled={!canSubmitPost}
         >
-          Publish Post
+          Опубликовать
         </Button>
         <Button
           onClick={() => setDraftPost('')}
           disabled={draftPost.length === 0 || isPosting}
         >
-          Clear
+          Очистить
         </Button>
       </Space>
     </Space>

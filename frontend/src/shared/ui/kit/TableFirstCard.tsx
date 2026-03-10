@@ -25,7 +25,7 @@ export function TableFirstCard<TRecord extends object>({
   onSelectionChange,
   loading = false,
   errorMessage = null,
-  emptyDescription = 'No records to display.',
+  emptyDescription = 'Нет данных для отображения.',
   toolbar,
 }: TableFirstCardProps<TRecord>) {
   return (
@@ -34,7 +34,7 @@ export function TableFirstCard<TRecord extends object>({
         <Alert
           showIcon
           type="error"
-          message="Operation error"
+          message="Ошибка операции"
           description={errorMessage}
           style={{ marginBottom: 12 }}
         />
@@ -62,7 +62,7 @@ export function TableFirstCard<TRecord extends object>({
 
       {selectedRowKeys.length > 0 ? (
         <Typography.Text type="secondary">
-          Selected rows: {selectedRowKeys.length}
+          Выбрано строк: {selectedRowKeys.length}
         </Typography.Text>
       ) : null}
     </Card>

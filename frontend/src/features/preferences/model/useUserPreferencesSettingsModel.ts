@@ -1,22 +1,16 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useState } from 'react'
 import type { UiTheme } from '../../../entities/user/model/types.ts'
 import { useCurrentUser } from '../../auth/model/useCurrentUser.ts'
+import {
+  useUiPreferences,
+  type UiLanguage,
+} from './uiPreferencesStore.tsx'
 
-const maxLanguageLength = 10
-
-export function normalizeLanguage(value: string): string {
-  return value.trim().toLowerCase()
+export function normalizeLanguage(_value: string): UiLanguage {
+  return 'ru'
 }
 
-export function validateLanguage(language: string): string | null {
-  if (language.length === 0) {
-    return 'Language is required.'
-  }
-
-  if (language.length > maxLanguageLength) {
-    return `Language must be ${maxLanguageLength} characters or less.`
-  }
-
+export function validateLanguage(_language: string): string | null {
   return null
 }
 
@@ -24,39 +18,55 @@ export function useUserPreferencesSettingsModel() {
   const {
     currentUser,
     isAuthenticated,
-    preferencesSyncStatus,
-    preferencesSyncErrorMessage,
     resetPreferencesSyncState,
     updatePreferences,
   } = useCurrentUser()
+  const {
+    theme,
+    replaceUiPreferences,
+  } = useUiPreferences()
 
-  const currentLanguage = useMemo(
-    () => normalizeLanguage(currentUser.language),
-    [currentUser.language],
-  )
-  const currentTheme = currentUser.theme
-  const canEditPreferences = isAuthenticated && !currentUser.isBlocked
+  const [preferencesSyncStatus, setPreferencesSyncStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle')
+  const [preferencesSyncErrorMessage, setPreferencesSyncErrorMessage] = useState<string | null>(null)
+
+  const currentLanguage: UiLanguage = 'ru'
+  const currentTheme = theme
+  const canEditPreferences = true
   const isSaving = preferencesSyncStatus === 'saving'
 
   const savePreferences = useCallback(
-    async (languageDraft: string, themeDraft: UiTheme): Promise<boolean> => {
-      const normalizedLanguage = normalizeLanguage(languageDraft)
-      const validationError = validateLanguage(normalizedLanguage)
+    async (_languageDraft: string, themeDraft: UiTheme): Promise<boolean> => {
+      setPreferencesSyncStatus('saving')
+      setPreferencesSyncErrorMessage(null)
 
-      if (!canEditPreferences || validationError !== null) {
-        return false
-      }
-
-      return updatePreferences({
-        language: normalizedLanguage,
+      replaceUiPreferences({
+        language: 'ru',
         theme: themeDraft,
       })
+
+      if (isAuthenticated && !currentUser.isBlocked) {
+        const synced = await updatePreferences({
+          language: 'ru',
+          theme: themeDraft,
+        })
+
+        if (!synced) {
+          setPreferencesSyncStatus('error')
+          setPreferencesSyncErrorMessage('Сохранено локально, но синхронизация с сервером не удалась.')
+          return false
+        }
+      }
+
+      setPreferencesSyncStatus('success')
+      return true
     },
-    [canEditPreferences, updatePreferences],
+    [currentUser.isBlocked, isAuthenticated, replaceUiPreferences, updatePreferences],
   )
 
   const resetPreferencesState = useCallback(() => {
     resetPreferencesSyncState()
+    setPreferencesSyncStatus('idle')
+    setPreferencesSyncErrorMessage(null)
   }, [resetPreferencesSyncState])
 
   const normalizeThemeValue = useCallback((value: string): UiTheme => {
@@ -77,3 +87,4 @@ export function useUserPreferencesSettingsModel() {
     normalizeThemeValue,
   }
 }
+

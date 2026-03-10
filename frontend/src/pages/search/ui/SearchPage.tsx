@@ -64,7 +64,29 @@ export function SearchPage() {
 
 function formatDateTime(value: string): string {
   const parsedDate = dayjs(value)
-  return parsedDate.isValid() ? parsedDate.format('YYYY-MM-DD HH:mm') : value
+  return parsedDate.isValid() ? parsedDate.format('DD.MM.YYYY HH:mm') : value
+}
+
+function resolveSortFieldLabel(field: SearchItemsSortField): string {
+  if (field === 'relevance') {
+    return 'Релевантность'
+  }
+
+  if (field === 'updatedAt') {
+    return 'Дата обновления'
+  }
+
+  if (field === 'createdAt') {
+    return 'Дата создания'
+  }
+
+  return 'Пользовательский ID'
+}
+
+function resolveSortDirectionLabel(direction: SearchItemsSortDirection): string {
+  return direction === 'desc'
+    ? 'По убыванию'
+    : 'По возрастанию'
 }
 
 function SearchItemsResults() {
@@ -82,10 +104,26 @@ function SearchItemsResults() {
     retry,
   } = useSearchItemsPageModel()
 
+  const sortFieldOptions = useMemo(
+    () => searchItemsSortFieldOptions.map((option) => ({
+      value: option.value,
+      label: resolveSortFieldLabel(option.value),
+    })),
+    [],
+  )
+
+  const sortDirectionOptions = useMemo(
+    () => searchItemsSortDirectionOptions.map((option) => ({
+      value: option.value,
+      label: resolveSortDirectionLabel(option.value),
+    })),
+    [],
+  )
+
   const columns = useMemo<NonNullable<TableProps<SearchItemSummary>['columns']>>(
     () => [
       {
-        title: 'Custom ID',
+        title: 'Пользовательский ID',
         dataIndex: 'customId',
         key: 'customId',
         render: (_, record) => (
@@ -95,7 +133,7 @@ function SearchItemsResults() {
         ),
       },
       {
-        title: 'Inventory',
+        title: 'Инвентарь',
         dataIndex: ['inventory', 'title'],
         key: 'inventory',
         render: (_, record) => (
@@ -105,14 +143,14 @@ function SearchItemsResults() {
         ),
       },
       {
-        title: 'Created At',
+        title: 'Создан',
         dataIndex: 'createdAt',
         key: 'createdAt',
         width: 180,
         render: (value: string) => formatDateTime(value),
       },
       {
-        title: 'Updated At',
+        title: 'Обновлен',
         dataIndex: 'updatedAt',
         key: 'updatedAt',
         width: 180,
@@ -126,23 +164,23 @@ function SearchItemsResults() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Search Items
+          Поиск предметов
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          Table-first search results powered by `GET /api/v1/search/items`.
+          Ищите предметы по тексту и просматривайте результаты в табличном формате.
         </Typography.Paragraph>
         <Space size={8} wrap>
           <Tag color="blue">
-            q: {routeState.q ?? 'null'}
+            q: {routeState.q ?? 'не задан'}
           </Tag>
           <Tag color="geekblue">
-            page: {String(routeState.page)}
+            страница: {String(routeState.page)}
           </Tag>
           <Tag color="geekblue">
-            pageSize: {String(routeState.pageSize)}
+            размер: {String(routeState.pageSize)}
           </Tag>
           <Tag color="green">
-            total: {String(totalCount)}
+            всего: {String(totalCount)}
           </Tag>
         </Space>
       </Card>
@@ -151,7 +189,7 @@ function SearchItemsResults() {
         <Alert
           showIcon
           type="warning"
-          message="Invalid search query params"
+          message="Некорректные параметры поиска"
           description={validationErrors.map(([field, message]) => `${field}: ${message}`).join(' | ')}
         />
       ) : null}
@@ -160,31 +198,31 @@ function SearchItemsResults() {
         <Alert
           showIcon
           type="error"
-          message="Failed to load /search/items"
+          message="Не удалось загрузить /search/items"
           description={errorMessage}
           action={(
             <Button type="primary" size="small" onClick={retry}>
-              Retry
+              Повторить
             </Button>
           )}
         />
       ) : null}
 
       <Card
-        title="Items Table"
+        title="Таблица предметов"
         extra={(
           <Space>
             <Select<SearchItemsSortField>
               value={sort.field}
-              options={[...searchItemsSortFieldOptions]}
+              options={sortFieldOptions}
               onChange={handleSortFieldChange}
               disabled={routeState.q === null || isLoading}
               style={{ width: 170 }}
-              aria-label="Sort field"
+              aria-label="Поле сортировки"
             />
             <Segmented<SearchItemsSortDirection>
               value={sort.direction}
-              options={[...searchItemsSortDirectionOptions]}
+              options={sortDirectionOptions}
               onChange={(nextDirection) => handleSortDirectionChange(nextDirection)}
               disabled={routeState.q === null || isLoading}
             />
@@ -208,20 +246,20 @@ function SearchItemsResults() {
             total: totalCount,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (count, range) => `${String(range[0])}-${String(range[1])} of ${String(count)}`,
+            showTotal: (count, range) => `${String(range[0])}-${String(range[1])} из ${String(count)}`,
           }}
           locale={{
             emptyText: routeState.q === null
               ? (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="Enter a search query from the header to load item results."
+                  description="Введите запрос в шапке, чтобы загрузить результаты поиска предметов."
                 />
               )
               : (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="No items found for the current query."
+                  description="По текущему запросу ничего не найдено."
                 />
               ),
           }}

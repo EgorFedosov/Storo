@@ -30,12 +30,12 @@ type StringStatisticRow = {
 
 function formatUtcDateTime(value: string): string {
   const parsedValue = dayjs(value)
-  return parsedValue.isValid() ? parsedValue.format('YYYY-MM-DD HH:mm') : value
+  return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm') : value
 }
 
 function formatMetricValue(value: number | null): string {
   if (value === null) {
-    return 'n/a'
+    return 'н/д'
   }
 
   return new Intl.NumberFormat(undefined, {
@@ -80,32 +80,32 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
   const numericColumns = useMemo<NonNullable<TableProps<NumericStatisticRow>['columns']>>(
     () => [
       {
-        title: 'Field',
+        title: 'Поле',
         dataIndex: 'title',
         key: 'title',
       },
       {
-        title: 'Field ID',
+        title: 'ID поля',
         dataIndex: 'fieldId',
         key: 'fieldId',
         width: 140,
       },
       {
-        title: 'Min',
+        title: 'Мин.',
         dataIndex: 'min',
         key: 'min',
         width: 140,
         render: (value: number | null) => formatMetricValue(value),
       },
       {
-        title: 'Max',
+        title: 'Макс.',
         dataIndex: 'max',
         key: 'max',
         width: 140,
         render: (value: number | null) => formatMetricValue(value),
       },
       {
-        title: 'Avg',
+        title: 'Среднее',
         dataIndex: 'avg',
         key: 'avg',
         width: 140,
@@ -118,30 +118,30 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
   const stringColumns = useMemo<NonNullable<TableProps<StringStatisticRow>['columns']>>(
     () => [
       {
-        title: 'Field',
+        title: 'Поле',
         dataIndex: 'title',
         key: 'title',
       },
       {
-        title: 'Field ID',
+        title: 'ID поля',
         dataIndex: 'fieldId',
         key: 'fieldId',
         width: 140,
       },
       {
-        title: 'Most Frequent Value',
+        title: 'Самое частое значение',
         dataIndex: 'mostFrequentValue',
         key: 'mostFrequentValue',
         render: (value: string | null) => {
           if (value === null) {
-            return <Typography.Text type="secondary">n/a</Typography.Text>
+            return <Typography.Text type="secondary">н/д</Typography.Text>
           }
 
-          return value.length > 0 ? value : '(empty string)'
+          return value.length > 0 ? value : '(пустая строка)'
         },
       },
       {
-        title: 'Frequency',
+        title: 'Частота',
         dataIndex: 'mostFrequentCount',
         key: 'mostFrequentCount',
         width: 140,
@@ -159,7 +159,7 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
       <Card>
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text type="secondary">
-            Loading inventory statistics...
+            Загрузка статистики инвентаря...
           </Typography.Text>
           <div className="inventory-details-loader" role="status" aria-live="polite">
             <Spin size="large" />
@@ -175,11 +175,11 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
         <Alert
           showIcon
           type={errorStatus === 404 ? 'warning' : 'error'}
-          message={errorStatus === 404 ? 'Statistics are unavailable' : 'Failed to load statistics'}
-          description={errorMessage ?? 'Statistics request failed.'}
+          message={errorStatus === 404 ? 'Статистика недоступна' : 'Не удалось загрузить статистику'}
+          description={errorMessage ?? 'Ошибка запроса статистики.'}
           action={(
             <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-              Retry
+              Повторить
             </Button>
           )}
         />
@@ -188,19 +188,19 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
       {data !== null ? (
         <Card>
           <Space size={8} wrap>
-            <Tag color="blue">Inventory #{data.inventoryId}</Tag>
-            <Tag>Items: {String(data.itemsCount)}</Tag>
-            <Tag>Numeric fields: {String(data.numericFields.length)}</Tag>
-            <Tag>String fields: {String(data.stringFields.length)}</Tag>
-            <Tag>Updated: {formatUtcDateTime(data.updatedAt)} UTC</Tag>
+            <Tag color="blue">Инвентарь #{data.inventoryId}</Tag>
+            <Tag>Элементов: {String(data.itemsCount)}</Tag>
+            <Tag>Числовых полей: {String(data.numericFields.length)}</Tag>
+            <Tag>Строковых полей: {String(data.stringFields.length)}</Tag>
+            <Tag>Обновлено: {formatUtcDateTime(data.updatedAt)} UTC</Tag>
           </Space>
           <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-            Statistics from `GET /api/v1/inventories/:inventoryId/statistics`.
+            Статистика из `GET /api/v1/inventories/:inventoryId/statistics`.
           </Typography.Paragraph>
         </Card>
       ) : null}
 
-      <Card title="Numeric Aggregates">
+      <Card title="Числовые агрегаты">
         <Table<NumericStatisticRow>
           rowKey="key"
           columns={numericColumns}
@@ -211,14 +211,14 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No numeric aggregates available."
+                description="Числовые агрегаты отсутствуют."
               />
             ),
           }}
         />
       </Card>
 
-      <Card title="String Aggregates">
+      <Card title="Строковые агрегаты">
         <Table<StringStatisticRow>
           rowKey="key"
           columns={stringColumns}
@@ -229,7 +229,7 @@ export function InventoryStatisticsTab({ inventoryId, active }: InventoryStatist
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No string aggregates available."
+                description="Строковые агрегаты отсутствуют."
               />
             ),
           }}

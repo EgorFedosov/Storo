@@ -22,23 +22,23 @@ type AdminUsersFiltersFormValues = {
 }
 
 const blockedFilterOptions: Array<{ label: string; value: AdminUsersBlockedFilter }> = [
-  { label: 'All', value: 'all' },
-  { label: 'Blocked only', value: 'true' },
-  { label: 'Active only', value: 'false' },
+  { label: 'Все', value: 'all' },
+  { label: 'Только заблокированные', value: 'true' },
+  { label: 'Только активные', value: 'false' },
 ]
 
 const roleFilterOptions: Array<{ label: string; value: AdminUsersRoleFilter }> = [
-  { label: 'All roles', value: 'all' },
-  { label: 'Admins', value: 'admin' },
-  { label: 'Users', value: 'user' },
+  { label: 'Все роли', value: 'all' },
+  { label: 'Администраторы', value: 'admin' },
+  { label: 'Пользователи', value: 'user' },
 ]
 
 const moderationActionLabelMap: Record<AdminModerationAction, string> = {
-  block: 'Block',
-  unblock: 'Unblock',
-  grant_admin: 'Grant Admin',
-  revoke_admin: 'Revoke Admin',
-  delete: 'Delete User',
+  block: 'Блокировка',
+  unblock: 'Разблокировка',
+  grant_admin: 'Выдать админ-права',
+  revoke_admin: 'Снять админ-права',
+  delete: 'Удаление пользователя',
 }
 
 function toSortOrder(direction: AdminUsersSortDirection): 'ascend' | 'descend' {
@@ -142,7 +142,7 @@ export function AdminUsersListSection() {
   const columns = useMemo<NonNullable<TableProps<AdminUserListItem>['columns']>>(
     () => [
       {
-        title: 'User Name',
+        title: 'Имя пользователя',
         dataIndex: 'userName',
         key: 'userName',
         sorter: true,
@@ -156,12 +156,12 @@ export function AdminUsersListSection() {
         sortOrder: queryState.sortField === 'email' ? toSortOrder(queryState.sortDirection) : null,
       },
       {
-        title: 'Display Name',
+        title: 'Отображаемое имя',
         dataIndex: 'displayName',
         key: 'displayName',
       },
       {
-        title: 'Roles',
+        title: 'Роли',
         dataIndex: 'roles',
         key: 'roles',
         render: (roles: readonly string[]) => (
@@ -175,17 +175,17 @@ export function AdminUsersListSection() {
         ),
       },
       {
-        title: 'Status',
+        title: 'Статус',
         dataIndex: 'isBlocked',
         key: 'isBlocked',
         render: (isBlocked: boolean) => (
           <Tag color={isBlocked ? 'red' : 'green'}>
-            {isBlocked ? 'Blocked' : 'Active'}
+            {isBlocked ? 'Заблокирован' : 'Активен'}
           </Tag>
         ),
       },
       {
-        title: 'Created',
+        title: 'Создан',
         dataIndex: 'createdAt',
         key: 'createdAt',
         sorter: true,
@@ -193,7 +193,7 @@ export function AdminUsersListSection() {
         render: (value: string) => toDateTimeLabel(value),
       },
       {
-        title: 'Updated',
+        title: 'Обновлен',
         dataIndex: 'updatedAt',
         key: 'updatedAt',
         sorter: true,
@@ -282,7 +282,7 @@ export function AdminUsersListSection() {
         return
       }
 
-      if (result.message !== 'Moderation request was canceled.') {
+      if (result.message !== 'Запрос модерации был отменен.') {
         messageApi.error(result.message)
       }
     },
@@ -295,17 +295,17 @@ export function AdminUsersListSection() {
 
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Admin Users
+          Пользователи (админ)
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Table-first list of users with server-side filters, sorting, and pagination via
+          Табличный список пользователей с серверными фильтрами, сортировкой и пагинацией через
           {' '}
           <Typography.Text code>/api/v1/admin/users</Typography.Text>
           .
         </Typography.Paragraph>
       </Card>
 
-      <Card title="Filters">
+      <Card title="Фильтры">
         <Form<AdminUsersFiltersFormValues>
           form={form}
           layout="inline"
@@ -317,50 +317,50 @@ export function AdminUsersListSection() {
           onFinish={handleFiltersSubmit}
         >
           <Form.Item<AdminUsersFiltersFormValues>
-            label="Query"
+            label="Поиск"
             name="query"
             rules={[
               {
                 max: adminUsersContract.maxQueryLength,
-                message: `Max ${String(adminUsersContract.maxQueryLength)} characters.`,
+                message: `Максимум ${String(adminUsersContract.maxQueryLength)} символов.`,
               },
             ]}
           >
             <Input
               allowClear
-              placeholder="userName or email"
+              placeholder="имя пользователя или email"
               maxLength={adminUsersContract.maxQueryLength}
               style={{ width: 260 }}
             />
           </Form.Item>
 
-          <Form.Item<AdminUsersFiltersFormValues> label="Blocked" name="blocked">
+          <Form.Item<AdminUsersFiltersFormValues> label="Блокировка" name="blocked">
             <Select options={blockedFilterOptions} style={{ width: 170 }} />
           </Form.Item>
 
-          <Form.Item<AdminUsersFiltersFormValues> label="Role" name="role">
+          <Form.Item<AdminUsersFiltersFormValues> label="Роль" name="role">
             <Select options={roleFilterOptions} style={{ width: 170 }} />
           </Form.Item>
 
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" loading={isLoading}>
-                Apply
+                Применить
               </Button>
               <Button onClick={handleFiltersReset} disabled={isLoading}>
-                Reset
+                Сбросить
               </Button>
             </Space>
           </Form.Item>
         </Form>
       </Card>
 
-      <Card title="Users">
+      <Card title="Пользователи">
         {Object.keys(normalizedRouteValidationErrors).length > 0 ? (
           <Alert
             showIcon
             type="warning"
-            message="Invalid route query params"
+            message="Некорректные параметры в URL"
             description={toValidationErrorDescription(normalizedRouteValidationErrors)}
             style={{ marginBottom: 12 }}
           />
@@ -370,11 +370,11 @@ export function AdminUsersListSection() {
           <Alert
             showIcon
             type="error"
-            message="Failed to load admin users list"
+            message="Не удалось загрузить список пользователей"
             description={errorMessage}
             action={(
               <Button type="primary" size="small" onClick={retry}>
-                Retry
+                Повторить
               </Button>
             )}
             style={{ marginBottom: 12 }}
@@ -385,7 +385,7 @@ export function AdminUsersListSection() {
           <Alert
             showIcon
             type="error"
-            message="Moderation action failed"
+            message="Ошибка действия модерации"
             description={moderationErrorMessage}
             closable
             onClose={clearModerationError}
@@ -395,39 +395,39 @@ export function AdminUsersListSection() {
 
         <Card
           size="small"
-          title="Moderation Actions"
+          title="Действия модерации"
           style={{ marginBottom: 12 }}
         >
           <Space direction="vertical" size={10} style={{ width: '100%' }}>
             <Typography.Text type="secondary">
-              Select one row in the table and apply moderation actions.
+              Выберите одну строку в таблице и примените действие модерации.
             </Typography.Text>
 
             <Space size={[8, 8]} wrap>
               <Tag color={selectedUser === null ? 'default' : 'blue'}>
-                {selectedUser === null ? 'No user selected' : `@${selectedUser.userName}`}
+                {selectedUser === null ? 'Пользователь не выбран' : `@${selectedUser.userName}`}
               </Tag>
               {selectedUser !== null ? (
                 <Tag color={selectedUser.isBlocked ? 'red' : 'green'}>
-                  {selectedUser.isBlocked ? 'Blocked' : 'Active'}
+                  {selectedUser.isBlocked ? 'Заблокирован' : 'Активен'}
                 </Tag>
               ) : null}
               {selectedUser !== null && selectedUserHasAdminRole ? (
-                <Tag color="gold">Admin</Tag>
+                <Tag color="gold">Администратор</Tag>
               ) : null}
               {moderationInFlight !== null ? (
                 <Tag color="processing">
-                  {`${moderationActionLabelMap[moderationInFlight.action]} in progress...`}
+                  {`${moderationActionLabelMap[moderationInFlight.action]}...`}
                 </Tag>
               ) : null}
             </Space>
 
             <Space size={[8, 8]} wrap>
               <Popconfirm
-                title="Block selected user?"
-                description={selectedUser === null ? '' : `@${selectedUser.userName} will not be able to sign in.`}
-                okText="Block"
-                cancelText="Cancel"
+                title="Заблокировать выбранного пользователя?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} не сможет входить в систему.`}
+                okText="Заблокировать"
+                cancelText="Отмена"
                 onConfirm={() => void handleModerationAction('block')}
                 disabled={!canBlock}
               >
@@ -435,15 +435,15 @@ export function AdminUsersListSection() {
                   disabled={!canBlock}
                   loading={moderationActionInFlight === 'block'}
                 >
-                  Block
+                  Заблокировать
                 </Button>
               </Popconfirm>
 
               <Popconfirm
-                title="Unblock selected user?"
-                description={selectedUser === null ? '' : `@${selectedUser.userName} will regain normal access.`}
-                okText="Unblock"
-                cancelText="Cancel"
+                title="Разблокировать выбранного пользователя?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} восстановит обычный доступ.`}
+                okText="Разблокировать"
+                cancelText="Отмена"
                 onConfirm={() => void handleModerationAction('unblock')}
                 disabled={!canUnblock}
               >
@@ -451,15 +451,15 @@ export function AdminUsersListSection() {
                   disabled={!canUnblock}
                   loading={moderationActionInFlight === 'unblock'}
                 >
-                  Unblock
+                  Разблокировать
                 </Button>
               </Popconfirm>
 
               <Popconfirm
-                title="Grant admin role?"
-                description={selectedUser === null ? '' : `@${selectedUser.userName} will receive admin permissions.`}
-                okText="Grant"
-                cancelText="Cancel"
+                title="Выдать роль администратора?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} получит права администратора.`}
+                okText="Выдать"
+                cancelText="Отмена"
                 onConfirm={() => void handleModerationAction('grant_admin')}
                 disabled={!canGrantAdmin}
               >
@@ -467,15 +467,15 @@ export function AdminUsersListSection() {
                   disabled={!canGrantAdmin}
                   loading={moderationActionInFlight === 'grant_admin'}
                 >
-                  Grant Admin
+                  Выдать админ-права
                 </Button>
               </Popconfirm>
 
               <Popconfirm
-                title="Revoke admin role?"
-                description={selectedUser === null ? '' : `@${selectedUser.userName} will lose admin permissions.`}
-                okText="Revoke"
-                cancelText="Cancel"
+                title="Снять роль администратора?"
+                description={selectedUser === null ? '' : `@${selectedUser.userName} потеряет права администратора.`}
+                okText="Снять"
+                cancelText="Отмена"
                 onConfirm={() => void handleModerationAction('revoke_admin')}
                 disabled={!canRevokeAdmin}
               >
@@ -483,15 +483,15 @@ export function AdminUsersListSection() {
                   disabled={!canRevokeAdmin}
                   loading={moderationActionInFlight === 'revoke_admin'}
                 >
-                  Revoke Admin
+                  Снять админ-права
                 </Button>
               </Popconfirm>
 
               <Popconfirm
-                title="Delete selected user?"
-                description={selectedUser === null ? '' : `Delete user @${selectedUser.userName} permanently.`}
-                okText="Delete"
-                cancelText="Cancel"
+                title="Удалить выбранного пользователя?"
+                description={selectedUser === null ? '' : `Удалить пользователя @${selectedUser.userName} безвозвратно.`}
+                okText="Удалить"
+                cancelText="Отмена"
                 onConfirm={() => void handleModerationAction('delete')}
                 disabled={!canDelete}
               >
@@ -500,7 +500,7 @@ export function AdminUsersListSection() {
                   disabled={!canDelete}
                   loading={moderationActionInFlight === 'delete'}
                 >
-                  Delete User
+                  Удалить пользователя
                 </Button>
               </Popconfirm>
             </Space>
@@ -526,13 +526,15 @@ export function AdminUsersListSection() {
             total: pageData?.totalCount ?? 0,
             showSizeChanger: true,
             pageSizeOptions: ['20', '50', '100'],
-            showTotal: (total, range) => `${String(range[0])}-${String(range[1])} of ${String(total)}`,
+            showTotal: (total, range) => `${String(range[0])}-${String(range[1])} из ${String(total)}`,
           }}
           locale={{
-            emptyText: 'No users matched current filters.',
+            emptyText: 'По текущим фильтрам пользователи не найдены.',
           }}
         />
       </Card>
     </Space>
   )
 }
+
+

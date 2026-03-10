@@ -61,7 +61,30 @@ function createSearchSummary(routeState: SearchInventoriesRouteState): string {
     return `tag="${routeState.tag}"`
   }
 
-  return 'empty query'
+  return 'пустой запрос'
+}
+
+function resolveSortLabel(value: InventorySearchSortValue): string {
+  switch (value) {
+    case 'relevance:desc':
+      return 'Релевантность (лучшее совпадение)'
+    case 'relevance:asc':
+      return 'Релевантность (слабее совпадения выше)'
+    case 'updatedAt:desc':
+      return 'По обновлению (сначала новые)'
+    case 'updatedAt:asc':
+      return 'По обновлению (сначала старые)'
+    case 'createdAt:desc':
+      return 'По созданию (сначала новые)'
+    case 'createdAt:asc':
+      return 'По созданию (сначала старые)'
+    case 'title:asc':
+      return 'Название (А-Я)'
+    case 'title:desc':
+      return 'Название (Я-А)'
+    default:
+      return value
+  }
 }
 
 export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInventoriesScreenProps) {
@@ -110,7 +133,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
       const normalizedTag = normalizeInventorySearchTagInput(values.tag)
 
       if (normalizedQuery === null && normalizedTag === null) {
-        setFormErrorMessage('Provide q or tag to run inventory search.')
+        setFormErrorMessage('Укажите q или tag для запуска поиска.')
         return
       }
 
@@ -152,10 +175,18 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
     [onApplyRoute, routeState.page, routeState.pageSize],
   )
 
+  const sortOptions = useMemo(
+    () => inventorySearchSortOptions.map((option) => ({
+      value: option.value,
+      label: resolveSortLabel(option.value),
+    })),
+    [],
+  )
+
   const columns = useMemo<NonNullable<TableProps<SearchInventoryTableRow>['columns']>>(
     () => [
       {
-        title: 'Inventory',
+        title: 'Инвентарь',
         dataIndex: 'title',
         key: 'title',
         width: 340,
@@ -165,19 +196,19 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
               {row.title}
             </Typography.Link>
             <Typography.Text type="secondary">
-              {row.descriptionMarkdown.length > 0 ? row.descriptionMarkdown : 'No description'}
+              {row.descriptionMarkdown.length > 0 ? row.descriptionMarkdown : 'Без описания'}
             </Typography.Text>
           </Space>
         ),
       },
       {
-        title: 'Category',
+        title: 'Категория',
         dataIndex: 'categoryName',
         key: 'categoryName',
         width: 180,
       },
       {
-        title: 'Creator',
+        title: 'Автор',
         dataIndex: 'creatorDisplayName',
         key: 'creator',
         width: 220,
@@ -189,7 +220,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
         ),
       },
       {
-        title: 'Tags',
+        title: 'Теги',
         dataIndex: 'tags',
         key: 'tags',
         width: 260,
@@ -201,30 +232,30 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
                   {tag.name}
                 </Tag>
               ))
-              : <Typography.Text type="secondary">No tags</Typography.Text>}
+              : <Typography.Text type="secondary">Без тегов</Typography.Text>}
           </Space>
         ),
       },
       {
-        title: 'Access',
+        title: 'Доступ',
         dataIndex: 'isPublic',
         key: 'isPublic',
         width: 120,
         render: (isPublic: boolean) => (
           <Tag color={isPublic ? 'green' : 'default'}>
-            {isPublic ? 'Public' : 'Restricted'}
+            {isPublic ? 'Публичный' : 'Ограниченный'}
           </Tag>
         ),
       },
       {
-        title: 'Items',
+        title: 'Предметы',
         dataIndex: 'itemsCount',
         key: 'itemsCount',
         width: 100,
         align: 'right',
       },
       {
-        title: 'Updated',
+        title: 'Обновлен',
         dataIndex: 'updatedAt',
         key: 'updatedAt',
         width: 190,
@@ -240,18 +271,18 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card
-        title="Search Inventories"
+        title="Поиск инвентарей"
         extra={(
           <Space size={8}>
             <Typography.Text type="secondary">
-              {canRequest ? createSearchSummary(routeState) : 'Awaiting valid query params'}
+              {canRequest ? createSearchSummary(routeState) : 'Ожидаются корректные параметры запроса'}
             </Typography.Text>
             <Button
               icon={<ReloadOutlined />}
               onClick={retry}
               disabled={!canRequest || isLoading}
             >
-              Reload
+              Обновить
             </Button>
           </Space>
         )}
@@ -265,7 +296,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
             <Input
               allowClear
               maxLength={inventorySearchContract.maxQueryLength}
-              placeholder="Search text"
+              placeholder="Текст поиска"
               style={{ width: 260 }}
             />
           </Form.Item>
@@ -274,15 +305,15 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
             <Input
               allowClear
               maxLength={inventorySearchContract.maxTagLength}
-              placeholder="Filter by tag"
+              placeholder="Фильтр по тегу"
               style={{ width: 220 }}
             />
           </Form.Item>
 
-          <Form.Item label="Sort">
+          <Form.Item label="Сортировка">
             <Select<InventorySearchSortValue>
               value={normalizedSort.value}
-              options={[...inventorySearchSortOptions]}
+              options={sortOptions}
               onChange={handleSortChange}
               style={{ width: 250 }}
             />
@@ -290,7 +321,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
 
           <Form.Item>
             <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={isLoading}>
-              Search
+              Найти
             </Button>
           </Form.Item>
         </Form>
@@ -299,7 +330,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
           <Alert
             showIcon
             type="warning"
-            message="Search form validation"
+            message="Проверка формы поиска"
             description={formErrorMessage}
             style={{ marginTop: 12 }}
           />
@@ -309,7 +340,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
           <Alert
             showIcon
             type="warning"
-            message="Invalid search URL state"
+            message="Некорректные параметры в URL"
             description={routeValidationMessage}
             style={{ marginTop: 12 }}
           />
@@ -319,7 +350,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
           <Alert
             showIcon
             type="warning"
-            message="Search API validation"
+            message="Ошибка валидации API поиска"
             description={apiValidationMessage}
             style={{ marginTop: 12 }}
           />
@@ -329,14 +360,14 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
           <Alert
             showIcon
             type="error"
-            message="Inventory search failed"
+            message="Ошибка поиска инвентарей"
             description={errorMessage}
             style={{ marginTop: 12 }}
           />
         ) : null}
       </Card>
 
-      <Card title="Inventories table">
+      <Card title="Таблица инвентарей">
         <Table<SearchInventoryTableRow>
           rowKey="id"
           size="middle"
@@ -349,7 +380,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
             total: data?.totalCount ?? 0,
             pageSizeOptions,
             showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total}`,
+            showTotal: (total, range) => `${String(range[0])}-${String(range[1])} из ${String(total)}`,
           }}
           onChange={handleTableChange}
           locale={{
@@ -358,8 +389,8 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   canRequest
-                    ? 'No inventories matched current filters.'
-                    : 'Provide q or tag in URL/form to load inventory results.'
+                    ? 'По текущим фильтрам ничего не найдено.'
+                    : 'Укажите q или tag в URL/форме, чтобы загрузить результаты.'
                 }
               />
             ),

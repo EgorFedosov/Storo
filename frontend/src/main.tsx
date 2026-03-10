@@ -10,7 +10,7 @@ import { createAppBootstrapConfig } from './shared/config/bootstrap.ts'
 const rootElement = document.getElementById('root')
 
 if (rootElement === null) {
-  throw new Error('Root element "#root" was not found.')
+  throw new Error('Корневой элемент "#root" не найден.')
 }
 
 const root = createRoot(rootElement)
@@ -27,12 +27,12 @@ try {
     </StrictMode>,
   )
 } catch (error) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown bootstrap error.'
+  const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка инициализации.'
 
   root.render(
     <StrictMode>
       <div className="bootstrap-error" role="alert">
-        <h1>Application bootstrap failed</h1>
+        <h1>Ошибка инициализации приложения</h1>
         <p>{errorMessage}</p>
       </div>
     </StrictMode>,

@@ -279,7 +279,7 @@ export function useAdminUsersListModel() {
         if (abortController.signal.aborted) {
           return {
             ok: false,
-            message: 'Moderation request was canceled.',
+            message: 'Запрос модерации был отменен.',
           }
         }
 
@@ -300,7 +300,7 @@ export function useAdminUsersListModel() {
         if (abortController.signal.aborted) {
           return {
             ok: false,
-            message: 'Moderation request was canceled.',
+            message: 'Запрос модерации был отменен.',
           }
         }
 
@@ -412,3 +412,4 @@ export function useAdminUsersListModel() {
     executeModerationAction,
   }
 }
+

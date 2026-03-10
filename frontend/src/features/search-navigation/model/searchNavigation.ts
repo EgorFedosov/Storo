@@ -143,11 +143,18 @@ export function parseSearchRouteState(pathname: string, search: string): SearchR
       ? rawSort.trim()
       : null
 
-  if (scope === 'items' && q === null && isSearchPath(normalizedPathname)) {
+  // Missing q/tag on initial open is treated as idle state, not a validation error.
+  if (scope === 'items' && q === null && rawQuery !== null && isSearchPath(normalizedPathname)) {
     errors.q = 'q is required for item search.'
   }
 
-  if (scope === 'inventories' && q === null && tag === null && isSearchPath(normalizedPathname)) {
+  if (
+    scope === 'inventories'
+    && q === null
+    && tag === null
+    && (rawQuery !== null || rawTag !== null)
+    && isSearchPath(normalizedPathname)
+  ) {
     errors.q = 'q is required when tag is not provided.'
   }
 

@@ -1,4 +1,4 @@
-﻿import { EditOutlined } from '@ant-design/icons'
+import { EditOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Space, Table, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
 import dayjs from 'dayjs'
@@ -32,20 +32,20 @@ type PermissionRow = {
 
 function formatUtcDateTime(value: string): string {
   const parsedValue = dayjs(value)
-  return parsedValue.isValid() ? parsedValue.format('YYYY-MM-DD HH:mm') : value
+  return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm') : value
 }
 
 function toSnapshotRows(details: InventoryDetails, etag: string | null): SnapshotRow[] {
   return [
-    { key: 'id', property: 'Inventory ID', value: details.id },
-    { key: 'category', property: 'Category', value: details.header.category.name },
-    { key: 'creator', property: 'Creator', value: `${details.creator.displayName} (@${details.creator.userName})` },
-    { key: 'access', property: 'Access mode', value: details.header.isPublic ? 'Public' : 'Restricted' },
-    { key: 'items', property: 'Items count', value: String(details.summary.itemsCount) },
-    { key: 'createdAt', property: 'Created at (UTC)', value: formatUtcDateTime(details.header.createdAt) },
-    { key: 'updatedAt', property: 'Updated at (UTC)', value: formatUtcDateTime(details.header.updatedAt) },
-    { key: 'version', property: 'Version', value: String(details.version) },
-    { key: 'etag', property: 'ETag', value: etag ?? `(missing; fallback "${String(details.version)}")` },
+    { key: 'id', property: 'ID инвентаря', value: details.id },
+    { key: 'category', property: 'Категория', value: details.header.category.name },
+    { key: 'creator', property: 'Создатель', value: `${details.creator.displayName} (@${details.creator.userName})` },
+    { key: 'access', property: 'Режим доступа', value: details.header.isPublic ? 'Публичный' : 'Ограниченный' },
+    { key: 'items', property: 'Количество элементов', value: String(details.summary.itemsCount) },
+    { key: 'createdAt', property: 'Создано (UTC)', value: formatUtcDateTime(details.header.createdAt) },
+    { key: 'updatedAt', property: 'Обновлено (UTC)', value: formatUtcDateTime(details.header.updatedAt) },
+    { key: 'version', property: 'Версия', value: String(details.version) },
+    { key: 'etag', property: 'ETag', value: etag ?? `(отсутствует, используется версия "${String(details.version)}")` },
   ]
 }
 
@@ -53,45 +53,45 @@ function toPermissionRows(details: InventoryDetails): PermissionRow[] {
   return [
     {
       key: 'canEditInventory',
-      capability: 'Edit inventory settings',
+      capability: 'Редактирование настроек инвентаря',
       allowed: details.permissions.canEditInventory,
-      scope: 'Creator/Admin',
+      scope: 'Создатель/Админ',
     },
     {
       key: 'canManageAccess',
-      capability: 'Manage access list',
+      capability: 'Управление доступом',
       allowed: details.permissions.canManageAccess,
-      scope: 'Creator/Admin',
+      scope: 'Создатель/Админ',
     },
     {
       key: 'canManageCustomFields',
-      capability: 'Manage custom fields',
+      capability: 'Управление пользовательскими полями',
       allowed: details.permissions.canManageCustomFields,
-      scope: 'Creator/Admin',
+      scope: 'Создатель/Админ',
     },
     {
       key: 'canManageCustomIdTemplate',
-      capability: 'Manage custom ID template',
+      capability: 'Управление шаблоном ID',
       allowed: details.permissions.canManageCustomIdTemplate,
-      scope: 'Creator/Admin',
+      scope: 'Создатель/Админ',
     },
     {
       key: 'canWriteItems',
-      capability: 'Create or edit items',
+      capability: 'Создание и редактирование элементов',
       allowed: details.permissions.canWriteItems,
-      scope: 'Writer/Creator/Admin',
+      scope: 'Писатель/Создатель/Админ',
     },
     {
       key: 'canComment',
-      capability: 'Post discussion comments',
+      capability: 'Публикация комментариев в обсуждении',
       allowed: details.permissions.canComment,
-      scope: 'Authenticated user',
+      scope: 'Авторизованный пользователь',
     },
     {
       key: 'canLike',
-      capability: 'Like items',
+      capability: 'Лайки для элементов',
       allowed: details.permissions.canLike,
-      scope: 'Authenticated user',
+      scope: 'Авторизованный пользователь',
     },
   ]
 }
@@ -112,13 +112,13 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
   const snapshotColumns = useMemo<NonNullable<TableProps<SnapshotRow>['columns']>>(
     () => [
       {
-        title: 'Property',
+        title: 'Параметр',
         dataIndex: 'property',
         key: 'property',
         width: 260,
       },
       {
-        title: 'Value',
+        title: 'Значение',
         dataIndex: 'value',
         key: 'value',
       },
@@ -129,13 +129,13 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
   const tagColumns = useMemo<NonNullable<TableProps<TagRow>['columns']>>(
     () => [
       {
-        title: 'Tag',
+        title: 'Тег',
         dataIndex: 'name',
         key: 'name',
         render: (value: string) => <Tag>{value}</Tag>,
       },
       {
-        title: 'Tag ID',
+        title: 'ID тега',
         dataIndex: 'id',
         key: 'id',
         width: 180,
@@ -147,23 +147,23 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
   const permissionColumns = useMemo<NonNullable<TableProps<PermissionRow>['columns']>>(
     () => [
       {
-        title: 'Capability',
+        title: 'Возможность',
         dataIndex: 'capability',
         key: 'capability',
       },
       {
-        title: 'Allowed',
+        title: 'Разрешено',
         dataIndex: 'allowed',
         key: 'allowed',
         width: 140,
         render: (allowed: boolean) => (
           <Tag color={allowed ? 'green' : 'default'}>
-            {allowed ? 'Yes' : 'No'}
+            {allowed ? 'Да' : 'Нет'}
           </Tag>
         ),
       },
       {
-        title: 'Permission scope',
+        title: 'Область прав',
         dataIndex: 'scope',
         key: 'scope',
         width: 220,
@@ -180,11 +180,11 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
             {details.header.title}
           </Typography.Title>
           <Space size={8} wrap>
-            <Tag color="blue">Inventory #{details.id}</Tag>
+            <Tag color="blue">Инвентарь #{details.id}</Tag>
             <Tag color={details.header.isPublic ? 'green' : 'gold'}>
-              {details.header.isPublic ? 'Public write access' : 'Restricted write access'}
+              {details.header.isPublic ? 'Публичный доступ на запись' : 'Ограниченный доступ на запись'}
             </Tag>
-            <Tag>Items: {String(details.summary.itemsCount)}</Tag>
+            <Tag>Элементов: {String(details.summary.itemsCount)}</Tag>
             {details.permissions.canEditInventory ? (
               <Button
                 size="small"
@@ -192,24 +192,24 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
                 icon={<EditOutlined />}
                 onClick={() => navigate(`/inventories/${details.id}/edit`)}
               >
-                Open Editor
+                Открыть редактор
               </Button>
             ) : null}
           </Space>
           <Typography.Text type="secondary">
-            Read-only inventory page built from `GET /api/v1/inventories/:inventoryId`.
+            Страница инвентаря в режиме чтения, собранная из `GET /api/v1/inventories/:inventoryId`.
           </Typography.Text>
           {details.header.imageUrl !== null ? (
             <img
               src={details.header.imageUrl}
-              alt={`Inventory illustration for ${details.header.title}`}
+              alt={`Изображение инвентаря «${details.header.title}»`}
               className="inventory-details-image"
             />
           ) : null}
         </Space>
       </Card>
 
-      <Card title="Inventory Snapshot">
+      <Card title="Сводка инвентаря">
         <Table<SnapshotRow>
           rowKey="key"
           columns={snapshotColumns}
@@ -219,15 +219,15 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
         />
       </Card>
 
-      <Card title="Description">
+      <Card title="Описание">
         <Typography.Paragraph className="inventory-details-description">
           {details.header.descriptionMarkdown.trim().length > 0
             ? details.header.descriptionMarkdown
-            : 'No description provided.'}
+            : 'Описание отсутствует.'}
         </Typography.Paragraph>
       </Card>
 
-      <Card title={`Tags (${String(tagRows.length)})`}>
+      <Card title={`Теги (${String(tagRows.length)})`}>
         <Table<TagRow>
           rowKey="key"
           columns={tagColumns}
@@ -238,14 +238,14 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No tags assigned to this inventory."
+                description="Для этого инвентаря теги не заданы."
               />
             ),
           }}
         />
       </Card>
 
-      <Card title="Permission Matrix">
+      <Card title="Матрица прав">
         <Table<PermissionRow>
           rowKey="key"
           columns={permissionColumns}

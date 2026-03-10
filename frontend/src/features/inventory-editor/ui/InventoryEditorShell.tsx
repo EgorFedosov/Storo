@@ -129,26 +129,26 @@ type AutosaveBadgeState = {
 
 function renderAutosaveBadge(state: AutosaveBadgeState) {
   if (state.isSaving) {
-    return <Tag color="processing">Saving...</Tag>
+    return <Tag color="processing">Сохранение...</Tag>
   }
 
   if (state.isQueued) {
-    return <Tag color="gold">Changes queued</Tag>
+    return <Tag color="gold">Изменения в очереди</Tag>
   }
 
   if (state.isDirty) {
-    return <Tag color="orange">Unsaved changes</Tag>
+    return <Tag color="orange">Есть несохраненные изменения</Tag>
   }
 
   if (state.lastSavedAt !== null) {
     const timestamp = new Date(state.lastSavedAt)
     const savedLabel = Number.isNaN(timestamp.valueOf())
-      ? 'Saved'
-      : `Saved ${timestamp.toLocaleTimeString()}`
+      ? 'Сохранено'
+      : `Сохранено ${timestamp.toLocaleTimeString()}`
     return <Tag color="green">{savedLabel}</Tag>
   }
 
-  return <Tag color="default">No local changes</Tag>
+  return <Tag color="default">Нет локальных изменений</Tag>
 }
 
 function renderSettingsTab({
@@ -191,7 +191,7 @@ function renderSettingsTab({
     return (
       <Empty
         image={Empty.PRESENTED_IMAGE_SIMPLE}
-        description="Settings draft is not initialized."
+        description="Черновик настроек не инициализирован."
       />
     )
   }
@@ -227,11 +227,11 @@ function renderSettingsTab({
         <Alert
           showIcon
           type="warning"
-          message="Categories reference is unavailable"
-          description={referencesErrorMessage ?? 'Failed to load /categories.'}
+          message="Справочник категорий недоступен"
+          description={referencesErrorMessage ?? 'Не удалось загрузить /categories.'}
           action={(
             <Button size="small" onClick={retryReferences}>
-              Retry
+              Повторить
             </Button>
           )}
         />
@@ -241,19 +241,19 @@ function renderSettingsTab({
         <Alert
           showIcon
           type="error"
-          message="Settings autosave failed"
+          message="Сбой автосохранения настроек"
           description={settingsAutosave.errorMessage}
         />
       ) : null}
 
       <Space size={8} wrap>
         {renderAutosaveBadge(settingsAutosave)}
-        <Tag>Autosave: {String(Math.floor(settingsAutosave.autosaveIntervalMs / 1000))}s</Tag>
-        <Tag>Dirty fields: {settingsAutosave.dirtyFields.length}</Tag>
+        <Tag>Автосохранение: {String(Math.floor(settingsAutosave.autosaveIntervalMs / 1000))}s</Tag>
+        <Tag>Измененных полей: {settingsAutosave.dirtyFields.length}</Tag>
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Title</Typography.Text>
+        <Typography.Text strong>Название</Typography.Text>
         <Input
           value={draft.title}
           maxLength={200}
@@ -262,14 +262,14 @@ function renderSettingsTab({
             onUpdateSettingsDraft({ title: event.target.value })
           }}
           disabled={!settingsAutosave.canAutosave || settingsAutosave.isSaving}
-          placeholder="Inventory title"
+          placeholder="Название инвентаря"
           autoComplete="off"
         />
         {titleError !== null ? <Typography.Text type="danger">{titleError}</Typography.Text> : null}
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Category</Typography.Text>
+        <Typography.Text strong>Категория</Typography.Text>
         <Select<number>
           value={draft.categoryId ?? undefined}
           options={[...categoryOptions]}
@@ -281,13 +281,13 @@ function renderSettingsTab({
             onUpdateSettingsDraft({ categoryId: nextCategoryId })
           }}
           disabled={selectDisabled}
-          placeholder="Select category"
+          placeholder="Выберите категорию"
         />
         {categoryError !== null ? <Typography.Text type="danger">{categoryError}</Typography.Text> : null}
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Description (Markdown)</Typography.Text>
+        <Typography.Text strong>Описание (Markdown)</Typography.Text>
         <Input.TextArea
           value={draft.descriptionMarkdown}
           rows={5}
@@ -298,13 +298,13 @@ function renderSettingsTab({
             onUpdateSettingsDraft({ descriptionMarkdown: event.target.value })
           }}
           disabled={!settingsAutosave.canAutosave || settingsAutosave.isSaving}
-          placeholder="Inventory description"
+          placeholder="Описание инвентаря"
         />
         {descriptionError !== null ? <Typography.Text type="danger">{descriptionError}</Typography.Text> : null}
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Image URL</Typography.Text>
+        <Typography.Text strong>URL изображения</Typography.Text>
         <Input
           value={draft.imageUrl}
           maxLength={2_048}
@@ -320,7 +320,7 @@ function renderSettingsTab({
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Upload Image</Typography.Text>
+        <Typography.Text strong>Загрузка изображения</Typography.Text>
         <Space wrap>
           <Upload
             accept="image/*"
@@ -330,7 +330,7 @@ function renderSettingsTab({
             customRequest={async (requestOptions) => {
               const { file, onError, onSuccess } = requestOptions
               if (!(file instanceof File)) {
-                onError?.(new Error('Selected upload payload is not a file.'))
+                onError?.(new Error('Выбранный файл загрузки имеет некорректный формат.'))
                 return
               }
 
@@ -340,25 +340,25 @@ function renderSettingsTab({
                 return
               }
 
-              onError?.(new Error('Image upload was not completed.'))
+              onError?.(new Error('Загрузка изображения не была завершена.'))
             }}
           >
             <Button icon={<UploadOutlined />} loading={isImageUploading} disabled={uploadDisabled}>
-              {isImageUploading ? 'Uploading image...' : 'Upload image from device'}
+              {isImageUploading ? 'Загрузка изображения...' : 'Загрузить изображение с устройства'}
             </Button>
           </Upload>
           {isImageUploading ? (
             <Button onClick={onCancelSettingsImageUpload}>
-              Cancel upload
+              Отменить загрузку
             </Button>
           ) : null}
         </Space>
 
         <Space size={8} wrap>
           {imageUpload.fileName !== null ? <Tag>{imageUpload.fileName}</Tag> : null}
-          {imageUpload.status === 'requesting_presign' ? <Tag color="processing">Preparing upload contract</Tag> : null}
-          {imageUpload.status === 'uploading' ? <Tag color="processing">Uploading to storage</Tag> : null}
-          {imageUpload.status === 'success' ? <Tag color="green">Upload completed</Tag> : null}
+          {imageUpload.status === 'requesting_presign' ? <Tag color="processing">Подготовка контракта загрузки</Tag> : null}
+          {imageUpload.status === 'uploading' ? <Tag color="processing">Загрузка в хранилище</Tag> : null}
+          {imageUpload.status === 'success' ? <Tag color="green">Загрузка завершена</Tag> : null}
         </Space>
 
         {isImageUploading || imageUpload.status === 'success' ? (
@@ -369,14 +369,14 @@ function renderSettingsTab({
           <Alert
             showIcon
             type="error"
-            message="Image upload failed"
+            message="Не удалось загрузить изображение"
             description={imageUpload.errorMessage}
           />
         ) : null}
 
         {imageUpload.status === 'success' && imageUpload.uploadedPublicUrl !== null ? (
           <Typography.Text type="secondary">
-            Uploaded image URL was applied to settings and queued for autosave.
+            URL загруженного изображения применен к настройкам и поставлен в очередь автосохранения.
           </Typography.Text>
         ) : null}
       </Space>
@@ -384,11 +384,11 @@ function renderSettingsTab({
       {canShowImagePreview ? (
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text type="secondary">
-            Current image preview
+            Предпросмотр текущего изображения
           </Typography.Text>
           <img
             src={normalizedImageUrl}
-            alt="Inventory illustration preview"
+            alt="Предпросмотр изображения инвентаря"
             style={{ maxWidth: 320, width: '100%', borderRadius: 8, objectFit: 'cover' }}
           />
         </Space>
@@ -396,33 +396,33 @@ function renderSettingsTab({
 
       <Space wrap>
         <Button type="primary" onClick={onSaveSettingsNow} loading={settingsAutosave.isSaving} disabled={saveDisabled}>
-          Save now
+          Сохранить сейчас
         </Button>
         <Button onClick={onResetSettingsDraft} disabled={resetDisabled}>
-          Reset changes
+          Сбросить изменения
         </Button>
       </Space>
 
-      <Card size="small" title="Danger Zone">
+      <Card size="small" title="Опасная зона">
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Typography.Text type="danger">
-            Deleting this inventory is permanent and removes related items, access rules, tags, and discussions.
+            Удаление этого инвентаря необратимо и удаляет связанные элементы, правила доступа, теги и обсуждения.
           </Typography.Text>
 
           {deleteFlow.errorMessage !== null ? (
             <Alert
               showIcon
               type="error"
-              message="Inventory deletion failed"
+              message="Не удалось удалить инвентарь"
               description={deleteFlow.errorMessage}
             />
           ) : null}
 
           <Popconfirm
-            title="Delete inventory permanently?"
-            description={`Inventory #${editor.id} will be removed and cannot be restored.`}
-            okText="Delete inventory"
-            cancelText="Cancel"
+            title="Удалить инвентарь безвозвратно?"
+            description={`Inventory #${editor.id} будет удален без возможности восстановления.`}
+            okText="Удалить инвентарь"
+            cancelText="Отмена"
             okButtonProps={{ danger: true, loading: deleteFlow.isDeleting }}
             onConfirm={onDeleteInventory}
             disabled={deleteDisabled}
@@ -433,18 +433,18 @@ function renderSettingsTab({
               loading={deleteFlow.isDeleting}
               disabled={deleteDisabled}
             >
-              Delete inventory
+              Удалить инвентарь
             </Button>
           </Popconfirm>
 
           <Typography.Text type="secondary">
-            Deletion uses `DELETE /api/v1/inventories/{editor.id}` with `If-Match`.
+            Удаление выполняется через `DELETE /api/v1/inventories/{editor.id}` с `If-Match`.
           </Typography.Text>
         </Space>
       </Card>
 
       <Typography.Text type="secondary">
-        Settings are saved via `PUT /api/v1/inventories/{editor.id}/settings` with `If-Match`.
+        Настройки сохраняются через `PUT /api/v1/inventories/{editor.id}/settings` с `If-Match`.
       </Typography.Text>
     </Space>
   )
@@ -514,7 +514,7 @@ function TagsAutosaveTab({
         <Alert
           showIcon
           type="error"
-          message="Tags autosave failed"
+          message="Сбой автосохранения тегов"
           description={tagsAutosave.errorMessage}
         />
       ) : null}
@@ -523,15 +523,15 @@ function TagsAutosaveTab({
         <Alert
           showIcon
           type="warning"
-          message="Tag autocomplete request failed"
+          message="Ошибка запроса автодополнения тегов"
           description={autocompleteErrorMessage}
         />
       ) : null}
 
       <Space size={8} wrap>
         {renderAutosaveBadge(tagsAutosave)}
-        <Tag>Autosave: {String(Math.floor(tagsAutosave.autosaveIntervalMs / 1000))}s</Tag>
-        <Tag>Tags: {tagsAutosave.draft.length}</Tag>
+        <Tag>Автосохранение: {String(Math.floor(tagsAutosave.autosaveIntervalMs / 1000))}s</Tag>
+        <Tag>Теги: {tagsAutosave.draft.length}</Tag>
       </Space>
 
       <Select<string[]>
@@ -541,10 +541,10 @@ function TagsAutosaveTab({
         tokenSeparators={[',']}
         maxTagCount="responsive"
         maxTagTextLength={inventoryEditorTagsContract.maxTagLength}
-        placeholder="Add tags"
+        placeholder="Добавьте теги"
         disabled={!tagsAutosave.canAutosave || tagsAutosave.isSaving}
         status={tagsError !== null ? 'error' : undefined}
-        notFoundContent={autocompleteStatus === 'loading' ? 'Loading...' : undefined}
+        notFoundContent={autocompleteStatus === 'loading' ? 'Загрузка...' : undefined}
         onSearch={(nextPrefix) => {
           setSearchPrefix(nextPrefix)
         }}
@@ -560,7 +560,7 @@ function TagsAutosaveTab({
 
       {searchPrefix.trim().length > 0 && searchPrefix.trim().length < tagAutocompleteContract.minPrefixLength ? (
         <Typography.Text type="secondary">
-          Type at least {String(tagAutocompleteContract.minPrefixLength)} characters to get suggestions.
+          Введите минимум {String(tagAutocompleteContract.minPrefixLength)} символа(ов), чтобы получить подсказки.
         </Typography.Text>
       ) : null}
 
@@ -572,15 +572,15 @@ function TagsAutosaveTab({
 
       <Space wrap>
         <Button type="primary" onClick={onSaveTagsNow} loading={tagsAutosave.isSaving} disabled={saveDisabled}>
-          Save now
+          Сохранить сейчас
         </Button>
         <Button onClick={onResetTagsDraft} disabled={resetDisabled}>
-          Reset changes
+          Сбросить изменения
         </Button>
       </Space>
 
       <Typography.Text type="secondary">
-        Tags are saved via `PUT /api/v1/inventories/{editor.id}/tags` with `If-Match`.
+        Теги сохраняются через `PUT /api/v1/inventories/{editor.id}/tags` с `If-Match`.
       </Typography.Text>
     </Space>
   )
@@ -598,12 +598,12 @@ function renderAccessTab(editor: InventoryEditor) {
 
   const columns: NonNullable<TableProps<WriterRow>['columns']> = [
     {
-      title: 'Display Name',
+      title: 'Отображаемое имя',
       dataIndex: 'displayName',
       key: 'displayName',
     },
     {
-      title: 'User Name',
+      title: 'Имя пользователя',
       dataIndex: 'userName',
       key: 'userName',
       width: 220,
@@ -616,13 +616,13 @@ function renderAccessTab(editor: InventoryEditor) {
       width: 280,
     },
     {
-      title: 'Status',
+      title: 'Статус',
       dataIndex: 'isBlocked',
       key: 'isBlocked',
       width: 120,
       render: (isBlocked: boolean) => (
         <Tag color={isBlocked ? 'red' : 'green'}>
-          {isBlocked ? 'Blocked' : 'Active'}
+          {isBlocked ? 'Заблокирован' : 'Активен'}
         </Tag>
       ),
     },
@@ -631,9 +631,9 @@ function renderAccessTab(editor: InventoryEditor) {
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Typography.Text>
-        Access mode:{' '}
+        Режим доступа:{' '}
         <Tag color={editor.access.mode === 'public' ? 'green' : 'gold'}>
-          {editor.access.mode === 'public' ? 'Public' : 'Restricted'}
+          {editor.access.mode === 'public' ? 'Публичный' : 'Ограниченный'}
         </Tag>
       </Typography.Text>
 
@@ -647,7 +647,7 @@ function renderAccessTab(editor: InventoryEditor) {
           emptyText: (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No explicit writers configured."
+              description="Явные пользователи с правом записи не настроены."
             />
           ),
         }}
@@ -658,21 +658,21 @@ function renderAccessTab(editor: InventoryEditor) {
 
 function renderOverviewTable(editor: InventoryEditor, etag: string | null) {
   const rows: PropertyValueRow[] = [
-    { key: 'id', property: 'Inventory ID', value: editor.id },
-    { key: 'version', property: 'Version', value: String(editor.version) },
+    { key: 'id', property: 'ID инвентаря', value: editor.id },
+    { key: 'version', property: 'Версия', value: String(editor.version) },
     { key: 'etag', property: 'ETag', value: etag ?? '(missing)' },
-    { key: 'title', property: 'Current title', value: editor.settings.title },
+    { key: 'title', property: 'Текущее название', value: editor.settings.title },
   ]
 
   const columns: NonNullable<TableProps<PropertyValueRow>['columns']> = [
     {
-      title: 'Property',
+      title: 'Параметр',
       dataIndex: 'property',
       key: 'property',
       width: 220,
     },
     {
-      title: 'Value',
+      title: 'Значение',
       dataIndex: 'value',
       key: 'value',
     },
@@ -848,11 +848,11 @@ export function InventoryEditorShell({
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-            {editor.settings.title} Editor
+            Редактор: {editor.settings.title}
           </Typography.Title>
           {renderOverviewTable(editor, etag)}
           <Typography.Text type="secondary">
-            Settings, tags, and custom fields tabs use autosave with `If-Match` optimistic locking.
+            Вкладки настроек, тегов и пользовательских полей используют автосохранение с оптимистической блокировкой `If-Match`.
           </Typography.Text>
         </Space>
       </Card>
@@ -871,3 +871,6 @@ export function InventoryEditorShell({
     </Space>
   )
 }
+
+
+

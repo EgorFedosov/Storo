@@ -1,4 +1,4 @@
-﻿import { ReloadOutlined } from '@ant-design/icons'
+import { ReloadOutlined } from '@ant-design/icons'
 import { Alert, Button, Card, Result, Space, Spin, Tabs, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 import { useInventoryDetailsModel } from '../../../features/inventory-details/model/useInventoryDetailsModel.ts'
@@ -39,10 +39,10 @@ export function InventoryPage() {
       <Card>
         <Space direction="vertical" size={12} style={{ width: '100%' }}>
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
-            Inventory
+            Инвентарь
           </Typography.Title>
           <Typography.Text type="secondary">
-            Loading inventory details...
+            Загрузка данных инвентаря...
           </Typography.Text>
           <div className="inventory-details-loader" role="status" aria-live="polite">
             <Spin size="large" />
@@ -57,15 +57,15 @@ export function InventoryPage() {
       return (
         <Result
           status="404"
-          title="Inventory not found"
-          subTitle="Requested inventory does not exist or was removed."
+          title="Инвентарь не найден"
+          subTitle="Запрошенный инвентарь не существует или был удален."
           extra={(
             <Space wrap>
               <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-                Retry
+                Повторить
               </Button>
               <Button onClick={() => navigate('/home')}>
-                Go to Home
+                На главную
               </Button>
             </Space>
           )}
@@ -77,11 +77,11 @@ export function InventoryPage() {
       <Alert
         showIcon
         type="error"
-        message="Failed to load inventory details"
-        description={errorMessage ?? 'Inventory details request failed.'}
+        message="Не удалось загрузить данные инвентаря"
+        description={errorMessage ?? 'Запрос данных инвентаря завершился ошибкой.'}
         action={(
           <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />
@@ -92,11 +92,11 @@ export function InventoryPage() {
     return (
       <Result
         status="error"
-        title="Inventory details are unavailable"
-        subTitle="API returned an unexpected response."
+        title="Данные инвентаря недоступны"
+        subTitle="API вернул неожиданный ответ."
         extra={(
           <Button type="primary" icon={<ReloadOutlined />} onClick={retryLoad}>
-            Retry
+            Повторить
           </Button>
         )}
       />
@@ -116,7 +116,7 @@ export function InventoryPage() {
         items={[
           {
             key: 'items',
-            label: 'Items',
+            label: 'Предметы',
             children: (
               <InventoryItemsTableTab
                 key={details.id}
@@ -129,12 +129,12 @@ export function InventoryPage() {
           },
           {
             key: 'overview',
-            label: 'Overview',
+            label: 'Обзор',
             children: <InventoryDetailsView details={details} etag={etag} />,
           },
           {
             key: 'discussion',
-            label: 'Discussion',
+            label: 'Обсуждение',
             children: (
               <InventoryDiscussionTab
                 inventoryId={details.id}

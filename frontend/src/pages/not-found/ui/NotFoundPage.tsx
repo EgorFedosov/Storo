@@ -6,11 +6,11 @@ export function NotFoundPage() {
   return (
     <Result
       status="404"
-      title="Page not found"
-      subTitle="The route is outside the current app shell contract."
+      title="Страница не найдена"
+      subTitle="Маршрут не входит в текущий контракт оболочки приложения."
       extra={
         <Button type="primary" onClick={() => navigate(routes.home.path)}>
-          Go to home
+          На главную
         </Button>
       }
     />

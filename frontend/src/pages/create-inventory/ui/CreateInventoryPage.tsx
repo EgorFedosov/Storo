@@ -16,8 +16,8 @@ export function CreateInventoryPage() {
     return (
       <Result
         status="403"
-        title="Create inventory is unavailable"
-        subTitle="Only authenticated users with create permission can open this page."
+        title="Создание инвентаря недоступно"
+        subTitle="Эту страницу могут открывать только авторизованные пользователи с правом создания."
       />
     )
   }
@@ -28,10 +28,10 @@ export function CreateInventoryPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 4 }}>
-          Create Inventory
+          Создание инвентаря
         </Typography.Title>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          Create a new inventory template and continue to the inventory details/editor flow.
+          Создайте новый шаблон инвентаря и перейдите к карточке и редактору.
         </Typography.Paragraph>
         <Space wrap size={8}>
           <Tag color="blue">{currentUser.displayName}</Tag>
@@ -43,8 +43,8 @@ export function CreateInventoryPage() {
         <Alert
           showIcon
           type="info"
-          message="Loading categories"
-          description="Category dictionary is loading. Form submission is temporarily disabled."
+          message="Загрузка категорий"
+          description="Загружается справочник категорий. Отправка формы временно недоступна."
         />
       ) : null}
 
@@ -52,11 +52,11 @@ export function CreateInventoryPage() {
         <Alert
           showIcon
           type="error"
-          message="System references are unavailable"
+          message="Справочные данные недоступны"
           description={referencesErrorMessage}
           action={(
             <Button type="primary" size="small" onClick={retryReferencesBootstrap}>
-              Retry
+              Повторить
             </Button>
           )}
         />

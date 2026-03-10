@@ -45,8 +45,8 @@ type EditorCreateContextState = {
 const emptyValueLabel = '-'
 
 const sortDirectionOptions: ReadonlyArray<{ label: string; value: InventoryItemsTableSortDirection }> = [
-  { label: 'Descending', value: 'desc' },
-  { label: 'Ascending', value: 'asc' },
+  { label: 'По убыванию', value: 'desc' },
+  { label: 'По возрастанию', value: 'asc' },
 ]
 
 const defaultEditorCreateContextState: EditorCreateContextState = {
@@ -65,15 +65,15 @@ type TableLikePendingMap = Record<string, boolean>
 
 function toLikeFailureMessage(failure: ItemLikeMutationFailure): string {
   if (failure.status === 401) {
-    return 'Sign in to like items.'
+    return 'Войдите, чтобы ставить лайки.'
   }
 
   if (failure.status === 403) {
-    return 'You do not have permission to like items in this context.'
+    return 'У вас нет прав ставить лайки в этом контексте.'
   }
 
   if (failure.status === 404) {
-    return 'Item was not found.'
+    return 'Элемент не найден.'
   }
 
   if (failure.status === 400) {
@@ -87,7 +87,7 @@ function toLikeFailureMessage(failure: ItemLikeMutationFailure): string {
   if (failure.status === 0) {
     return failure.message.trim().length > 0
       ? failure.message
-      : 'Like request failed before reaching API.'
+      : 'Запрос на лайк не дошел до API.'
   }
 
   return failure.message
@@ -99,15 +99,15 @@ function isCustomSortField(value: string): value is `field:${string}` {
 
 function toSortFieldLabel(column: InventoryItemsTableColumn): string {
   if (column.key === 'customId') {
-    return 'Custom ID'
+    return 'Пользовательский ID'
   }
 
   if (column.key === 'createdAt') {
-    return 'Created At'
+    return 'Создано'
   }
 
   if (column.key === 'updatedAt') {
-    return 'Updated At'
+    return 'Обновлено'
   }
 
   if (column.kind === 'custom' && column.fieldType !== null) {
@@ -120,15 +120,15 @@ function toSortFieldLabel(column: InventoryItemsTableColumn): string {
 function toFieldTypeLabel(fieldType: InventoryCustomFieldType): string {
   switch (fieldType) {
     case 'single_line':
-      return 'Single line'
+      return 'Однострочное'
     case 'multi_line':
-      return 'Multi line'
+      return 'Многострочное'
     case 'number':
-      return 'Number'
+      return 'Число'
     case 'link':
-      return 'Link'
+      return 'Ссылка'
     case 'bool':
-      return 'Boolean'
+      return 'Логическое'
     default:
       return fieldType
   }
@@ -140,7 +140,7 @@ function formatDateTimeCell(value: InventoryItemsTableCellValue): string {
   }
 
   const parsedValue = dayjs(value)
-  return parsedValue.isValid() ? parsedValue.format('YYYY-MM-DD HH:mm') : value
+  return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm') : value
 }
 
 function renderCustomFieldValue(value: InventoryItemsTableCellValue, fieldType: InventoryCustomFieldType): ReactNode {
@@ -163,7 +163,7 @@ function renderCustomFieldValue(value: InventoryItemsTableCellValue, fieldType: 
 
     return (
       <Tag color={value ? 'green' : 'default'}>
-        {value ? 'True' : 'False'}
+        {value ? 'Да' : 'Нет'}
       </Tag>
     )
   }
@@ -289,9 +289,9 @@ export function InventoryItemsTableTab({
 
       if (options.length === 0) {
         return [
-          { label: 'Updated At', value: 'updatedAt' },
-          { label: 'Created At', value: 'createdAt' },
-          { label: 'Custom ID', value: 'customId' },
+          { label: 'Обновлено', value: 'updatedAt' },
+          { label: 'Создано', value: 'createdAt' },
+          { label: 'Пользовательский ID', value: 'customId' },
         ]
       }
 
@@ -418,17 +418,17 @@ export function InventoryItemsTableTab({
 
   const handleToggleLike = useCallback(async (row: InventoryItemsTableRow) => {
     if (!isAuthenticated) {
-      setLikeErrorMessage('Sign in to like items.')
+      setLikeErrorMessage('Войдите, чтобы ставить лайки.')
       return
     }
 
     if (currentUser.isBlocked) {
-      setLikeErrorMessage('Blocked users cannot like items.')
+      setLikeErrorMessage('Заблокированные пользователи не могут ставить лайки.')
       return
     }
 
     if (!permissions.canLike) {
-      setLikeErrorMessage('You do not have permission to like items.')
+      setLikeErrorMessage('У вас нет прав ставить лайки.')
       return
     }
 
@@ -499,7 +499,7 @@ export function InventoryItemsTableTab({
       })
 
       mappedColumns.push({
-        title: 'Likes',
+        title: 'Лайки',
         key: 'like',
         width: 210,
         fixed: 'right',
@@ -519,7 +519,7 @@ export function InventoryItemsTableTab({
                   void handleToggleLike(row)
                 }}
               >
-                {row.like.likedByCurrentUser ? 'Unlike' : 'Like'}
+                {row.like.likedByCurrentUser ? 'Убрать лайк' : 'Лайк'}
               </Button>
             </Space>
           )
@@ -540,7 +540,7 @@ export function InventoryItemsTableTab({
       <Card>
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
           <Typography.Text type="secondary">
-            Loading inventory items table...
+            Загрузка таблицы элементов инвентаря...
           </Typography.Text>
           <div className="inventory-details-loader" role="status" aria-live="polite">
             <Spin size="large" />
@@ -556,11 +556,11 @@ export function InventoryItemsTableTab({
         <Alert
           showIcon
           type={errorStatus === 404 ? 'warning' : 'error'}
-          message={errorStatus === 404 ? 'Inventory items are unavailable' : 'Failed to load items table'}
-          description={errorMessage ?? 'Items table request failed.'}
+          message={errorStatus === 404 ? 'Элементы инвентаря недоступны' : 'Не удалось загрузить таблицу элементов'}
+          description={errorMessage ?? 'Ошибка запроса таблицы элементов.'}
           action={(
             <Button type="primary" size="small" icon={<ReloadOutlined />} onClick={retryLoad}>
-              Retry
+              Повторить
             </Button>
           )}
         />
@@ -570,12 +570,12 @@ export function InventoryItemsTableTab({
         <Alert
           showIcon
           type="warning"
-          message="Create schema fallback is active"
+          message="Используется резервная схема создания"
           description={(
             <>
               {activeEditorCreateContext.errorMessage}
               {' '}
-              Falling back to visible table fields only.
+              Используются только видимые поля таблицы.
             </>
           )}
         />
@@ -585,7 +585,7 @@ export function InventoryItemsTableTab({
         <Alert
           showIcon
           type="error"
-          message="Failed to update like"
+          message="Не удалось обновить лайк"
           description={likeErrorMessage}
           closable
           onClose={() => setLikeErrorMessage(null)}
@@ -594,33 +594,33 @@ export function InventoryItemsTableTab({
 
       <Card>
         <Space size={8} wrap>
-          <Tag color="blue">Inventory #{inventoryId}</Tag>
-          <Tag>Version: {String(data?.version ?? 'n/a')}</Tag>
-          <Tag>Rows: {String(rows.length)}</Tag>
-          <Tag>Total: {String(totalCount)}</Tag>
+          <Tag color="blue">Инвентарь #{inventoryId}</Tag>
+          <Tag>Версия: {String(data?.version ?? 'н/д')}</Tag>
+          <Tag>Строк: {String(rows.length)}</Tag>
+          <Tag>Всего: {String(totalCount)}</Tag>
           <Tag color={canWriteItems ? 'green' : 'default'}>
-            {canWriteItems ? 'Write access' : 'Read-only access'}
+            {canWriteItems ? 'Доступ на запись' : 'Только чтение'}
           </Tag>
           <Tag color={canLikeItems ? 'magenta' : 'default'}>
-            {canLikeItems ? 'Likes enabled' : 'Likes disabled'}
+            {canLikeItems ? 'Лайки разрешены' : 'Лайки отключены'}
           </Tag>
         </Space>
         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          Dynamic table from `GET /api/v1/inventories/:inventoryId/items` (`columns + rows`).
+          Динамическая таблица из `GET /api/v1/inventories/:inventoryId/items` (`columns + rows`).
         </Typography.Paragraph>
         {lastCreatedItem === null ? null : (
           <Alert
             showIcon
             type="success"
             style={{ marginTop: 12 }}
-            message={`Item ${lastCreatedItem.customId} created`}
+            message={`Элемент ${lastCreatedItem.customId} создан`}
             description={(
               <Space size={8} wrap>
-                <Tag color="green">Item #{lastCreatedItem.id}</Tag>
-                <Tag>Version: {String(lastCreatedItem.version)}</Tag>
+                <Tag color="green">Элемент #{lastCreatedItem.id}</Tag>
+                <Tag>Версия: {String(lastCreatedItem.version)}</Tag>
                 {lastCreatedItem.etag === null ? null : <Tag>ETag: {lastCreatedItem.etag}</Tag>}
                 <Typography.Link onClick={() => navigate(`/items/${lastCreatedItem.id}`)}>
-                  Open item
+                  Открыть элемент
                 </Typography.Link>
               </Space>
             )}
@@ -629,7 +629,7 @@ export function InventoryItemsTableTab({
       </Card>
 
       <Card
-        title="Items"
+        title="Элементы"
         extra={(
           <Space wrap>
             {canWriteItems ? (
@@ -638,7 +638,7 @@ export function InventoryItemsTableTab({
                 onClick={() => setIsCreateModalOpen(true)}
                 disabled={!canOpenCreateFlow || status === 'loading' || activeEditorCreateContext.isLoading}
               >
-                Create Item
+                Создать элемент
               </Button>
             ) : null}
             <Select<InventoryItemsTableSortField>
@@ -647,7 +647,7 @@ export function InventoryItemsTableTab({
               onChange={handleSortFieldChange}
               style={{ width: 240 }}
               disabled={status === 'loading'}
-              aria-label="Items sort field"
+              aria-label="Поле сортировки элементов"
             />
             <Segmented<InventoryItemsTableSortDirection>
               value={sortDirection}
@@ -676,13 +676,13 @@ export function InventoryItemsTableTab({
             total: totalCount,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100'],
-            showTotal: (count, range) => `${String(range[0])}-${String(range[1])} of ${String(count)}`,
+            showTotal: (count, range) => `${String(range[0])}-${String(range[1])} из ${String(count)}`,
           }}
           locale={{
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No items in this inventory."
+                description="В этом инвентаре пока нет элементов."
               />
             ),
           }}
@@ -712,6 +712,3 @@ export function InventoryItemsTableTab({
     </Space>
   )
 }
-
-
-

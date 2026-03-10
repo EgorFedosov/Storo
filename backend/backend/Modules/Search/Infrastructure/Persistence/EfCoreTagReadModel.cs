@@ -37,14 +37,20 @@ public sealed class EfCoreTagReadModel(AppDbContext dbContext) : ITagReadModel
         return await dbContext.Tags
             .AsNoTracking()
             .Where(tag => tag.InventoryTags.Any())
-            .Select(tag => new TagCloudEntryResult(
+            .Select(tag => new
+            {
                 tag.Id,
                 tag.Name,
-                tag.InventoryTags.Count()))
+                Count = tag.InventoryTags.Count()
+            })
             .OrderByDescending(tag => tag.Count)
             .ThenBy(tag => tag.Name)
             .ThenBy(tag => tag.Id)
             .Take(query.Limit)
+            .Select(tag => new TagCloudEntryResult(
+                tag.Id,
+                tag.Name,
+                tag.Count))
             .ToArrayAsync(cancellationToken);
     }
 }

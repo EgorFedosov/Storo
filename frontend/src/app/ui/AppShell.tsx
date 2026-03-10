@@ -56,7 +56,15 @@ export function AppShell() {
         .map((navRoute) => ({
           key: navRoute.key,
           icon: navigationIcons[navRoute.key],
-          label: navRoute.label,
+          label: navRoute.key === 'home'
+            ? 'Главная'
+            : navRoute.key === 'searchInventories'
+              ? 'Поиск инвентарей'
+              : navRoute.key === 'searchItems'
+                ? 'Поиск предметов'
+                : navRoute.key === 'myInventories'
+                  ? 'Мои инвентари'
+                  : 'Пользователи',
         })),
     [access],
   )
@@ -71,31 +79,33 @@ export function AppShell() {
       ? 'success'
       : 'default'
   const authStatusLabel = status === 'loading'
-    ? 'Auth Loading'
+    ? 'Проверка входа'
     : isAuthenticated
-      ? 'Authenticated'
-      : 'Guest'
+      ? 'Вы вошли'
+      : 'Гость'
   const referencesStatusColor = referencesStatus === 'loading'
     ? 'processing'
     : referencesStatus === 'ready'
       ? 'success'
       : 'error'
   const referencesStatusLabel = referencesStatus === 'loading'
-    ? 'Refs Loading'
+    ? 'Загрузка справочников'
     : referencesStatus === 'ready'
-      ? `Refs Ready (${String(categoryOptions.length)})`
-      : 'Refs Error'
+      ? `Справочники готовы (${String(categoryOptions.length)})`
+      : 'Ошибка справочников'
 
   return (
     <Layout className="app-shell-layout">
       <Layout.Header className="app-shell-header">
         <div className="app-shell-title">
           <Typography.Title className="app-shell-title-text" level={4}>
-            Inventory Frontend
+            <Typography.Link
+              className="app-shell-title-link"
+              onClick={() => navigate('/home')}
+            >
+              Инвентари
+            </Typography.Link>
           </Typography.Title>
-          <Typography.Text className="app-shell-subtitle">
-            Route skeleton for table-first inventory pages
-          </Typography.Text>
         </div>
 
         <GlobalSearchEntry
@@ -120,7 +130,7 @@ export function AppShell() {
             {currentUser.displayName}
           </Typography.Text>
           <Typography.Text className="app-shell-user-roles">
-            {currentUser.roles.length > 0 ? currentUser.roles.join(', ') : 'guest'}
+            {currentUser.roles.length > 0 ? currentUser.roles.join(', ') : 'гость'}
           </Typography.Text>
         </Space>
       </Layout.Header>
@@ -143,11 +153,11 @@ export function AppShell() {
           <Alert
             showIcon
             type="warning"
-            message="System references bootstrap failed"
+            message="Не удалось загрузить справочные данные"
             description={referencesErrorMessage}
             action={(
               <Button type="primary" size="small" onClick={retryReferencesBootstrap}>
-                Retry
+                Повторить
               </Button>
             )}
             style={{ marginBottom: 16 }}
@@ -158,11 +168,11 @@ export function AppShell() {
           <Alert
             showIcon
             type="error"
-            message="Auth bootstrap failed"
+            message="Не удалось загрузить данные пользователя"
             description={errorMessage}
             action={(
               <Button type="primary" size="small" onClick={retryBootstrap}>
-                Retry
+                Повторить
               </Button>
             )}
             style={{ marginBottom: 16 }}
@@ -186,11 +196,12 @@ export function AppShell() {
         ) : (
           <Result
             status="403"
-            title="Access denied"
-            subTitle="Current user permissions do not allow opening this route."
+            title="Доступ запрещен"
+            subTitle="У текущего пользователя нет прав на открытие этой страницы."
           />
         )}
       </Layout.Content>
     </Layout>
   )
 }
+

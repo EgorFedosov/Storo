@@ -72,11 +72,15 @@ html[data-ui-theme='dark'] body {
 
 .app-shell-title-text.ant-typography {
   margin: 0;
+}
+
+.app-shell-title-link.ant-typography {
   color: #f8fafc;
 }
 
-.app-shell-subtitle.ant-typography {
-  color: rgba(248, 250, 252, 0.82);
+.app-shell-title-link.ant-typography:hover,
+.app-shell-title-link.ant-typography:focus {
+  color: #dbeafe;
 }
 
 .app-shell-user-name.ant-typography {
@@ -89,6 +93,22 @@ html[data-ui-theme='dark'] body {
 
 .app-shell-header-meta {
   margin-left: auto;
+}
+
+.social-login-control-btn.ant-btn,
+.social-login-control-btn .ant-btn {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.social-login-control-btn.ant-btn:hover,
+.social-login-control-btn.ant-btn:focus,
+.social-login-control-btn .ant-btn:hover,
+.social-login-control-btn .ant-btn:focus {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #0f172a;
 }
 
 .global-search-entry {
@@ -106,6 +126,7 @@ html[data-ui-theme='dark'] body {
 
 .global-search-form-item-scope {
   width: 170px;
+  margin-right: 8px;
 }
 
 .global-search-form-item-query {
@@ -263,6 +284,7 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
 
   .global-search-form-item-scope {
     width: min(180px, 100%);
+    margin-right: 0;
   }
 
   .global-search-form-item-query {
