@@ -82,6 +82,9 @@ html[data-ui-theme='dark'] body {
 
 .app-shell-title-link.ant-typography {
   color: #f8fafc;
+  font-size: clamp(2rem, 1.5rem + 0.9vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1;
 }
 
 .app-shell-title-link.ant-typography:hover,

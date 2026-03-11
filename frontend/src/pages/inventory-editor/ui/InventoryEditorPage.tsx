@@ -50,6 +50,7 @@ export function InventoryEditorPage() {
     deleteFlow,
     updateSettingsDraft,
     uploadSettingsImage,
+    deleteSettingsImageFromStorage,
     cancelSettingsImageUpload,
     deleteInventory,
     saveSettingsNow,
@@ -203,6 +204,7 @@ export function InventoryEditorPage() {
       onClearConcurrencyProblem={clearConcurrencyProblem}
       onUpdateSettingsDraft={updateSettingsDraft}
       onUploadSettingsImage={uploadSettingsImage}
+      onDeleteSettingsImageFromStorage={deleteSettingsImageFromStorage}
       onCancelSettingsImageUpload={cancelSettingsImageUpload}
       onDeleteInventory={async () => {
         const deleted = await deleteInventory()

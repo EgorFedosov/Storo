@@ -18,8 +18,8 @@ import {
   type ReplaceInventoryCustomFieldsRequestPayload,
 } from '../../../entities/inventory/model/inventoryCustomFieldsApi.ts'
 import {
-  requestInventoryImageUploadPresign,
-  uploadFileToStorage,
+  deleteInventoryFile,
+  uploadInventoryFile,
 } from '../../../entities/inventory/model/inventoryImageUploadApi.ts'
 import type {
   InventoryCustomFieldType,
@@ -45,7 +45,7 @@ export type InventoryEditorSettingsDraft = {
   imageUrl: string
 }
 type InventoryEditorSettingsFieldErrors = Partial<Record<InventoryEditorSettingsField, string[]>>
-export type InventorySettingsImageUploadStatus = 'idle' | 'requesting_presign' | 'uploading' | 'success' | 'error'
+export type InventorySettingsImageUploadStatus = 'idle' | 'uploading' | 'deleting' | 'success' | 'error'
 export type InventorySettingsImageUploadState = {
   status: InventorySettingsImageUploadStatus
   fileName: string | null
@@ -190,6 +190,7 @@ type InventoryEditorModel = InventoryEditorState & {
   deleteFlow: InventoryDeleteState
   updateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
   uploadSettingsImage: (file: File) => Promise<boolean>
+  deleteSettingsImageFromStorage: () => Promise<boolean>
   cancelSettingsImageUpload: () => void
   deleteInventory: () => Promise<boolean>
   saveSettingsNow: () => void
@@ -222,6 +223,15 @@ const settingsAutosaveIntervalMs = 8_000
 const tagsAutosaveIntervalMs = 8_000
 const maxImageUploadFileNameLength = 255
 const maxImageUploadContentTypeLength = 255
+const allowedUploadFileExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.pdf'])
+const allowedUploadMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+  'application/pdf',
+])
 const customFieldTypeOrder: ReadonlyArray<InventoryCustomFieldType> = [
   'single_line',
   'multi_line',
@@ -379,30 +389,46 @@ function settingsFailureMessage(failure: ApiFailure): string {
 
 function validateImageUploadFile(file: File): string | null {
   const normalizedFileName = file.name.trim()
-  const normalizedContentType = file.type.trim()
+  const normalizedContentType = file.type.trim().toLowerCase()
+  const extensionMatch = /\.[^./\\]+$/.exec(normalizedFileName)
+  const normalizedExtension = extensionMatch === null
+    ? ''
+    : extensionMatch[0].toLowerCase()
 
   if (normalizedFileName.length === 0) {
-    return 'Image file name is required.'
+    return 'File name is required.'
   }
 
   if (normalizedFileName.length > maxImageUploadFileNameLength) {
-    return `Image file name must be ${String(maxImageUploadFileNameLength)} characters or less.`
+    return `File name must be ${String(maxImageUploadFileNameLength)} characters or less.`
+  }
+
+  if (!allowedUploadFileExtensions.has(normalizedExtension)) {
+    return 'Only .jpg, .jpeg, .png, .webp, .gif, .bmp and .pdf files are allowed.'
   }
 
   if (normalizedContentType.length === 0) {
-    return 'Image content type is required.'
+    return 'File content type is required.'
   }
 
   if (normalizedContentType.length > maxImageUploadContentTypeLength) {
-    return `Image content type must be ${String(maxImageUploadContentTypeLength)} characters or less.`
+    return `File content type must be ${String(maxImageUploadContentTypeLength)} characters or less.`
   }
 
-  if (!normalizedContentType.toLocaleLowerCase().startsWith('image/')) {
-    return 'Only image files are allowed.'
+  if (!allowedUploadMimeTypes.has(normalizedContentType)) {
+    return 'Only image files (jpg/jpeg/png/webp/gif/bmp) and PDF are allowed.'
+  }
+
+  if (normalizedExtension === '.pdf' && normalizedContentType !== 'application/pdf') {
+    return 'PDF files must have content type application/pdf.'
+  }
+
+  if (normalizedExtension !== '.pdf' && !normalizedContentType.startsWith('image/')) {
+    return 'Image files must have image/* content type.'
   }
 
   if (!Number.isFinite(file.size) || file.size <= 0) {
-    return 'Image file must be a positive size.'
+    return 'File size must be positive.'
   }
 
   return null
@@ -410,21 +436,14 @@ function validateImageUploadFile(file: File): string | null {
 
 function imageUploadPresignFailureMessage(failure: ApiFailure): string {
   if (failure.status === 401) {
-    return 'Sign in to upload inventory images.'
+    return 'Sign in to upload files.'
   }
 
   if (failure.status === 403) {
-    return 'You do not have permission to upload images.'
+    return 'You do not have permission to upload files.'
   }
 
   return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
-}
-
-function isAbortLikeError(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === 'AbortError')
-    || (typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
-  )
 }
 
 function tagsFailureMessage(failure: ApiFailure): string {
@@ -1314,7 +1333,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
     const requestId = settingsImageUploadRequestRef.current
 
     setSettingsImageUpload({
-      status: 'requesting_presign',
+      status: 'uploading',
       fileName: file.name,
       progressPercent: 0,
       errorMessage: null,
@@ -1322,25 +1341,18 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       expiresAtUtc: null,
     })
 
-    const presignResult = await requestInventoryImageUploadPresign(
-      {
-        filename: file.name.trim(),
-        contentType: file.type.trim(),
-        size: file.size,
-      },
-      { signal: abortController.signal },
-    )
+    const uploadResult = await uploadInventoryFile(file, { signal: abortController.signal })
 
     if (abortController.signal.aborted || requestId !== settingsImageUploadRequestRef.current) {
       return false
     }
 
-    if (!presignResult.ok) {
+    if (!uploadResult.ok) {
       setSettingsImageUpload({
         status: 'error',
         fileName: file.name,
         progressPercent: null,
-        errorMessage: imageUploadPresignFailureMessage(presignResult),
+        errorMessage: imageUploadPresignFailureMessage(uploadResult),
         uploadedPublicUrl: null,
         expiresAtUtc: null,
       })
@@ -1348,73 +1360,93 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       return false
     }
 
-    setSettingsImageUpload({
-      status: 'uploading',
-      fileName: file.name,
-      progressPercent: 0,
-      errorMessage: null,
-      uploadedPublicUrl: presignResult.data.publicUrl,
-      expiresAtUtc: presignResult.data.upload.expiresAtUtc,
-    })
-
-    try {
-      await uploadFileToStorage({
-        upload: presignResult.data.upload,
-        file,
-        signal: abortController.signal,
-        onProgress: (progressPercent) => {
-          if (requestId !== settingsImageUploadRequestRef.current) {
-            return
-          }
-
-          setSettingsImageUpload((current) => ({
-            ...current,
-            status: 'uploading',
-            progressPercent,
-          }))
-        },
-      })
-    } catch (error) {
-      if (abortController.signal.aborted || isAbortLikeError(error)) {
-        if (requestId === settingsImageUploadRequestRef.current) {
-          setSettingsImageUpload(createInitialSettingsImageUploadState())
-        }
-        return false
-      }
-
-      if (requestId === settingsImageUploadRequestRef.current) {
-        setSettingsImageUpload({
-          status: 'error',
-          fileName: file.name,
-          progressPercent: null,
-          errorMessage: error instanceof Error ? error.message : 'Image upload failed.',
-          uploadedPublicUrl: null,
-          expiresAtUtc: null,
-        })
-      }
-      return false
-    } finally {
-      if (requestId === settingsImageUploadRequestRef.current) {
-        settingsImageUploadAbortRef.current = null
-      }
-    }
-
     if (abortController.signal.aborted || requestId !== settingsImageUploadRequestRef.current) {
       return false
     }
 
+    settingsImageUploadAbortRef.current = null
     setSettingsImageUpload({
       status: 'success',
       fileName: file.name,
       progressPercent: 100,
       errorMessage: null,
-      uploadedPublicUrl: presignResult.data.publicUrl,
-      expiresAtUtc: presignResult.data.upload.expiresAtUtc,
+      uploadedPublicUrl: uploadResult.data.publicUrl,
+      expiresAtUtc: null,
     })
     setSettingsLastSavedAt(null)
     applySettingsDraftPatch(
       {
-        imageUrl: presignResult.data.publicUrl,
+        imageUrl: uploadResult.data.publicUrl,
+      },
+      { queueSave: true },
+    )
+    return true
+  }, [applySettingsDraftPatch, canAutosaveSettings, inventoryId, settingsDraft, state.editor])
+
+  const deleteSettingsImageFromStorage = useCallback(async (): Promise<boolean> => {
+    if (inventoryId === null || state.editor === null || settingsDraft === null || !canAutosaveSettings) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: null,
+        progressPercent: null,
+        errorMessage: 'Settings tab is not ready for file deletion.',
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      return false
+    }
+
+    const currentImageUrl = normalizeOptional(settingsDraft.imageUrl)
+    if (currentImageUrl === null) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: null,
+        progressPercent: null,
+        errorMessage: 'Image URL is empty.',
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      return false
+    }
+
+    settingsImageUploadAbortRef.current?.abort()
+    settingsImageUploadRequestRef.current += 1
+
+    setSettingsImageUpload({
+      status: 'deleting',
+      fileName: null,
+      progressPercent: null,
+      errorMessage: null,
+      uploadedPublicUrl: currentImageUrl,
+      expiresAtUtc: null,
+    })
+
+    const deleteResult = await deleteInventoryFile(currentImageUrl)
+    if (!deleteResult.ok) {
+      setSettingsImageUpload({
+        status: 'error',
+        fileName: null,
+        progressPercent: null,
+        errorMessage: imageUploadPresignFailureMessage(deleteResult),
+        uploadedPublicUrl: null,
+        expiresAtUtc: null,
+      })
+      return false
+    }
+
+    setSettingsImageUpload({
+      status: 'success',
+      fileName: null,
+      progressPercent: null,
+      errorMessage: null,
+      uploadedPublicUrl: null,
+      expiresAtUtc: null,
+    })
+
+    setSettingsLastSavedAt(null)
+    applySettingsDraftPatch(
+      {
+        imageUrl: '',
       },
       { queueSave: true },
     )
@@ -2558,6 +2590,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         applySettingsDraftPatch(patch)
       },
       uploadSettingsImage,
+      deleteSettingsImageFromStorage,
       cancelSettingsImageUpload,
       deleteInventory,
       saveSettingsNow: () => {
@@ -2627,6 +2660,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       customIdTemplate,
       deleteErrorMessage,
       deleteInventory,
+      deleteSettingsImageFromStorage,
       isCustomFieldsSaving,
       isDeletingInventory,
       isTagsSaving,

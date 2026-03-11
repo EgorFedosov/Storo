@@ -33,7 +33,6 @@ export function AppShell() {
   const locationSnapshot = useLocationSnapshot()
   const { route, selectedNavigationKeys } = useShellLayoutState(locationSnapshot.pathname)
   const {
-    categoryOptions,
     errorMessage: referencesErrorMessage,
     retryBootstrap: retryReferencesBootstrap,
     status: referencesStatus,
@@ -83,16 +82,6 @@ export function AppShell() {
     : isAuthenticated
       ? 'Вы вошли'
       : 'Гость'
-  const referencesStatusColor = referencesStatus === 'loading'
-    ? 'processing'
-    : referencesStatus === 'ready'
-      ? 'success'
-      : 'error'
-  const referencesStatusLabel = referencesStatus === 'loading'
-    ? 'Загрузка справочников'
-    : referencesStatus === 'ready'
-      ? `Справочники готовы (${String(categoryOptions.length)})`
-      : 'Ошибка справочников'
 
   return (
     <Layout className="app-shell-layout">
@@ -103,7 +92,7 @@ export function AppShell() {
               className="app-shell-title-link"
               onClick={() => navigate('/home')}
             >
-              Инвентари
+              Storo
             </Typography.Link>
           </Typography.Title>
         </div>
@@ -116,7 +105,6 @@ export function AppShell() {
 
         <Space size="small" wrap className="app-shell-header-meta">
           <Tag color={authStatusColor}>{authStatusLabel}</Tag>
-          <Tag color={referencesStatusColor}>{referencesStatusLabel}</Tag>
           <SocialLoginControl
             isAuthenticated={isAuthenticated}
             pathname={locationSnapshot.pathname}
@@ -204,4 +192,3 @@ export function AppShell() {
     </Layout>
   )
 }
-

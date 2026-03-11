@@ -24,6 +24,8 @@ public sealed class InventoriesModule : IApiModule
     {
         services.Configure<ImageStoragePresignOptions>(
             configuration.GetSection(ImageStoragePresignOptions.SectionName));
+        services.AddSingleton(SupabaseStorageOptions.FromConfiguration(configuration));
+        services.AddHttpClient(SupabaseInventoryAssetStorageService.HttpClientName);
 
         services.AddSignalR();
         services.AddScoped<IInventoryRepository, EfCoreInventoryRepository>();
@@ -37,6 +39,7 @@ public sealed class InventoriesModule : IApiModule
         services.AddScoped<ICustomIdTemplateService, DefaultCustomIdTemplateService>();
         services.AddScoped<ICustomFieldService, DefaultCustomFieldService>();
         services.AddScoped<IImageStoragePresignService, ConfigurationImageStoragePresignService>();
+        services.AddScoped<IInventoryAssetStorageService, SupabaseInventoryAssetStorageService>();
         services.AddScoped<ICreateInventoryUseCase, CreateInventoryUseCase>();
         services.AddScoped<IGetInventoryDetailsUseCase, GetInventoryDetailsUseCase>();
         services.AddScoped<IGetInventoryEditorUseCase, GetInventoryEditorUseCase>();
