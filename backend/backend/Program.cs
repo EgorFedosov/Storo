@@ -1,3 +1,4 @@
+using backend.Infrastructure.Configuration;
 using backend.Infrastructure.Modularity;
 using backend.Infrastructure.Persistence;
 using backend.Modules.Inventories.Infrastructure.Realtime;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddDotEnvFile(Path.Combine(builder.Environment.ContentRootPath, ".env"));
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

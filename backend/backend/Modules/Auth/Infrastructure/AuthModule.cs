@@ -40,6 +40,17 @@ public sealed class AuthModule : IApiModule
         services.AddSingleton<IPermissionService, DefaultPermissionService>();
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, ApiAuthorizationMiddlewareResultHandler>();
 
+        var useSecureCookies = configuration.GetValue("Auth:UseSecureCookies", true);
+        var cookieSecurePolicy = useSecureCookies
+            ? CookieSecurePolicy.Always
+            : CookieSecurePolicy.SameAsRequest;
+        var sessionCookieName = useSecureCookies
+            ? "__Host-backend.session"
+            : "backend.session";
+        var externalCookieName = useSecureCookies
+            ? "__Host-backend.external"
+            : "backend.external";
+
         var authenticationBuilder = services
             .AddAuthentication(options =>
             {
@@ -50,9 +61,9 @@ public sealed class AuthModule : IApiModule
             })
             .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
             {
-                options.Cookie.Name = "__Host-backend.session";
+                options.Cookie.Name = sessionCookieName;
                 options.Cookie.HttpOnly = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SecurePolicy = cookieSecurePolicy;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.Events.OnRedirectToLogin = static async context =>
                 {
@@ -74,9 +85,9 @@ public sealed class AuthModule : IApiModule
             })
             .AddCookie(ExternalAuthDefaults.ExternalScheme, options =>
             {
-                options.Cookie.Name = "__Host-backend.external";
+                options.Cookie.Name = externalCookieName;
                 options.Cookie.HttpOnly = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SecurePolicy = cookieSecurePolicy;
                 options.Cookie.SameSite = SameSiteMode.Lax;
                 options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
                 options.SlidingExpiration = false;
@@ -93,6 +104,12 @@ public sealed class AuthModule : IApiModule
                 options.ClientId = googleClientId;
                 options.ClientSecret = googleClientSecret;
                 options.CallbackPath = ExternalAuthDefaults.GoogleHandlerCallbackPath;
+
+                // Local HTTP development needs non-secure correlation cookies.
+                options.CorrelationCookie.SecurePolicy = cookieSecurePolicy;
+                options.CorrelationCookie.SameSite = useSecureCookies
+                    ? SameSiteMode.None
+                    : SameSiteMode.Lax;
             });
         }
 
