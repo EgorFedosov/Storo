@@ -2,6 +2,12 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #111827;
   background: #f3f5f8;
+  color-scheme: light;
+}
+
+html[data-ui-theme='dark'] {
+  background: #020617;
+  color-scheme: dark;
 }
 
 * {
@@ -109,6 +115,22 @@ html[data-ui-theme='dark'] body {
   background: #ffffff;
   border-color: #e2e8f0;
   color: #0f172a;
+}
+
+html[data-ui-theme='dark'] .social-login-control-btn.ant-btn,
+html[data-ui-theme='dark'] .social-login-control-btn .ant-btn {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html[data-ui-theme='dark'] .social-login-control-btn.ant-btn:hover,
+html[data-ui-theme='dark'] .social-login-control-btn.ant-btn:focus,
+html[data-ui-theme='dark'] .social-login-control-btn .ant-btn:hover,
+html[data-ui-theme='dark'] .social-login-control-btn .ant-btn:focus {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f8fafc;
 }
 
 .global-search-entry {

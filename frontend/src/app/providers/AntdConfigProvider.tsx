@@ -1,9 +1,9 @@
-import { App as AntdApp, ConfigProvider, theme as antdThemeRuntime } from 'antd'
+﻿import { App as AntdApp, ConfigProvider, theme as antdThemeRuntime } from 'antd'
 import ruRU from 'antd/locale/ru_RU'
 import { useEffect, useMemo } from 'react'
 import type { PropsWithChildren } from 'react'
 import { useUiPreferences } from '../../features/preferences/model/uiPreferencesStore.tsx'
-import { antdTheme } from '../../shared/ui/theme/antdTheme.ts'
+import { createAntdTheme } from '../../shared/ui/theme/antdTheme.ts'
 
 type AntdConfigProviderProps = PropsWithChildren
 
@@ -13,7 +13,7 @@ export function AntdConfigProvider({ children }: AntdConfigProviderProps) {
 
   const configuredTheme = useMemo(
     () => ({
-      ...antdTheme,
+      ...createAntdTheme(normalizedTheme),
       algorithm:
         normalizedTheme === 'dark'
           ? antdThemeRuntime.darkAlgorithm
@@ -33,3 +33,4 @@ export function AntdConfigProvider({ children }: AntdConfigProviderProps) {
     </ConfigProvider>
   )
 }
+
