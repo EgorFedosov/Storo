@@ -3,7 +3,6 @@ backend/.idea/
 backend/backend/bin/
 backend/backend/obj/
 backend/backend/.env
-**/**.md
 **/**.csv
 **/**.webp
 **/**.dotnet
