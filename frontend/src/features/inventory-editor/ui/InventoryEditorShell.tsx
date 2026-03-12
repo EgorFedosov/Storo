@@ -292,7 +292,7 @@ function renderSettingsTab({
       </Space>
 
       <Space direction="vertical" size={10} style={{ width: '100%' }}>
-        <Typography.Text strong>Описание (Markdown)</Typography.Text>
+        <Typography.Text strong>Описание</Typography.Text>
         <Input.TextArea
           value={draft.descriptionMarkdown}
           rows={5}

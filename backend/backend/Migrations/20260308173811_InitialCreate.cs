@@ -514,20 +514,20 @@ namespace backend.Migrations
                 table: "categories",
                 columns: new[] { "id", "name" },
                 values: new object[,]
-                {
-                    { 1, "Equipment" },
-                    { 2, "Furniture" },
-                    { 3, "Book" },
-                    { 4, "Other" }
-                });
+                    {
+                        { 1, "Equipment" },
+                        { 2, "Furniture" },
+                        { 3, "Book" },
+                        { 4, "Other" }
+                    });
 
-            migrationBuilder.InsertData(
-                table: "roles",
-                columns: new[] { "id", "name" },
-                values: new object[,]
-                {
-                    { 1, "user" },
-                    { 2, "admin" }
+                migrationBuilder.InsertData(
+                    table: "roles",
+                    columns: new[] { "id", "name" },
+                    values: new object[,]
+                    {
+                        { 1, "user" },
+                        { 2, "admin" }
                 });
 
             migrationBuilder.CreateIndex(

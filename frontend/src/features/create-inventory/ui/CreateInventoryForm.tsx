@@ -428,7 +428,7 @@ export function CreateInventoryForm({ categoryOptions, disabled = false }: Creat
         </Form.Item>
 
         <Form.Item<CreateInventoryFormValues>
-          label="Описание (Markdown)"
+          label="Описание"
           name="descriptionMarkdown"
           rules={[
             {
