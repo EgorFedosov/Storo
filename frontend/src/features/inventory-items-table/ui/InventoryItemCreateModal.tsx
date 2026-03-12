@@ -252,6 +252,7 @@ export function InventoryItemCreateModal({
       okText="Создать элемент"
       cancelText="Отмена"
       confirmLoading={isSubmitting}
+      centered
       okButtonProps={{ disabled: !canWriteItems }}
       cancelButtonProps={{ disabled: isSubmitting }}
       onOk={() => {
@@ -283,7 +284,8 @@ export function InventoryItemCreateModal({
         ) : null}
 
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          `customId` не обязателен. Если оставить поле пустым, сервер сгенерирует значение по текущему шаблону ID инвентаря.
+          Пользовательский ID
+ не обязателен. Если оставить поле пустым, сервер сгенерирует значение по текущему шаблону ID инвентаря.
         </Typography.Paragraph>
         {customIdValidationRegex !== null ? (
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
@@ -347,15 +349,6 @@ export function InventoryItemCreateModal({
               autoComplete="off"
             />
           </Form.Item>
-
-          {fieldDefinitions.length === 0 ? (
-            <Alert
-              showIcon
-              type="info"
-              message="Нет активных пользовательских полей"
-              description="В этом инвентаре нет активных пользовательских полей. Вы все равно можете создать элемент с автосгенерированным customId."
-            />
-          ) : null}
 
           {fieldDefinitions.map((field) => {
             if (field.fieldType === 'single_line' || field.fieldType === 'link') {

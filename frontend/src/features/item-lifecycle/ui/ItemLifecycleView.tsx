@@ -216,7 +216,6 @@ function toSnapshotRows(item: ItemDetails, etag: string | null): ItemSnapshotRow
       value: (
         <Space size={6} wrap>
           <Tag color="blue">{String(item.like.count)}</Tag>
-          {item.like.likedByCurrentUser ? <Tag color="green">Вы поставили лайк</Tag> : <Tag>Лайк не поставлен</Tag>}
         </Space>
       ),
     },
@@ -315,15 +314,15 @@ export function ItemLifecycleView({
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
           <Space size={8} wrap>
             <Tag color="blue">Элемент #{item.id}</Tag>
-            <Tag>Инвентарь #{item.inventory.id}</Tag>
-            <Tag>Версия: {String(item.version)}</Tag>
-            <Tag color={canEdit ? 'green' : 'default'}>
+            <Tag color="blue">Инвентарь #{item.inventory.id}</Tag>
+            <Tag color="blue">Версия: {String(item.version)}</Tag>
+            <Tag color={canEdit ? 'blue' : 'default'}>
               {canEdit ? 'Можно редактировать' : 'Только чтение'}
             </Tag>
-            <Tag color={canDelete ? 'volcano' : 'default'}>
+            <Tag color={canDelete ? 'blue' : 'default'}>
               {canDelete ? 'Можно удалить' : 'Удаление запрещено'}
             </Tag>
-            <Tag color={canLike ? 'green' : 'default'}>
+            <Tag color={canLike ? 'blue' : 'default'}>
               {canLike ? 'Можно ставить лайк' : 'Лайки запрещены'}
             </Tag>
           </Space>
@@ -344,12 +343,8 @@ export function ItemLifecycleView({
             >
               {item.like.likedByCurrentUser ? 'Убрать лайк' : 'Лайк'}
             </Button>
-            <Tag color="blue">Лайков: {String(item.like.count)}</Tag>
+            <Tag color="red">Лайков: {String(item.like.count)}</Tag>
           </Space>
-
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Контракт жизненного цикла элемента: `GET/PUT/DELETE /api/v1/items/{item.id}` с `If-Match` на изменяющих endpoints.
-          </Typography.Paragraph>
         </Space>
       </Card>
 

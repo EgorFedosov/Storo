@@ -196,9 +196,6 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
               </Button>
             ) : null}
           </Space>
-          <Typography.Text type="secondary">
-            Страница инвентаря в режиме чтения, собранная из `GET /api/v1/inventories/:inventoryId`.
-          </Typography.Text>
           {details.header.imageUrl !== null ? (
             <img
               src={details.header.imageUrl}
@@ -245,7 +242,7 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
         />
       </Card>
 
-      <Card title="Матрица прав">
+      <Card title="Доступ">
         <Table<PermissionRow>
           rowKey="key"
           columns={permissionColumns}

@@ -201,7 +201,6 @@ export function CustomFieldsAutosaveTab({
       <Space size={8} wrap>
         <Tag color={saveStatusMeta.color}>{saveStatusMeta.label}</Tag>
         {lastSavedLabel === null ? null : <Tag>Последнее сохранение: {lastSavedLabel}</Tag>}
-        <Tag>Автосохранение каждые {String(inventoryCustomFieldsAutosaveContract.autosaveDelayMs / 1000)}с</Tag>
       </Space>
 
       {concurrencyProblemUi === null ? null : (
@@ -243,12 +242,6 @@ export function CustomFieldsAutosaveTab({
         </Button>
         <Button onClick={onRemoveSelected} disabled={isMutating || selectedFieldIndex < 0}>
           Удалить выбранное
-        </Button>
-        <Button onClick={onMoveSelectedUp} disabled={isMutating || !canMoveSelectedUp}>
-          Вверх
-        </Button>
-        <Button onClick={onMoveSelectedDown} disabled={isMutating || !canMoveSelectedDown}>
-          Вниз
         </Button>
         <Button onClick={onResetDrafts} disabled={isMutating}>
           Сбросить несохраненное

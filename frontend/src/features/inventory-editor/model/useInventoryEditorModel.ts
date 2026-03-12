@@ -504,11 +504,11 @@ function tabStates(editor: InventoryEditor | null): ReadonlyArray<InventoryEdito
   }
 
   return [
-    { key: 'settings', label: 'Settings', disabled: !editor.permissions.canEditInventory },
-    { key: 'tags', label: 'Tags', disabled: !editor.permissions.canEditInventory },
-    { key: 'access', label: 'Access', disabled: !editor.permissions.canManageAccess },
-    { key: 'customFields', label: 'Custom Fields', disabled: !editor.permissions.canManageCustomFields },
-    { key: 'customIdTemplate', label: 'Custom ID', disabled: !editor.permissions.canManageCustomIdTemplate },
+    { key: 'settings', label: 'Настройки', disabled: !editor.permissions.canEditInventory },
+    { key: 'tags', label: 'Теги', disabled: !editor.permissions.canEditInventory },
+    { key: 'access', label: 'Доступ', disabled: !editor.permissions.canManageAccess },
+    { key: 'customFields', label: 'Пользовательские поля', disabled: !editor.permissions.canManageCustomFields },
+    { key: 'customIdTemplate', label: 'Шаблон ID', disabled: !editor.permissions.canManageCustomIdTemplate },
   ]
 }
 
@@ -742,8 +742,8 @@ function buildCustomFieldsStateFromDraft(
       selectedFieldKey: resolveSelectedCustomFieldKey(requestedSelection, nextDraftFields),
       validation,
       isDirty: true,
-      saveStatus: 'error',
-      saveErrorMessage: validation.firstErrorMessage,
+      saveStatus: 'pending',
+      saveErrorMessage: null,
       changeToken: current.changeToken + 1,
     }
   }
@@ -1679,8 +1679,8 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
     if (customFieldsState.validation.hasErrors) {
       setCustomFieldsState((current) => ({
         ...current,
-        saveStatus: 'error',
-        saveErrorMessage: current.validation.firstErrorMessage,
+        saveStatus: current.isDirty ? 'pending' : 'idle',
+        saveErrorMessage: null,
       }))
       return
     }
@@ -2435,7 +2435,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         key: `new:${String(customFieldDraftKeyRef.current)}`,
         id: null,
         fieldType: preferredFieldType,
-        title: '',
+        title: 'Новое поле',
         description: '',
         showInTable: false,
       }

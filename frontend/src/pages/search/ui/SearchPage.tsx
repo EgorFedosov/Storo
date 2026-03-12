@@ -173,13 +173,7 @@ function SearchItemsResults() {
           <Tag color="blue">
             q: {routeState.q ?? 'не задан'}
           </Tag>
-          <Tag color="geekblue">
-            страница: {String(routeState.page)}
-          </Tag>
-          <Tag color="geekblue">
-            размер: {String(routeState.pageSize)}
-          </Tag>
-          <Tag color="green">
+          <Tag color="blue">
             всего: {String(totalCount)}
           </Tag>
         </Space>

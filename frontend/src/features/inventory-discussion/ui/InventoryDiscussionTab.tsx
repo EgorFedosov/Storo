@@ -55,15 +55,12 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
   const {
     status,
     posts,
-    hasMoreHistory,
     errorMessage,
-    isLoadingMore,
     isPosting,
     postErrorMessage,
     realtimeStatus,
     realtimeErrorMessage,
     retryLoad,
-    loadOlderPosts,
     submitPost,
     clearPostError,
   } = useInventoryDiscussionModel(inventoryId, enabled, canSubmitPost)
@@ -122,9 +119,6 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space size={8} wrap>
         <Tag color="blue">Инвентарь #{inventoryId}</Tag>
-        <Tag color={realtimeStatus === 'connected' ? 'green' : realtimeStatus === 'connecting' ? 'gold' : 'default'}>
-          Реалтайм: {realtimeStatus}
-        </Tag>
         <Tag>Посты: {String(rows.length)}</Tag>
       </Space>
 
@@ -152,16 +146,6 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
       ) : null}
 
       <Space size={8} wrap>
-        <Button
-          onClick={loadOlderPosts}
-          loading={isLoadingMore}
-          disabled={!hasMoreHistory || status === 'loading'}
-        >
-          Загрузить более ранние
-        </Button>
-        <Typography.Text type="secondary">
-          История через HTTP + обновления по SignalR (`discussion.posted`).
-        </Typography.Text>
       </Space>
 
       <Table<DiscussionRow>

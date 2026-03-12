@@ -208,7 +208,7 @@ export function HomePage() {
         />
       ) : null}
 
-      <Card title={`Последние инвентари (${String(data.latestInventories.length)})`}>
+      <Card title={`Последние инвентари`}>
         <Table<HomeInventorySummary>
           rowKey="id"
           columns={latestInventoriesColumns}
@@ -231,7 +231,7 @@ export function HomePage() {
         />
       </Card>
 
-      <Card title={`Самые популярные инвентари (${String(data.topPopularInventories.length)})`}>
+      <Card title={`Самые популярные инвентари`}>
         <Table<HomeInventorySummary>
           rowKey="id"
           columns={topInventoriesColumns}
@@ -255,7 +255,7 @@ export function HomePage() {
       </Card>
 
       <Card
-        title={`Облако тегов (${String(data.tagCloud.length)})`}
+        title={`Облако тегов`}
         extra={(
           <Typography.Text type="secondary">
             Нажмите на тег, чтобы открыть результаты поиска

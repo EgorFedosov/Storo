@@ -120,9 +120,6 @@ export function SearchTagsWidgets({ activeTag }: SearchTagsWidgetsProps) {
       )}
     >
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        <Typography.Paragraph style={{ marginBottom: 0 }} type="secondary">
-          Поле тега поддерживает автодополнение API. Нажатие на тег открывает поиск инвентарей с параметром `tag`.
-        </Typography.Paragraph>
 
         <Space.Compact block>
           <AutoComplete

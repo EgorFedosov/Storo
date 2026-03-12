@@ -390,7 +390,7 @@ export function SearchInventoriesScreen({ routeState, onApplyRoute }: SearchInve
                 description={
                   canRequest
                     ? 'По текущим фильтрам ничего не найдено.'
-                    : 'Укажите q или tag в URL/форме, чтобы загрузить результаты.'
+                    : 'Укажите параметры поиска, чтобы увидеть результат.'
                 }
               />
             ),

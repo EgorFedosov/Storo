@@ -167,9 +167,6 @@ export function CustomIdTemplateBuilderTab({
           disabled={isBusy}
           onChange={(nextValue) => model.setIsEnabled(nextValue)}
         />
-        <Tag color={model.isEnabled ? 'green' : 'default'}>
-          {model.isEnabled ? 'Включен' : 'Выключен'}
-        </Tag>
       </Space>
 
       <Space wrap>
@@ -191,20 +188,6 @@ export function CustomIdTemplateBuilderTab({
           Добавить часть
         </Button>
         <Button
-          icon={<ArrowUpOutlined />}
-          disabled={isBusy || selectedPartIndex <= 0}
-          onClick={model.moveSelectedPartUp}
-        >
-          Вверх
-        </Button>
-        <Button
-          icon={<ArrowDownOutlined />}
-          disabled={isBusy || selectedPartIndex < 0 || selectedPartIndex >= model.parts.length - 1}
-          onClick={model.moveSelectedPartDown}
-        >
-          Вниз
-        </Button>
-        <Button
           danger
           icon={<DeleteOutlined />}
           disabled={isBusy || model.selectedPartId === null}
@@ -221,14 +204,6 @@ export function CustomIdTemplateBuilderTab({
           onClick={model.resetDraft}
         >
           Сбросить
-        </Button>
-        <Button
-          icon={<EyeOutlined />}
-          loading={model.isPreviewing}
-          disabled={isBusy}
-          onClick={() => { void model.previewTemplate() }}
-        >
-          Предпросмотр
         </Button>
         <Button
           type="primary"
@@ -300,10 +275,7 @@ export function CustomIdTemplateBuilderTab({
       <Space direction="vertical" size={6} style={{ width: '100%' }}>
         <Space wrap>
           <Tag color="blue">Предпросмотр: {model.previewSampleCustomId || '(пусто)'}</Tag>
-          <Tag>Regex: {model.derivedValidationRegex ?? '(нет)'}</Tag>
         </Space>
-
-        {model.previewWarnings.length > 0 ? (
           <Space wrap>
             {model.previewWarnings.map((warning, index) => (
               <Tag key={`${warning}-${String(index)}`} color="orange">
@@ -311,11 +283,6 @@ export function CustomIdTemplateBuilderTab({
               </Tag>
             ))}
           </Space>
-        ) : (
-          <Typography.Text type="secondary">
-            Предупреждений предпросмотра нет.
-          </Typography.Text>
-        )}
       </Space>
 
       <Typography.Text type="secondary">

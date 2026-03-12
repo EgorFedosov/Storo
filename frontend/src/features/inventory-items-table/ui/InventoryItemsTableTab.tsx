@@ -605,9 +605,6 @@ export function InventoryItemsTableTab({
             {canLikeItems ? 'Лайки разрешены' : 'Лайки отключены'}
           </Tag>
         </Space>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-          Динамическая таблица из `GET /api/v1/inventories/:inventoryId/items` (`columns + rows`).
-        </Typography.Paragraph>
         {lastCreatedItem === null ? null : (
           <Alert
             showIcon
