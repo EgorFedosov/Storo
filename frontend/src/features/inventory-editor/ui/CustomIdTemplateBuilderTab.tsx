@@ -1,7 +1,7 @@
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EyeOutlined, PlusOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons'
+import { DeleteOutlined, PlusOutlined, SaveOutlined, UndoOutlined } from '@ant-design/icons'
 import { Alert, Button, Empty, Input, Select, Space, Switch, Table, Tag, Typography } from 'antd'
 import type { TableProps } from 'antd'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { InventoryCustomIdPartType } from '../../../entities/inventory/model/inventoryEditorTypes.ts'
 import { ConcurrencyAlert } from '../../../shared/ui/kit/ConcurrencyAlert.tsx'
 import type { InventoryCustomIdTemplateBuilderModel } from '../model/useInventoryEditorModel.ts'
@@ -64,11 +64,6 @@ export function CustomIdTemplateBuilderTab({
   onCloseConcurrencyAlert,
 }: CustomIdTemplateBuilderTabProps) {
   const [nextPartType, setNextPartType] = useState<InventoryCustomIdPartType>('fixed_text')
-
-  const selectedPartIndex = useMemo(
-    () => model.parts.findIndex((part) => part.clientId === model.selectedPartId),
-    [model.parts, model.selectedPartId],
-  )
 
   const isBusy = model.isPreviewing || model.isSaving
   const generalPartsError = getGeneralPartsError(model.validationErrors)

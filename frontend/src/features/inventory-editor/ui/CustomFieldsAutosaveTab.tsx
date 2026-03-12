@@ -240,6 +240,12 @@ export function CustomFieldsAutosaveTab({
         <Button type="primary" onClick={onAddField} disabled={isMutating}>
           Добавить поле
         </Button>
+        <Button onClick={onMoveSelectedUp} disabled={isMutating || !canMoveSelectedUp}>
+          Вверх
+        </Button>
+        <Button onClick={onMoveSelectedDown} disabled={isMutating || !canMoveSelectedDown}>
+          Вниз
+        </Button>
         <Button onClick={onRemoveSelected} disabled={isMutating || selectedFieldIndex < 0}>
           Удалить выбранное
         </Button>

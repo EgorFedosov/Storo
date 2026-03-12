@@ -2,6 +2,7 @@ using backend.Infrastructure.Configuration;
 using backend.Infrastructure.Modularity;
 using backend.Infrastructure.Persistence;
 using backend.Modules.Inventories.Infrastructure.Realtime;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 
@@ -27,6 +28,15 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Backend API",
         Version = "v1"
     });
+});
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
@@ -54,6 +64,7 @@ if (autoMigrateDatabase)
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseForwardedHeaders();
 
 var swaggerEnabled = app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled");
 if (swaggerEnabled)

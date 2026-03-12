@@ -451,7 +451,6 @@ function renderSettingsTab({
 }
 
 function TagsAutosaveTab({
-  editor,
   tagsAutosave,
   concurrencyProblem,
   onReloadEditor,
@@ -460,7 +459,6 @@ function TagsAutosaveTab({
   onSaveTagsNow,
   onResetTagsDraft,
 }: {
-  editor: InventoryEditor
   tagsAutosave: InventoryTagsAutosaveState
   concurrencyProblem: ConcurrencyProblem | null
   onReloadEditor: () => void
@@ -760,7 +758,6 @@ export function InventoryEditorShell({
             : tab.key === 'tags'
               ? (
                 <TagsAutosaveTab
-                  editor={editor}
                   tagsAutosave={tagsAutosave}
                   concurrencyProblem={concurrencyProblem}
                   onReloadEditor={onReloadEditor}
@@ -869,4 +866,3 @@ export function InventoryEditorShell({
     </Space>
   )
 }
-

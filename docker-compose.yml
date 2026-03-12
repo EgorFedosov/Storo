@@ -1,16 +1,27 @@
-  services:
-    postgres:
-      image: postgres:16
-      container_name: course-postgres
-      environment:
-        POSTGRES_DB: course_db
-        POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: postgres
-      ports:
-        - "5433:5432"
-      volumes:
-        - pgdata:/var/lib/postgresql/data
-      restart: unless-stopped
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ./backend/Dockerfile
+    container_name: course-backend
+    env_file:
+      - ./backend/backend/.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Database__AutoMigrate: "true"
+      Auth__UseSecureCookies: "false"
+    ports:
+      - "5108:8080"
+    restart: unless-stopped
 
-  volumes:
-    pgdata:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: course-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped

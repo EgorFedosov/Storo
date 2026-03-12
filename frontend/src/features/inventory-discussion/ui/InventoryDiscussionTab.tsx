@@ -58,7 +58,6 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
     errorMessage,
     isPosting,
     postErrorMessage,
-    realtimeStatus,
     realtimeErrorMessage,
     retryLoad,
     submitPost,
