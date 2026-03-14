@@ -34,7 +34,7 @@ public sealed class EfCoreUserInventoryReadModel(AppDbContext dbContext) : IUser
                 inventory.Creator.UserName,
                 inventory.Creator.DisplayName,
                 inventory.IsPublic,
-                inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount,
+                inventory.Items.Count(),
                 inventory.CreatedAt,
                 inventory.UpdatedAt))
             .ToArrayAsync(cancellationToken);
@@ -105,10 +105,10 @@ public sealed class EfCoreUserInventoryReadModel(AppDbContext dbContext) : IUser
                 .OrderByDescending(inventory => inventory.Title)
                 .ThenBy(inventory => inventory.Id),
             (InventoryTableSortField.ItemsCount, InventoryTableSortDirection.Asc) => source
-                .OrderBy(inventory => inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount)
+                .OrderBy(inventory => inventory.Items.Count())
                 .ThenBy(inventory => inventory.Id),
             (InventoryTableSortField.ItemsCount, InventoryTableSortDirection.Desc) => source
-                .OrderByDescending(inventory => inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount)
+                .OrderByDescending(inventory => inventory.Items.Count())
                 .ThenBy(inventory => inventory.Id),
             _ => source
                 .OrderByDescending(inventory => inventory.UpdatedAt)

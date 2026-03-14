@@ -27,7 +27,7 @@ public sealed class EfCoreHomeReadModel(AppDbContext dbContext) : IHomeReadModel
                 inventory.Title,
                 inventory.DescriptionMarkdown,
                 inventory.ImageUrl,
-                inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount,
+                inventory.Items.Count(),
                 inventory.CreatedAt,
                 inventory.UpdatedAt,
                 inventory.CreatorId,
@@ -37,7 +37,7 @@ public sealed class EfCoreHomeReadModel(AppDbContext dbContext) : IHomeReadModel
 
         var topPopularInventories = await dbContext.Inventories
             .AsNoTracking()
-            .OrderByDescending(inventory => inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount)
+            .OrderByDescending(inventory => inventory.Items.Count())
             .ThenByDescending(inventory => inventory.CreatedAt)
             .ThenBy(inventory => inventory.Id)
             .Take(PopularInventoriesLimit)
@@ -46,7 +46,7 @@ public sealed class EfCoreHomeReadModel(AppDbContext dbContext) : IHomeReadModel
                 inventory.Title,
                 inventory.DescriptionMarkdown,
                 inventory.ImageUrl,
-                inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount,
+                inventory.Items.Count(),
                 inventory.CreatedAt,
                 inventory.UpdatedAt,
                 inventory.CreatorId,

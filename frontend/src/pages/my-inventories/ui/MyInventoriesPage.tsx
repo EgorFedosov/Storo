@@ -28,7 +28,7 @@ import { useMyInventoriesModel } from '../model/useMyInventoriesModel.ts'
 
 const relationLabels: Record<InventoryRelation, string> = {
   owned: 'Собственные',
-  writable: 'Доступные для редактирования',
+  writable: 'Доступные',
 }
 
 const relationDescriptions: Record<InventoryRelation, string> = {

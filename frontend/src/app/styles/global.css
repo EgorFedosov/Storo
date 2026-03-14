@@ -255,6 +255,28 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
   border: 1px solid #dbe3ec;
 }
 
+.home-tag-cloud-card .ant-card-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.home-tag-cloud-card .ant-card-head-title {
+  padding: 0;
+}
+
+.home-tag-cloud-card .ant-card-extra {
+  margin-inline-start: 0;
+  padding: 0;
+}
+
+.home-tag-cloud-hint.ant-typography {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
 .home-tag-cloud-item.ant-tag {
   cursor: pointer;
   user-select: none;

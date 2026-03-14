@@ -18,8 +18,8 @@ public sealed class EfCoreStatisticsReadModel(AppDbContext dbContext) : IStatist
             .Where(inventory => inventory.Id == query.InventoryId)
             .Select(inventory => new InventoryStatisticsSnapshot(
                 inventory.Id,
-                inventory.Statistics == null ? inventory.UpdatedAt : inventory.Statistics.UpdatedAt,
-                inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount))
+                inventory.UpdatedAt,
+                inventory.Items.Count()))
             .SingleOrDefaultAsync(cancellationToken);
 
         if (snapshot is null)

@@ -68,7 +68,7 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
                 inventory.Creator.DisplayName,
                 inventory.ImageUrl,
                 inventory.IsPublic,
-                inventory.Statistics == null ? 0 : inventory.Statistics.ItemsCount,
+                inventory.Items.Count(),
                 inventory.CreatedAt,
                 inventory.UpdatedAt))
             .ToArrayAsync(cancellationToken);

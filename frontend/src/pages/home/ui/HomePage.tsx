@@ -255,12 +255,8 @@ export function HomePage() {
       </Card>
 
       <Card
+        className="home-tag-cloud-card"
         title={`Облако тегов`}
-        extra={(
-          <Typography.Text type="secondary">
-            Нажмите на тег, чтобы открыть результаты поиска
-          </Typography.Text>
-        )}
       >
         {data.tagCloud.length === 0 ? (
           <Empty

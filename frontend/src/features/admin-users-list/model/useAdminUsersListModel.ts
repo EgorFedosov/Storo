@@ -108,25 +108,25 @@ function toModerationSuccessMessage(user: AdminUserListItem, result: AdminModera
   switch (result.action) {
     case 'block':
       return result.changed
-        ? `User @${user.userName} has been blocked.`
-        : `User @${user.userName} is already blocked.`
+        ? `Пользователь @${user.userName} заблокирован.`
+        : `Пользователь @${user.userName} уже заблокирован.`
     case 'unblock':
       return result.changed
-        ? `User @${user.userName} has been unblocked.`
-        : `User @${user.userName} is already active.`
+        ? `Пользователь @${user.userName} разблокирован.`
+        : `Пользователь @${user.userName} уже активен.`
     case 'grant_admin':
       return result.changed
-        ? `Admin role granted to @${user.userName}.`
-        : `User @${user.userName} already has admin role.`
+        ? `Пользователю @${user.userName} выдана роль администратора.`
+        : `У пользователя @${user.userName} уже есть роль администратора.`
     case 'revoke_admin':
       return result.changed
-        ? `Admin role revoked for @${user.userName}.`
-        : `User @${user.userName} does not have admin role.`
+        ? `У пользователя @${user.userName} снята роль администратора.`
+        : `У пользователя @${user.userName} нет роли администратора.`
     case 'delete':
-      return `User @${user.userName} has been deleted.`
+      return `Пользователь @${user.userName} удален.`
     default: {
       const unsupportedAction: never = result.action
-      throw new Error(`Unsupported moderation action: ${String(unsupportedAction)}`)
+      throw new Error(`Неподдерживаемое действие модерации: ${String(unsupportedAction)}`)
     }
   }
 }
