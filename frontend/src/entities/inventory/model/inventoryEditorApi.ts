@@ -29,6 +29,11 @@ export type UpdateInventorySettingsPayload = {
   imageUrl: string | null
 }
 
+export type ReplaceInventoryAccessPayload = {
+  mode: 'public' | 'restricted'
+  writerUserIds: ReadonlyArray<string>
+}
+
 export type InventoryVersionPayload = {
   version: number
 }
@@ -547,6 +552,45 @@ export async function replaceInventoryTags(
       error: {
         kind: 'invalid_json',
         message: 'Received invalid response format from /inventories/{id}/tags.',
+        problem: null,
+      },
+      meta: response.meta,
+    }
+  }
+
+  return {
+    ...response,
+    data: normalizedPayload,
+  }
+}
+
+export async function replaceInventoryAccess(
+  inventoryId: string,
+  payload: ReplaceInventoryAccessPayload,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<InventoryVersionPayload>> {
+  const response = await apiRequest<unknown>(`/inventories/${inventoryId}/access`, {
+    ...options,
+    method: 'PUT',
+    body: {
+      mode: payload.mode,
+      writerUserIds: [...payload.writerUserIds],
+    },
+  })
+
+  if (!response.ok) {
+    return response
+  }
+
+  const normalizedPayload = normalizeInventoryVersionPayload(response.data)
+  if (normalizedPayload === null) {
+    return {
+      ok: false,
+      status: response.status,
+      problem: null,
+      error: {
+        kind: 'invalid_json',
+        message: 'Received invalid response format from /inventories/{id}/access.',
         problem: null,
       },
       meta: response.meta,

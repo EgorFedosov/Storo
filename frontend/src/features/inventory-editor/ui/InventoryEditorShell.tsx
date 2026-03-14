@@ -2,6 +2,7 @@ import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
 import { Alert, Button, Card, Empty, Input, Popconfirm, Progress, Select, Space, Table, Tabs, Tag, Typography, Upload } from 'antd'
 import type { TableProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
+import { fetchAdminUsersPage } from '../../../entities/admin-user/model/adminUsersApi.ts'
 import { inventoryEditorTagsContract } from '../../../entities/inventory/model/inventoryEditorApi.ts'
 import type { ConcurrencyProblem } from '../../../shared/api/concurrency.ts'
 import { ConcurrencyAlert } from '../../../shared/ui/kit/ConcurrencyAlert.tsx'
@@ -14,6 +15,8 @@ import {
   useTagAutocompleteModel,
 } from '../../../features/tags/model/useTagAutocompleteModel.ts'
 import type {
+  InventoryAccessDraft,
+  InventoryAccessEditorState,
   CustomFieldsAutosaveStatus,
   InventoryDeleteState,
   InventoryCustomIdTemplateBuilderModel,
@@ -38,6 +41,7 @@ type InventoryEditorShellProps = {
   concurrencyProblem: ConcurrencyProblem | null
   settingsAutosave: InventorySettingsAutosaveState
   tagsAutosave: InventoryTagsAutosaveState
+  accessEditor: InventoryAccessEditorState
   customIdTemplate: InventoryCustomIdTemplateBuilderModel
   customFieldDrafts: ReadonlyArray<InventoryEditorCustomFieldDraft>
   selectedCustomFieldKey: string | null
@@ -60,6 +64,9 @@ type InventoryEditorShellProps = {
   onUpdateTagsDraft: (nextTags: ReadonlyArray<string>) => void
   onSaveTagsNow: () => void
   onResetTagsDraft: () => void
+  onUpdateAccessDraft: (patch: Partial<InventoryAccessDraft>) => void
+  onSaveAccessNow: () => void
+  onResetAccessDraft: () => void
   onSelectCustomField: (fieldKey: string | null) => void
   onAddCustomField: () => void
   onUpdateCustomField: (
@@ -583,7 +590,117 @@ function TagsAutosaveTab({
   )
 }
 
-function renderAccessTab(editor: InventoryEditor) {
+function AccessEditorTab({
+  editor,
+  accessEditor,
+  concurrencyProblem,
+  onReloadEditor,
+  onClearConcurrencyProblem,
+  onUpdateAccessDraft,
+  onSaveAccessNow,
+  onResetAccessDraft,
+}: {
+  editor: InventoryEditor
+  accessEditor: InventoryAccessEditorState
+  concurrencyProblem: ConcurrencyProblem | null
+  onReloadEditor: () => void
+  onClearConcurrencyProblem: () => void
+  onUpdateAccessDraft: (patch: Partial<InventoryAccessDraft>) => void
+  onSaveAccessNow: () => void
+  onResetAccessDraft: () => void
+}) {
+  const [knownUsers, setKnownUsers] = useState<
+    ReadonlyArray<{ id: string; email: string; userName: string; displayName: string }>
+  >([])
+  const [isUsersLoading, setIsUsersLoading] = useState(false)
+  const [usersErrorMessage, setUsersErrorMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const abortController = new AbortController()
+    let cancelled = false
+
+    async function loadUsers() {
+      setIsUsersLoading(true)
+      setUsersErrorMessage(null)
+
+      const loadedUsers: Array<{ id: string; email: string; userName: string; displayName: string }> = []
+      let nextPage = 1
+      let totalCount = Number.POSITIVE_INFINITY
+      const pageSize = 100
+      const maxPages = 50
+
+      while (loadedUsers.length < totalCount && nextPage <= maxPages) {
+        const result = await fetchAdminUsersPage(
+          {
+            blocked: 'all',
+            role: 'all',
+            query: null,
+            page: nextPage,
+            pageSize,
+            sortField: 'userName',
+            sortDirection: 'asc',
+          },
+          abortController.signal,
+        )
+
+        if (!result.ok) {
+          if (!cancelled) {
+            setUsersErrorMessage(result.problem?.detail ?? result.error.message)
+          }
+          setIsUsersLoading(false)
+          return
+        }
+
+        totalCount = result.data.totalCount
+        for (const user of result.data.items) {
+          loadedUsers.push({
+            id: user.id,
+            email: user.email,
+            userName: user.userName,
+            displayName: user.displayName,
+          })
+        }
+
+        if (result.data.items.length < pageSize) {
+          break
+        }
+
+        nextPage += 1
+      }
+
+      if (cancelled) {
+        return
+      }
+
+      const uniqueById = new Map<string, { id: string; email: string; userName: string; displayName: string }>()
+      for (const user of loadedUsers) {
+        if (!uniqueById.has(user.id)) {
+          uniqueById.set(user.id, user)
+        }
+      }
+
+      setKnownUsers(Array.from(uniqueById.values()))
+      setIsUsersLoading(false)
+    }
+
+    void loadUsers()
+
+    return () => {
+      cancelled = true
+      abortController.abort()
+    }
+  }, [])
+
+  const draft = accessEditor.draft
+  if (draft === null) {
+    return (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="Черновик прав доступа пока недоступен."
+      />
+    )
+  }
+
   const rows: WriterRow[] = editor.access.writers.map((writer) => ({
     key: writer.id,
     id: writer.id,
@@ -592,6 +709,28 @@ function renderAccessTab(editor: InventoryEditor) {
     email: writer.email,
     isBlocked: writer.isBlocked,
   }))
+
+  const availableUsers = knownUsers.length > 0
+    ? knownUsers
+    : rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      userName: row.userName,
+      displayName: row.displayName,
+    }))
+  const writerIdByEmail = new Map(availableUsers.map((user) => [user.email, user.id]))
+  const writerEmailById = new Map(availableUsers.map((user) => [user.id, user.email]))
+  const selectedWriterEmails = draft.writerUserIds
+    .map((writerUserId) => writerEmailById.get(writerUserId))
+    .filter((value): value is string => value !== undefined)
+  const knownWriterEmailOptions = availableUsers.map((user) => ({
+    value: user.email,
+    label: `${user.displayName} (@${user.userName}) — ${user.email}`,
+  }))
+  const saveDisabled = !accessEditor.canEdit || accessEditor.isSaving || !accessEditor.isDirty
+  const resetDisabled = accessEditor.isSaving || !accessEditor.isDirty
+  const modeSelectDisabled = !accessEditor.canEdit || accessEditor.isSaving
+  const writerEmailsDisabled = !accessEditor.canEdit || accessEditor.isSaving || draft.mode === 'public'
 
   const columns: NonNullable<TableProps<WriterRow>['columns']> = [
     {
@@ -627,12 +766,98 @@ function renderAccessTab(editor: InventoryEditor) {
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
-      <Typography.Text>
-        Режим доступа:{' '}
-        <Tag color={editor.access.mode === 'public' ? 'green' : 'gold'}>
-          {editor.access.mode === 'public' ? 'Публичный' : 'Ограниченный'}
+      {concurrencyProblem !== null ? (
+        <ConcurrencyAlert
+          problem={concurrencyProblem}
+          onReload={onReloadEditor}
+          onClose={onClearConcurrencyProblem}
+        />
+      ) : null}
+
+      <Space size={8} wrap>
+        {renderAutosaveBadge({
+          isSaving: accessEditor.isSaving,
+          isQueued: false,
+          isDirty: accessEditor.isDirty,
+          lastSavedAt: accessEditor.lastSavedAt,
+        })}
+        <Tag color={draft.mode === 'public' ? 'green' : 'gold'}>
+          {draft.mode === 'public' ? 'Публичный доступ' : 'Ограниченный доступ'}
         </Tag>
-      </Typography.Text>
+        <Tag>Писатели: {String(draft.writerUserIds.length)}</Tag>
+      </Space>
+
+      <Typography.Text strong>Режим доступа</Typography.Text>
+      <Select<'public' | 'restricted'>
+        size="large"
+        style={{ width: '100%' }}
+        value={draft.mode}
+        disabled={modeSelectDisabled}
+        options={[
+          { value: 'public', label: 'Публичный (могут писать все авторизованные)' },
+          { value: 'restricted', label: 'Ограниченный (могут писать только выбранные)' },
+        ]}
+        onChange={(mode) => {
+          onUpdateAccessDraft({ mode })
+        }}
+      />
+
+      <Typography.Text strong>Email пользователей с правом записи</Typography.Text>
+      <Select<string[]>
+        mode="multiple"
+        showSearch
+        size="large"
+        style={{ width: '100%' }}
+        listHeight={320}
+        value={selectedWriterEmails}
+        options={knownWriterEmailOptions}
+        placeholder="Выберите email пользователей (для restricted режима)"
+        disabled={writerEmailsDisabled}
+        loading={isUsersLoading}
+        notFoundContent={isUsersLoading ? 'Загрузка пользователей...' : undefined}
+        onChange={(nextEmails) => {
+          const nextWriterUserIds = nextEmails
+            .map((email) => writerIdByEmail.get(email))
+            .filter((value): value is string => value !== undefined)
+
+          onUpdateAccessDraft({ writerUserIds: nextWriterUserIds })
+        }}
+      />
+
+      {!accessEditor.canEdit ? (
+        <Typography.Text type="secondary">
+          У вас нет прав на изменение доступа к этому инвентарю.
+        </Typography.Text>
+      ) : null}
+
+      {usersErrorMessage !== null ? (
+        <Typography.Text type="warning">
+          Не удалось загрузить полный список пользователей: {usersErrorMessage}
+        </Typography.Text>
+      ) : null}
+
+      {accessEditor.errorMessage !== null ? (
+        <Typography.Text type="danger">
+          {accessEditor.errorMessage}
+        </Typography.Text>
+      ) : null}
+
+      <Space wrap>
+        <Button
+          type="primary"
+          loading={accessEditor.isSaving}
+          disabled={saveDisabled}
+          onClick={onSaveAccessNow}
+        >
+          Сохранить сейчас
+        </Button>
+        <Button
+          disabled={resetDisabled}
+          onClick={onResetAccessDraft}
+        >
+          Сбросить изменения
+        </Button>
+      </Space>
 
       <Table<WriterRow>
         rowKey="key"
@@ -652,7 +877,6 @@ function renderAccessTab(editor: InventoryEditor) {
     </Space>
   )
 }
-
 function renderOverviewTable(editor: InventoryEditor, etag: string | null) {
   const rows: PropertyValueRow[] = [
     { key: 'id', property: 'ID инвентаря', value: editor.id },
@@ -698,6 +922,7 @@ export function InventoryEditorShell({
   concurrencyProblem,
   settingsAutosave,
   tagsAutosave,
+  accessEditor,
   customIdTemplate,
   customFieldDrafts,
   selectedCustomFieldKey,
@@ -720,6 +945,9 @@ export function InventoryEditorShell({
   onUpdateTagsDraft,
   onSaveTagsNow,
   onResetTagsDraft,
+  onUpdateAccessDraft,
+  onSaveAccessNow,
+  onResetAccessDraft,
   onSelectCustomField,
   onAddCustomField,
   onUpdateCustomField,
@@ -770,7 +998,18 @@ export function InventoryEditorShell({
                 />
               )
               : tab.key === 'access'
-                ? renderAccessTab(editor)
+                ? (
+                  <AccessEditorTab
+                    editor={editor}
+                    accessEditor={accessEditor}
+                    concurrencyProblem={concurrencyProblem}
+                    onReloadEditor={onReloadEditor}
+                    onClearConcurrencyProblem={onClearConcurrencyProblem}
+                    onUpdateAccessDraft={onUpdateAccessDraft}
+                    onSaveAccessNow={onSaveAccessNow}
+                    onResetAccessDraft={onResetAccessDraft}
+                  />
+                )
                 : tab.key === 'customFields'
                   ? (
                     <CustomFieldsAutosaveTab
@@ -803,6 +1042,7 @@ export function InventoryEditorShell({
                   ),
       })),
     [
+      accessEditor,
       categoryOptions,
       concurrencyProblem,
       customIdTemplate,
@@ -826,14 +1066,17 @@ export function InventoryEditorShell({
       onResetCustomFieldsDrafts,
       onCancelSettingsImageUpload,
       onDeleteSettingsImageFromStorage,
+      onResetAccessDraft,
       onResetSettingsDraft,
       onSaveSettingsNow,
+      onSaveAccessNow,
       onResetTagsDraft,
       onSaveTagsNow,
       onSelectCustomField,
       onUpdateCustomField,
       onUploadSettingsImage,
       onUpdateSettingsDraft,
+      onUpdateAccessDraft,
       onUpdateTagsDraft,
       referencesErrorMessage,
       referencesStatus,

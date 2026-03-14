@@ -38,6 +38,7 @@ export function InventoryEditorPage() {
     clearConcurrencyProblem,
     settingsAutosave,
     tagsAutosave,
+    accessEditor,
     customIdTemplate,
     customFieldDrafts,
     selectedCustomFieldKey,
@@ -58,6 +59,9 @@ export function InventoryEditorPage() {
     updateTagsDraft,
     saveTagsNow,
     resetTagsDraft,
+    updateAccessDraft,
+    saveAccessNow,
+    resetAccessDraft,
     setSelectedCustomFieldKey,
     addCustomFieldDraft,
     updateCustomFieldDraft,
@@ -191,6 +195,7 @@ export function InventoryEditorPage() {
       concurrencyProblem={concurrencyProblem}
       settingsAutosave={settingsAutosave}
       tagsAutosave={tagsAutosave}
+      accessEditor={accessEditor}
       customIdTemplate={customIdTemplate}
       customFieldDrafts={customFieldDrafts}
       selectedCustomFieldKey={selectedCustomFieldKey}
@@ -218,6 +223,9 @@ export function InventoryEditorPage() {
       onUpdateTagsDraft={updateTagsDraft}
       onSaveTagsNow={saveTagsNow}
       onResetTagsDraft={resetTagsDraft}
+      onUpdateAccessDraft={updateAccessDraft}
+      onSaveAccessNow={saveAccessNow}
+      onResetAccessDraft={resetAccessDraft}
       onSelectCustomField={setSelectedCustomFieldKey}
       onAddCustomField={addCustomFieldDraft}
       onUpdateCustomField={updateCustomFieldDraft}

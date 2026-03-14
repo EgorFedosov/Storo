@@ -614,7 +614,6 @@ export function InventoryItemsTableTab({
             description={(
               <Space size={8} wrap>
                 <Tag color="green">Элемент #{lastCreatedItem.id}</Tag>
-                <Tag>Версия: {String(lastCreatedItem.version)}</Tag>
                 {lastCreatedItem.etag === null ? null : <Tag>ETag: {lastCreatedItem.etag}</Tag>}
                 <Typography.Link onClick={() => navigate(`/items/${lastCreatedItem.id}`)}>
                   Открыть элемент

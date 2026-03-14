@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   deleteInventory as requestDeleteInventory,
   inventoryEditorTagsContract,
+  replaceInventoryAccess,
   replaceInventoryTags,
   requestInventoryEditor,
   updateInventorySettings,
+  type ReplaceInventoryAccessPayload,
   type InventoryEditorRequestResult,
 } from '../../../entities/inventory/model/inventoryEditorApi.ts'
 import {
@@ -24,6 +26,7 @@ import {
 import type {
   InventoryCustomFieldType,
   InventoryCustomIdPartType,
+  InventoryEditorAccessMode,
   InventoryEditor,
   InventoryEditorCustomField,
 } from '../../../entities/inventory/model/inventoryEditorTypes.ts'
@@ -79,6 +82,20 @@ export type InventoryTagsAutosaveState = {
   lastSavedAt: string | null
   errorMessage: string | null
   autosaveIntervalMs: number
+}
+
+export type InventoryAccessDraft = {
+  mode: InventoryEditorAccessMode
+  writerUserIds: ReadonlyArray<string>
+}
+
+export type InventoryAccessEditorState = {
+  draft: InventoryAccessDraft | null
+  isDirty: boolean
+  isSaving: boolean
+  canEdit: boolean
+  lastSavedAt: string | null
+  errorMessage: string | null
 }
 
 export type InventoryDeleteState = {
@@ -178,6 +195,7 @@ type InventoryEditorModel = InventoryEditorState & {
   concurrencyProblem: ConcurrencyProblem | null
   settingsAutosave: InventorySettingsAutosaveState
   tagsAutosave: InventoryTagsAutosaveState
+  accessEditor: InventoryAccessEditorState
   customIdTemplate: InventoryCustomIdTemplateBuilderModel
   customFieldDrafts: ReadonlyArray<InventoryEditorCustomFieldDraft>
   selectedCustomFieldKey: string | null
@@ -198,6 +216,9 @@ type InventoryEditorModel = InventoryEditorState & {
   updateTagsDraft: (nextTags: ReadonlyArray<string>) => void
   saveTagsNow: () => void
   resetTagsDraft: () => void
+  updateAccessDraft: (patch: Partial<InventoryAccessDraft>) => void
+  saveAccessNow: () => void
+  resetAccessDraft: () => void
   setSelectedCustomFieldKey: (fieldKey: string | null) => void
   addCustomFieldDraft: () => void
   updateCustomFieldDraft: (
@@ -317,6 +338,27 @@ function normalizeTags(tags: ReadonlyArray<string>): string[] {
   return out
 }
 
+function normalizeAccessWriterUserIds(writerUserIds: ReadonlyArray<string>): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+
+  for (const rawWriterUserId of writerUserIds) {
+    const trimmed = rawWriterUserId.trim()
+    if (!/^[1-9]\d*$/.test(trimmed)) {
+      continue
+    }
+
+    if (seen.has(trimmed)) {
+      continue
+    }
+
+    seen.add(trimmed)
+    out.push(trimmed)
+  }
+
+  return out
+}
+
 function tagErrors(tags: ReadonlyArray<string>): Record<string, string[]> {
   for (const tag of tags) {
     if (tag.length > inventoryEditorTagsContract.maxTagLength) {
@@ -327,6 +369,13 @@ function tagErrors(tags: ReadonlyArray<string>): Record<string, string[]> {
   }
 
   return {}
+}
+
+function toAccessDraft(editor: InventoryEditor): InventoryAccessDraft {
+  return {
+    mode: editor.access.mode,
+    writerUserIds: normalizeAccessWriterUserIds(editor.access.writers.map((writer) => writer.id)),
+  }
 }
 
 function settingsErrors(draft: InventoryEditorSettingsDraft): InventoryEditorSettingsFieldErrors {
@@ -450,6 +499,18 @@ function imageUploadPresignFailureMessage(failure: ApiFailure): string {
 function tagsFailureMessage(failure: ApiFailure): string {
   if (failure.status === 403) {
     return 'Only inventory creator or admin can modify tags.'
+  }
+
+  if (failure.status === 404) {
+    return 'Inventory was not found.'
+  }
+
+  return firstError(failure.problem?.errors ?? {}) ?? failure.error.message
+}
+
+function accessFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 403) {
+    return 'Only inventory creator or admin can modify access settings.'
   }
 
   if (failure.status === 404) {
@@ -1039,6 +1100,12 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
   const [isTagsSaving, setIsTagsSaving] = useState(false)
   const [isTagsQueued, setIsTagsQueued] = useState(false)
 
+  const [persistedAccess, setPersistedAccess] = useState<InventoryAccessDraft | null>(null)
+  const [accessDraft, setAccessDraft] = useState<InventoryAccessDraft | null>(null)
+  const [accessErrorMessage, setAccessErrorMessage] = useState<string | null>(null)
+  const [accessLastSavedAt, setAccessLastSavedAt] = useState<string | null>(null)
+  const [isAccessSaving, setIsAccessSaving] = useState(false)
+
   const [customFieldsState, setCustomFieldsState] = useState<CustomFieldsEditorState>(initialCustomFieldsState)
   const [isCustomFieldsSaving, setIsCustomFieldsSaving] = useState(false)
   const [isCustomFieldsQueued, setIsCustomFieldsQueued] = useState(false)
@@ -1133,6 +1200,12 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setIsTagsSaving(false)
       setIsTagsQueued(false)
 
+      setPersistedAccess(null)
+      setAccessDraft(null)
+      setAccessErrorMessage(null)
+      setAccessLastSavedAt(null)
+      setIsAccessSaving(false)
+
       setCustomFieldsState(initialCustomFieldsState)
       setIsCustomFieldsSaving(false)
       setIsCustomFieldsQueued(false)
@@ -1181,6 +1254,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         imageUrl: response.data.settings.imageUrl ?? '',
       }
       const nextTags = normalizeTags(response.data.tags.map((tag) => tag.name))
+      const nextAccess = toAccessDraft(response.data)
       const nextCustomFields = createCustomFieldsStateFromEditor(response.data)
       const nextCustomIdTemplate = createCustomIdTemplateStateFromEditor(response.data)
 
@@ -1200,6 +1274,15 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setTagsLastSavedAt(null)
       setIsTagsSaving(false)
       setIsTagsQueued(false)
+
+      setPersistedAccess(nextAccess)
+      setAccessDraft({
+        mode: nextAccess.mode,
+        writerUserIds: [...nextAccess.writerUserIds],
+      })
+      setAccessErrorMessage(null)
+      setAccessLastSavedAt(null)
+      setIsAccessSaving(false)
 
       setCustomFieldsState(nextCustomFields)
       setIsCustomFieldsSaving(false)
@@ -1248,9 +1331,25 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
     () => tagsDraft.length !== persistedTags.length || tagsDraft.some((tag, index) => tag !== persistedTags[index]),
     [persistedTags, tagsDraft],
   )
+  const isAccessDirty = useMemo(() => {
+    if (accessDraft === null || persistedAccess === null) {
+      return false
+    }
+
+    if (accessDraft.mode !== persistedAccess.mode) {
+      return true
+    }
+
+    if (accessDraft.writerUserIds.length !== persistedAccess.writerUserIds.length) {
+      return true
+    }
+
+    return accessDraft.writerUserIds.some((writerUserId, index) => writerUserId !== persistedAccess.writerUserIds[index])
+  }, [accessDraft, persistedAccess])
 
   const canAutosaveSettings = state.editor !== null && state.editor.permissions.canEditInventory && settingsDraft !== null
   const canAutosaveTags = state.editor !== null && state.editor.permissions.canEditInventory
+  const canEditAccess = state.editor !== null && state.editor.permissions.canManageAccess && accessDraft !== null
   const canAutosaveCustomFields = state.editor !== null && state.editor.permissions.canManageCustomFields
   const canManageCustomIdTemplate = state.editor !== null && state.editor.permissions.canManageCustomIdTemplate
   const isCustomIdTemplateDirty = useMemo(
@@ -1662,6 +1761,95 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         }
     ))
   }, [executeVersionedMutation, inventoryId, isTagsSaving, state.editor, tagsDraft])
+
+  const updateAccessDraft = useCallback((patch: Partial<InventoryAccessDraft>) => {
+    clearConcurrencyProblem()
+    setAccessErrorMessage(null)
+    setAccessDraft((current) => {
+      if (current === null) {
+        return current
+      }
+
+      const nextWriterUserIds = patch.writerUserIds === undefined
+        ? current.writerUserIds
+        : normalizeAccessWriterUserIds(patch.writerUserIds)
+
+      return {
+        mode: patch.mode ?? current.mode,
+        writerUserIds: nextWriterUserIds,
+      }
+    })
+  }, [clearConcurrencyProblem])
+
+  const saveAccess = useCallback(async () => {
+    if (inventoryId === null || state.editor === null || accessDraft === null || !canEditAccess) {
+      return
+    }
+
+    if (isAccessSaving) {
+      return
+    }
+
+    const payload: ReplaceInventoryAccessPayload = {
+      mode: accessDraft.mode,
+      writerUserIds: normalizeAccessWriterUserIds(accessDraft.writerUserIds),
+    }
+
+    setIsAccessSaving(true)
+    setAccessErrorMessage(null)
+
+    const result = await executeVersionedMutation((options) => replaceInventoryAccess(inventoryId, payload, options))
+    setIsAccessSaving(false)
+
+    if (result === null) {
+      return
+    }
+
+    if (!result.ok) {
+      if (getConcurrencyProblem(result) === null) {
+        setAccessErrorMessage(accessFailureMessage(result))
+      }
+      return
+    }
+
+    const writerById = new Map(state.editor.access.writers.map((writer) => [writer.id, writer]))
+    const nextWriters = payload.writerUserIds.map((writerUserId) => (
+      writerById.get(writerUserId) ?? {
+        id: writerUserId,
+        userName: `user-${writerUserId}`,
+        displayName: `User #${writerUserId}`,
+        email: '',
+        isBlocked: false,
+      }
+    ))
+    const nextAccessDraft: InventoryAccessDraft = {
+      mode: payload.mode,
+      writerUserIds: [...payload.writerUserIds],
+    }
+
+    setPersistedAccess(nextAccessDraft)
+    setAccessDraft({
+      mode: nextAccessDraft.mode,
+      writerUserIds: [...nextAccessDraft.writerUserIds],
+    })
+    setAccessLastSavedAt(new Date().toISOString())
+    setAccessErrorMessage(null)
+    setState((current) => (
+      current.editor === null
+        ? current
+        : {
+          ...current,
+          editor: {
+            ...current.editor,
+            version: result.data.version,
+            access: {
+              mode: payload.mode,
+              writers: nextWriters,
+            },
+          },
+        }
+    ))
+  }, [accessDraft, canEditAccess, executeVersionedMutation, inventoryId, isAccessSaving, state.editor])
 
   const saveCustomFields = useCallback(async () => {
     if (inventoryId === null || state.editor === null || !canAutosaveCustomFields) {
@@ -2359,6 +2547,24 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       tagsLastSavedAt,
     ],
   )
+  const accessEditor: InventoryAccessEditorState = useMemo(
+    () => ({
+      draft: accessDraft,
+      isDirty: isAccessDirty,
+      isSaving: isAccessSaving,
+      canEdit: canEditAccess,
+      lastSavedAt: accessLastSavedAt,
+      errorMessage: accessErrorMessage,
+    }),
+    [
+      accessDraft,
+      accessErrorMessage,
+      accessLastSavedAt,
+      canEditAccess,
+      isAccessDirty,
+      isAccessSaving,
+    ],
+  )
   const customIdTemplate = useMemo<InventoryCustomIdTemplateBuilderModel>(
     () => ({
       isEnabled: customIdTemplateState.draftIsEnabled,
@@ -2574,6 +2780,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       concurrencyProblem,
       settingsAutosave,
       tagsAutosave,
+      accessEditor,
       customIdTemplate,
       customFieldDrafts: customFieldsState.draftFields,
       selectedCustomFieldKey: customFieldsState.selectedFieldKey,
@@ -2634,6 +2841,20 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
         setIsTagsQueued(false)
         setTagsDraft([...persistedTags])
       },
+      updateAccessDraft,
+      saveAccessNow: () => {
+        void saveAccess()
+      },
+      resetAccessDraft: () => {
+        clearConcurrencyProblem()
+        setAccessErrorMessage(null)
+        if (persistedAccess !== null) {
+          setAccessDraft({
+            mode: persistedAccess.mode,
+            writerUserIds: [...persistedAccess.writerUserIds],
+          })
+        }
+      },
       setSelectedCustomFieldKey,
       addCustomFieldDraft,
       updateCustomFieldDraft,
@@ -2652,6 +2873,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       retryLoad,
     }),
     [
+      accessEditor,
       addCustomFieldDraft,
       applySettingsDraftPatch,
       cancelSettingsImageUpload,
@@ -2675,6 +2897,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       moveSelectedCustomFieldDraftUp,
       normalizedActiveTabKey,
       normalizedTabStates,
+      persistedAccess,
       persistedSettingsDraft,
       persistedTags,
       references.categoryOptions,
@@ -2684,6 +2907,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       removeSelectedCustomFieldDraft,
       resetCustomFieldDrafts,
       retryLoad,
+      saveAccess,
       saveSettings,
       saveTags,
       setSelectedCustomFieldKey,
@@ -2693,6 +2917,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       state,
       tagsAutosave,
       uploadSettingsImage,
+      updateAccessDraft,
       updateCustomFieldDraft,
       versionStamp?.etag,
     ],
