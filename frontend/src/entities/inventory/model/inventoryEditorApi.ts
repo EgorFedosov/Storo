@@ -1,5 +1,6 @@
 import { extractVersionStamp, normalizeETag, type VersionStamp } from '../../../shared/api/concurrency.ts'
 import { apiRequest, type ApiRequestOptions, type ApiResult } from '../../../shared/api/httpClient.ts'
+import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
 import type { InventoryEditor, InventoryEditorCustomField, InventoryEditorCustomIdTemplatePart } from './inventoryEditorTypes.ts'
 
 type InventoryEditorFailure = {
@@ -105,7 +106,7 @@ function normalizeSettings(payload: unknown): InventoryEditor['settings'] | null
     descriptionMarkdown,
     category: {
       id: categoryId,
-      name: categoryName,
+      name: toLocalizedCategoryName(categoryName),
     },
     imageUrl,
   }

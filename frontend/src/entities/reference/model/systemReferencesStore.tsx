@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import type { PropsWithChildren } from 'react'
 import { apiRequest } from '../../../shared/api/httpClient.ts'
+import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
 import {
   systemReferencesContext,
   type SystemReferencesContextValue,
@@ -158,16 +159,16 @@ function normalizeCategoriesPayload(payload: unknown): InventoryCategoryReferenc
     }
 
     const id = normalizePositiveInteger(rawCategory.id)
-    const name = normalizeNonEmptyString(rawCategory.name)
+    const categoryName = normalizeNonEmptyString(rawCategory.name)
 
-    if (id === null || name === null || seenIds.has(id)) {
+    if (id === null || categoryName === null || seenIds.has(id)) {
       return null
     }
 
     seenIds.add(id)
     normalizedCategories.push({
       id,
-      name,
+      name: toLocalizedCategoryName(categoryName),
     })
   }
 

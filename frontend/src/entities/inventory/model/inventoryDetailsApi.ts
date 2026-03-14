@@ -1,4 +1,5 @@
 import { apiRequest } from '../../../shared/api/httpClient.ts'
+import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
 import type { InventoryDetails } from './types.ts'
 
 type InventoryDetailsFailure = {
@@ -80,7 +81,7 @@ function normalizeCategory(payload: unknown): InventoryDetails['header']['catego
 
   return {
     id,
-    name,
+    name: toLocalizedCategoryName(name),
   }
 }
 

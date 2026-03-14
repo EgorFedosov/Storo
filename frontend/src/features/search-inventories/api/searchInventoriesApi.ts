@@ -1,4 +1,5 @@
 import { apiRequest } from '../../../shared/api/httpClient.ts'
+import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
 
 export type SearchInventoriesQuery = {
   q: string | null
@@ -145,7 +146,7 @@ function normalizeInventoryCategory(payload: unknown): SearchInventorySummary['c
 
   return {
     id,
-    name,
+    name: toLocalizedCategoryName(name),
   }
 }
 

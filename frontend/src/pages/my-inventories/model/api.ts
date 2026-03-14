@@ -1,4 +1,5 @@
 import { apiRequest, type ApiFailure } from '../../../shared/api/httpClient.ts'
+import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
 import type {
   InventoryRelation,
   UserInventoryRow,
@@ -121,7 +122,7 @@ function normalizeInventoryRow(value: unknown): UserInventoriesPageData['items']
     title,
     category: {
       id: categoryId,
-      name: categoryName,
+      name: toLocalizedCategoryName(categoryName),
     },
     owner: {
       id: ownerId,
