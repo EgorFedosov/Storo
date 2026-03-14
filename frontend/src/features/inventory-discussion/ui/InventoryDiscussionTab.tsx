@@ -117,8 +117,8 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space size={8} wrap>
-        <Tag color="blue">Инвентарь #{inventoryId}</Tag>
-        <Tag>Посты: {String(rows.length)}</Tag>
+        <Tag className="inventory-meta-tag">Инвентарь #{inventoryId}</Tag>
+        <Tag className="inventory-meta-tag">Посты: {String(rows.length)}</Tag>
       </Space>
 
       {realtimeErrorMessage !== null ? (
@@ -198,7 +198,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
         rows={4}
         maxLength={10000}
         showCount
-        placeholder="Напишите сообщение для обсуждения в Markdown..."
+        placeholder="Напишите сообщение для обсуждения..."
         disabled={!canSubmitPost || isPosting}
       />
 

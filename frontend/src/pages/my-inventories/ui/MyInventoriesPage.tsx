@@ -326,7 +326,6 @@ export function MyInventoriesPage() {
         </Typography.Paragraph>
         <Space wrap size={8}>
           <Tag color="blue">{currentUser.displayName}</Tag>
-          <Tag>@{currentUser.userName}</Tag>
           {permissions.canCreateInventory ? (
             <Button
               type="primary"

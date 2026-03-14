@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, Typography, message } from 'antd'
+import { Alert, Button, Card, Form, Input, Popconfirm, Result, Select, Space, Table, Tag, Typography, message } from 'antd'
 import type { TableProps } from 'antd'
 import type { FilterValue, TablePaginationConfig } from 'antd/es/table/interface'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -83,6 +83,39 @@ function hasAdminRole(user: AdminUserListItem): boolean {
   return user.roles.some((role) => role.trim().toLowerCase() === 'admin')
 }
 
+function getRoleTagStyle(role: string): { backgroundColor: string; borderColor: string; color: string } {
+  const normalizedRole = role.trim().toLowerCase()
+  if (normalizedRole === 'admin') {
+    return {
+      backgroundColor: '#fff7e6',
+      borderColor: '#ffd591',
+      color: '#ad6800',
+    }
+  }
+
+  return {
+    backgroundColor: '#f0f5ff',
+    borderColor: '#adc6ff',
+    color: '#1d39c4',
+  }
+}
+
+function getStatusTagStyle(isBlocked: boolean): { backgroundColor: string; borderColor: string; color: string } {
+  if (isBlocked) {
+    return {
+      backgroundColor: '#fff1f0',
+      borderColor: '#ffa39e',
+      color: '#cf1322',
+    }
+  }
+
+  return {
+    backgroundColor: '#f6ffed',
+    borderColor: '#b7eb8f',
+    color: '#389e0d',
+  }
+}
+
 function normalizeSelectedTableKey(rawKey: Key | undefined): string | null {
   if (rawKey === undefined || rawKey === null) {
     return null
@@ -96,7 +129,7 @@ export function AdminUsersListSection() {
   const [form] = Form.useForm<AdminUsersFiltersFormValues>()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [messageApi, messageContextHolder] = message.useMessage()
-  const { currentUser, retryBootstrap } = useCurrentUser()
+  const { currentUser, isAuthenticated, permissions, retryBootstrap } = useCurrentUser()
   const {
     queryState,
     routeValidationErrors,
@@ -111,7 +144,7 @@ export function AdminUsersListSection() {
     retry,
     clearModerationError,
     executeModerationAction,
-  } = useAdminUsersListModel()
+  } = useAdminUsersListModel(isAuthenticated)
 
   useEffect(() => {
     form.setFieldsValue({
@@ -130,14 +163,15 @@ export function AdminUsersListSection() {
   }, [pageData, selectedUserId])
 
   const selectedUserHasAdminRole = selectedUser !== null && hasAdminRole(selectedUser)
+  const canModerateUsers = permissions.canManageUsers
   const moderationActionInFlight = moderationInFlight?.action ?? null
   const moderationBusy = moderationInFlight !== null
 
-  const canBlock = selectedUser !== null && !selectedUser.isBlocked && !isLoading && !moderationBusy
-  const canUnblock = selectedUser !== null && selectedUser.isBlocked && !isLoading && !moderationBusy
-  const canGrantAdmin = selectedUser !== null && !selectedUserHasAdminRole && !isLoading && !moderationBusy
-  const canRevokeAdmin = selectedUser !== null && selectedUserHasAdminRole && !isLoading && !moderationBusy
-  const canDelete = selectedUser !== null && !isLoading && !moderationBusy
+  const canBlock = canModerateUsers && selectedUser !== null && !selectedUser.isBlocked && !isLoading && !moderationBusy
+  const canUnblock = canModerateUsers && selectedUser !== null && selectedUser.isBlocked && !isLoading && !moderationBusy
+  const canGrantAdmin = canModerateUsers && selectedUser !== null && !selectedUserHasAdminRole && !isLoading && !moderationBusy
+  const canRevokeAdmin = canModerateUsers && selectedUser !== null && selectedUserHasAdminRole && !isLoading && !moderationBusy
+  const canDelete = canModerateUsers && selectedUser !== null && !isLoading && !moderationBusy
 
   const columns = useMemo<NonNullable<TableProps<AdminUserListItem>['columns']>>(
     () => [
@@ -167,7 +201,11 @@ export function AdminUsersListSection() {
         render: (roles: readonly string[]) => (
           <Space size={[4, 4]} wrap>
             {roles.map((role) => (
-              <Tag key={role} color={role.toLowerCase() === 'admin' ? 'gold' : 'default'}>
+              <Tag
+                key={role}
+                color={role.toLowerCase() === 'admin' ? 'gold' : 'geekblue'}
+                style={getRoleTagStyle(role)}
+              >
                 {role}
               </Tag>
             ))}
@@ -179,7 +217,7 @@ export function AdminUsersListSection() {
         dataIndex: 'isBlocked',
         key: 'isBlocked',
         render: (isBlocked: boolean) => (
-          <Tag color={isBlocked ? 'red' : 'green'}>
+          <Tag color={isBlocked ? 'red' : 'green'} style={getStatusTagStyle(isBlocked)}>
             {isBlocked ? 'Заблокирован' : 'Активен'}
           </Tag>
         ),
@@ -262,6 +300,11 @@ export function AdminUsersListSection() {
 
   const handleModerationAction = useCallback(
     async (action: AdminModerationAction) => {
+      if (!canModerateUsers) {
+        messageApi.warning('Действия модерации доступны только администраторам.')
+        return
+      }
+
       if (selectedUser === null) {
         return
       }
@@ -286,8 +329,20 @@ export function AdminUsersListSection() {
         messageApi.error(result.message)
       }
     },
-    [currentUser.id, executeModerationAction, messageApi, retryBootstrap, selectedUser],
+    [canModerateUsers, currentUser.id, executeModerationAction, messageApi, retryBootstrap, selectedUser],
   )
+
+  if (!isAuthenticated) {
+    return (
+      <Card>
+        <Result
+          status="403"
+          title="Требуется авторизация"
+          subTitle="Чтобы просматривать список пользователей, войдите в аккаунт."
+        />
+      </Card>
+    )
+  }
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -295,14 +350,8 @@ export function AdminUsersListSection() {
 
       <Card>
         <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Пользователи (админ)
+          Пользователи
         </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Табличный список пользователей с серверными фильтрами, сортировкой и пагинацией через
-          {' '}
-          <Typography.Text code>/api/v1/admin/users</Typography.Text>
-          .
-        </Typography.Paragraph>
       </Card>
 
       <Card title="Фильтры">
@@ -402,21 +451,39 @@ export function AdminUsersListSection() {
             <Typography.Text type="secondary">
               Выберите одну строку в таблице и примените действие модерации.
             </Typography.Text>
+            {!canModerateUsers ? (
+              <Alert
+                showIcon
+                type="info"
+                message="Режим только для просмотра"
+                description="Модерация пользователей доступна только администраторам."
+              />
+            ) : null}
 
             <Space size={[8, 8]} wrap>
-              <Tag color={selectedUser === null ? 'default' : 'blue'}>
+              <Tag
+                color={selectedUser === null ? 'orange' : 'blue'}
+                style={
+                  selectedUser === null
+                    ? { backgroundColor: '#fff7e6', borderColor: '#ffd591', color: '#d46b08' }
+                    : { backgroundColor: '#e6f4ff', borderColor: '#91caff', color: '#0958d9' }
+                }
+              >
                 {selectedUser === null ? 'Пользователь не выбран' : `@${selectedUser.userName}`}
               </Tag>
               {selectedUser !== null ? (
-                <Tag color={selectedUser.isBlocked ? 'red' : 'green'}>
+                <Tag
+                  color={selectedUser.isBlocked ? 'red' : 'green'}
+                  style={getStatusTagStyle(selectedUser.isBlocked)}
+                >
                   {selectedUser.isBlocked ? 'Заблокирован' : 'Активен'}
                 </Tag>
               ) : null}
               {selectedUser !== null && selectedUserHasAdminRole ? (
-                <Tag color="gold">Администратор</Tag>
+                <Tag color="gold" style={{ backgroundColor: '#fff7e6', borderColor: '#ffd591', color: '#ad6800' }}>Администратор</Tag>
               ) : null}
               {moderationInFlight !== null ? (
-                <Tag color="processing">
+                <Tag color="processing" style={{ backgroundColor: '#e6f4ff', borderColor: '#91caff', color: '#0958d9' }}>
                   {`${moderationActionLabelMap[moderationInFlight.action]}...`}
                 </Tag>
               ) : null}
@@ -536,5 +603,4 @@ export function AdminUsersListSection() {
     </Space>
   )
 }
-
 

@@ -594,14 +594,14 @@ export function InventoryItemsTableTab({
 
       <Card>
         <Space size={8} wrap>
-          <Tag color="blue">Инвентарь #{inventoryId}</Tag>
-          <Tag>Версия: {String(data?.version ?? 'н/д')}</Tag>
-          <Tag>Строк: {String(rows.length)}</Tag>
-          <Tag>Всего: {String(totalCount)}</Tag>
-          <Tag color={canWriteItems ? 'green' : 'default'}>
+          <Tag className="inventory-meta-tag">Инвентарь #{inventoryId}</Tag>
+          <Tag className="inventory-meta-tag">Версия: {String(data?.version ?? 'н/д')}</Tag>
+          <Tag className="inventory-meta-tag">Строк: {String(rows.length)}</Tag>
+          <Tag className="inventory-meta-tag">Всего: {String(totalCount)}</Tag>
+          <Tag className="inventory-meta-tag">
             {canWriteItems ? 'Доступ на запись' : 'Только чтение'}
           </Tag>
-          <Tag color={canLikeItems ? 'magenta' : 'default'}>
+          <Tag className="inventory-meta-tag">
             {canLikeItems ? 'Лайки разрешены' : 'Лайки отключены'}
           </Tag>
         </Space>
@@ -629,15 +629,13 @@ export function InventoryItemsTableTab({
         title="Элементы"
         extra={(
           <Space wrap>
-            {canWriteItems ? (
-              <Button
-                type="primary"
-                onClick={() => setIsCreateModalOpen(true)}
-                disabled={!canOpenCreateFlow || status === 'loading' || activeEditorCreateContext.isLoading}
-              >
-                Создать элемент
-              </Button>
-            ) : null}
+            <Button
+              type="primary"
+              onClick={() => setIsCreateModalOpen(true)}
+              disabled={!canOpenCreateFlow || status === 'loading' || activeEditorCreateContext.isLoading}
+            >
+              Добавить элемент
+            </Button>
             <Select<InventoryItemsTableSortField>
               value={sortField}
               options={[...sortFieldOptions]}

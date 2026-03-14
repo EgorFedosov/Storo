@@ -12,6 +12,14 @@ public interface IExternalAuthService
         CompleteGoogleLoginCommand command,
         CancellationToken cancellationToken);
 
+    Task<ExternalAuthChallengeResult> StartGitHubChallengeAsync(
+        StartGitHubLoginCommand command,
+        CancellationToken cancellationToken);
+
+    Task<ExternalAuthCallbackResult> CompleteGitHubAuthenticationAsync(
+        CompleteGitHubLoginCommand command,
+        CancellationToken cancellationToken);
+
     Task ClearExternalStateAsync(CancellationToken cancellationToken);
 
     string BuildErrorRedirectUri(string errorCode);

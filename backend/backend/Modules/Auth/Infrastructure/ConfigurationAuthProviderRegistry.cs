@@ -9,11 +9,14 @@ public sealed class ConfigurationAuthProviderRegistry(IConfiguration configurati
         var configuredProviders = configuration.GetSection("Auth:ExternalProviders").Get<string[]>();
         var sourceProviders = configuredProviders is { Length: > 0 }
             ? configuredProviders
-            : ["google"];
+            : ["google", "github"];
 
         var googleConfigured =
             !string.IsNullOrWhiteSpace(configuration["Authentication:Google:ClientId"]) &&
             !string.IsNullOrWhiteSpace(configuration["Authentication:Google:ClientSecret"]);
+        var gitHubConfigured =
+            !string.IsNullOrWhiteSpace(configuration["Authentication:GitHub:ClientId"]) &&
+            !string.IsNullOrWhiteSpace(configuration["Authentication:GitHub:ClientSecret"]);
 
         var normalizedProviders = sourceProviders
             .Where(static provider => !string.IsNullOrWhiteSpace(provider))
@@ -21,6 +24,7 @@ public sealed class ConfigurationAuthProviderRegistry(IConfiguration configurati
             .Where(provider => provider switch
             {
                 "google" => googleConfigured,
+                "github" => gitHubConfigured,
                 _ => false
             })
             .Distinct(StringComparer.OrdinalIgnoreCase)

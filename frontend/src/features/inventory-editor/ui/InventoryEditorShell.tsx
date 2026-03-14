@@ -69,6 +69,7 @@ type InventoryEditorShellProps = {
   onRemoveSelectedCustomField: () => void
   onMoveSelectedCustomFieldUp: () => void
   onMoveSelectedCustomFieldDown: () => void
+  onSaveCustomFieldsNow: () => void
   onResetCustomFieldsDrafts: () => void
   onTabChange: (nextTabKey: InventoryEditorTabKey) => void
 }
@@ -725,6 +726,7 @@ export function InventoryEditorShell({
   onRemoveSelectedCustomField,
   onMoveSelectedCustomFieldUp,
   onMoveSelectedCustomFieldDown,
+  onSaveCustomFieldsNow,
   onResetCustomFieldsDrafts,
   onTabChange,
 }: InventoryEditorShellProps) {
@@ -787,6 +789,7 @@ export function InventoryEditorShell({
                       onRemoveSelected={onRemoveSelectedCustomField}
                       onMoveSelectedUp={onMoveSelectedCustomFieldUp}
                       onMoveSelectedDown={onMoveSelectedCustomFieldDown}
+                      onSaveNow={onSaveCustomFieldsNow}
                       onResetDrafts={onResetCustomFieldsDrafts}
                       onReloadEditor={onReloadEditor}
                     />
@@ -819,6 +822,7 @@ export function InventoryEditorShell({
       onMoveSelectedCustomFieldUp,
       onRemoveSelectedCustomField,
       onReloadEditor,
+      onSaveCustomFieldsNow,
       onResetCustomFieldsDrafts,
       onCancelSettingsImageUpload,
       onDeleteSettingsImageFromStorage,

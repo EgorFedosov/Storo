@@ -5,7 +5,7 @@ import {
   UserOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Tag, Typography } from 'antd'
+import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { Suspense, useMemo } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
@@ -47,11 +47,15 @@ export function AppShell() {
   } = useCurrentUser()
   const Page = route.Page
 
-  const canOpenRoute = canAccessRoute(route.key, access)
+  const canOpenRoute = route.key === 'adminUsers' || canAccessRoute(route.key, access)
+  const requiresLoginForMyInventories = route.key === 'myInventories' && !isAuthenticated
   const navigationItems = useMemo(
     () =>
       shellNavigationModel
-        .filter((navRoute) => canAccessRoute(navRoute.key, access))
+        .filter((navRoute) =>
+          navRoute.key === 'myInventories'
+          || navRoute.key === 'adminUsers'
+          || canAccessRoute(navRoute.key, access))
         .map((navRoute) => ({
           key: navRoute.key,
           icon: navigationIcons[navRoute.key],
@@ -71,17 +75,6 @@ export function AppShell() {
   const selectedNavigationKey = navigationItems.some((item) => item.key === route.navKey)
     ? selectedNavigationKeys
     : []
-
-  const authStatusColor = status === 'loading'
-    ? 'processing'
-    : isAuthenticated
-      ? 'success'
-      : 'default'
-  const authStatusLabel = status === 'loading'
-    ? 'Проверка входа'
-    : isAuthenticated
-      ? 'Вы вошли'
-      : 'Гость'
 
   return (
     <Layout className="app-shell-layout">
@@ -104,7 +97,6 @@ export function AppShell() {
         />
 
         <Space size="small" wrap className="app-shell-header-meta">
-          <Tag color={authStatusColor}>{authStatusLabel}</Tag>
           <SocialLoginControl
             isAuthenticated={isAuthenticated}
             pathname={locationSnapshot.pathname}
@@ -171,6 +163,12 @@ export function AppShell() {
           <div className="page-loader" role="status" aria-live="polite">
             <Spin size="large" />
           </div>
+        ) : requiresLoginForMyInventories ? (
+          <Result
+            status="403"
+            title="Требуется вход в аккаунт"
+            subTitle="Чтобы открыть раздел «Мои инвентари», сначала войдите в аккаунт."
+          />
         ) : canOpenRoute ? (
           <Suspense
             fallback={(

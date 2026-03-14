@@ -207,6 +207,7 @@ type InventoryEditorModel = InventoryEditorState & {
   removeSelectedCustomFieldDraft: () => void
   moveSelectedCustomFieldDraftUp: () => void
   moveSelectedCustomFieldDraftDown: () => void
+  saveCustomFieldsNow: () => void
   resetCustomFieldDrafts: () => void
   setActiveTabKey: (nextTabKey: InventoryEditorTabKey) => void
   clearConcurrencyProblem: () => void
@@ -2639,6 +2640,12 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       removeSelectedCustomFieldDraft,
       moveSelectedCustomFieldDraftUp,
       moveSelectedCustomFieldDraftDown,
+      saveCustomFieldsNow: () => {
+        if (customFieldsTimerRef.current !== null) {
+          clearTimeout(customFieldsTimerRef.current)
+        }
+        void saveCustomFields()
+      },
       resetCustomFieldDrafts,
       setActiveTabKey,
       clearConcurrencyProblem,
@@ -2682,6 +2689,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       setSelectedCustomFieldKey,
       settingsAutosave,
       setSettingsImageUpload,
+      saveCustomFields,
       state,
       tagsAutosave,
       uploadSettingsImage,

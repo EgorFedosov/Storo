@@ -64,6 +64,7 @@ export function InventoryEditorPage() {
     removeSelectedCustomFieldDraft,
     moveSelectedCustomFieldDraftUp,
     moveSelectedCustomFieldDraftDown,
+    saveCustomFieldsNow,
     resetCustomFieldDrafts,
     retryLoad,
   } = useInventoryEditorModel(inventoryId)
@@ -223,6 +224,7 @@ export function InventoryEditorPage() {
       onRemoveSelectedCustomField={removeSelectedCustomFieldDraft}
       onMoveSelectedCustomFieldUp={moveSelectedCustomFieldDraftUp}
       onMoveSelectedCustomFieldDown={moveSelectedCustomFieldDraftDown}
+      onSaveCustomFieldsNow={saveCustomFieldsNow}
       onResetCustomFieldsDrafts={resetCustomFieldDrafts}
       onTabChange={setActiveTabKey}
     />

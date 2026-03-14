@@ -79,7 +79,7 @@ function toPermissionRows(details: InventoryDetails): PermissionRow[] {
       key: 'canWriteItems',
       capability: 'Создание и редактирование элементов',
       allowed: details.permissions.canWriteItems,
-      scope: 'Писатель/Создатель/Админ',
+      scope: 'Авторизованный пользователь/Создатель/Админ',
     },
     {
       key: 'canComment',
@@ -180,11 +180,11 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
             {details.header.title}
           </Typography.Title>
           <Space size={8} wrap>
-            <Tag color="blue">Инвентарь #{details.id}</Tag>
-            <Tag color={details.header.isPublic ? 'green' : 'gold'}>
+            <Tag className="inventory-meta-tag">Инвентарь #{details.id}</Tag>
+            <Tag className="inventory-meta-tag">
               {details.header.isPublic ? 'Публичный доступ на запись' : 'Ограниченный доступ на запись'}
             </Tag>
-            <Tag>Элементов: {String(details.summary.itemsCount)}</Tag>
+            <Tag className="inventory-meta-tag">Элементов: {String(details.summary.itemsCount)}</Tag>
             {details.permissions.canEditInventory ? (
               <Button
                 size="small"

@@ -17,7 +17,7 @@ public static class AdminUsersEndpoint
         apiGroup
             .MapGet("/admin/users", ListAsync)
             .WithName("ListUsersForAdmin")
-            .RequireAuthorization(AuthorizationPolicies.Admin)
+            .RequireAuthorization(AuthorizationPolicies.Authenticated)
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status401Unauthorized),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status403Forbidden),

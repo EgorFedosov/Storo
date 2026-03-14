@@ -1,7 +1,7 @@
-import { LoginOutlined, ReloadOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Tooltip } from 'antd'
-import type { MenuProps } from 'antd'
-import { useCallback, useMemo } from 'react'
+import { GithubOutlined, GoogleOutlined, LoginOutlined, LogoutOutlined } from '@ant-design/icons'
+import { Alert, Button, Divider, Form, Input, Modal, Space, Tooltip, Typography } from 'antd'
+import { useCallback, useMemo, useState } from 'react'
+import { apiRequest, type ApiFailure } from '../../../shared/api/httpClient.ts'
 import { routes } from '../../../shared/config/routes.ts'
 import { useSocialLoginModel } from '../model/useSocialLoginModel.ts'
 
@@ -13,6 +13,14 @@ type SocialLoginControlProps = {
   disabled?: boolean
 }
 
+type AuthModalMode = 'login' | 'register'
+
+type AuthCredentialsFormValues = {
+  login: string
+  password: string
+  confirmPassword?: string
+}
+
 function buildReturnUrl(pathname: string, search: string, hash: string): string {
   if (pathname === routes.authError.path) {
     return routes.home.path
@@ -22,6 +30,27 @@ function buildReturnUrl(pathname: string, search: string, hash: string): string 
   return `${normalizedPathname}${search}${hash}`
 }
 
+function firstValidationMessage(failure: ApiFailure): string | null {
+  const errors = failure.problem?.errors ?? {}
+
+  for (const messages of Object.values(errors)) {
+    if (messages.length > 0) {
+      return messages[0]
+    }
+  }
+
+  return null
+}
+
+function resolveLocalAuthErrorMessage(failure: ApiFailure): string {
+  const validationMessage = firstValidationMessage(failure)
+  if (validationMessage !== null) {
+    return validationMessage
+  }
+
+  return failure.error.message
+}
+
 export function SocialLoginControl({
   isAuthenticated,
   pathname,
@@ -29,12 +58,18 @@ export function SocialLoginControl({
   hash,
   disabled = false,
 }: SocialLoginControlProps) {
+  const [form] = Form.useForm<AuthCredentialsFormValues>()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [mode, setMode] = useState<AuthModalMode>('login')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const [submitErrorMessage, setSubmitErrorMessage] = useState<string | null>(null)
+
   const {
     status,
     providers,
     errorMessage,
     isRedirecting,
-    retryProvidersBootstrap,
     startSocialLogin,
   } = useSocialLoginModel(!isAuthenticated)
 
@@ -43,129 +78,260 @@ export function SocialLoginControl({
     [hash, pathname, search],
   )
 
-  const formatProviderLabel = useCallback(
-    (provider: string): string => {
-      if (provider === 'google') {
-        return 'Google'
-      }
+  const availableProviders = useMemo(() => new Set(providers), [providers])
 
-      if (provider === 'facebook') {
-        return 'Facebook'
-      }
+  const openModal = useCallback(() => {
+    setMode('login')
+    setSubmitErrorMessage(null)
+    form.resetFields()
+    setIsModalOpen(true)
+  }, [form])
 
-      return provider.slice(0, 1).toUpperCase() + provider.slice(1)
-    },
-    [],
-  )
+  const closeModal = useCallback(() => {
+    setIsModalOpen(false)
+    setSubmitErrorMessage(null)
+    setIsSubmitting(false)
+    form.resetFields()
+  }, [form])
 
-  const handleProviderClick = useCallback(
-    (provider: string) => {
+  const switchMode = useCallback(() => {
+    setMode((currentMode) => (currentMode === 'login' ? 'register' : 'login'))
+    setSubmitErrorMessage(null)
+    form.resetFields()
+  }, [form])
+
+  const handleSocialLogin = useCallback(
+    (provider: 'google' | 'github') => {
       startSocialLogin(provider, returnUrl)
     },
     [returnUrl, startSocialLogin],
   )
 
-  const providerItems = useMemo<MenuProps['items']>(
-    () =>
-      providers.map((provider) => ({
-        key: provider,
-        label: formatProviderLabel(provider),
-      })),
-    [formatProviderLabel, providers],
-  )
+  const handleSubmit = useCallback(async (values: AuthCredentialsFormValues) => {
+    setIsSubmitting(true)
+    setSubmitErrorMessage(null)
 
-  const handleMenuClick = useCallback<NonNullable<MenuProps['onClick']>>(
-    ({ key }) => {
-      handleProviderClick(String(key))
-    },
-    [handleProviderClick],
-  )
+    const path = mode === 'login' ? '/auth/login' : '/auth/register'
+    const payload = mode === 'login'
+      ? {
+        login: values.login,
+        password: values.password,
+      }
+      : {
+        login: values.login,
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      }
+
+    const response = await apiRequest<unknown>(path, {
+      method: 'POST',
+      body: payload,
+    })
+
+    setIsSubmitting(false)
+
+    if (!response.ok) {
+      setSubmitErrorMessage(resolveLocalAuthErrorMessage(response))
+      return
+    }
+
+    closeModal()
+    window.location.reload()
+  }, [closeModal, mode])
+
+  const handleLogout = useCallback(async () => {
+    setIsSigningOut(true)
+
+    try {
+      await apiRequest<unknown>('/auth/logout', {
+        method: 'POST',
+      })
+    } finally {
+      window.location.reload()
+    }
+  }, [])
 
   if (isAuthenticated) {
-    return null
-  }
-
-  if (status === 'error') {
-    return (
-      <Tooltip title={errorMessage ?? 'Не удалось загрузить провайдеров социального входа.'}>
-        <Button
-          className="social-login-control-btn"
-          size="small"
-          icon={<ReloadOutlined />}
-          onClick={retryProvidersBootstrap}
-          disabled={disabled || isRedirecting}
-        >
-          Повторить вход
-        </Button>
-      </Tooltip>
-    )
-  }
-
-  if (status === 'loading') {
     return (
       <Button
-        className="social-login-control-btn"
+        className="auth-open-modal-btn"
+        type="primary"
         size="small"
-        icon={<LoginOutlined />}
-        loading
-        disabled
+        icon={<LogoutOutlined />}
+        loading={isSigningOut}
+        disabled={disabled || isSigningOut}
+        onClick={handleLogout}
       >
-        Загрузка входа
+        Выйти
       </Button>
     )
   }
 
-  if (providers.length === 0) {
-    return (
-      <Tooltip title="В текущей конфигурации бэкенда нет доступных соцпровайдеров.">
-        <Button
-          className="social-login-control-btn"
-          size="small"
-          icon={<LoginOutlined />}
-          disabled
-        >
-          Войти
-        </Button>
-      </Tooltip>
-    )
-  }
+  const socialProvidersBootstrapMessage = status === 'error'
+    ? (errorMessage ?? 'Не удалось загрузить провайдеров соцвхода.')
+    : (status === 'loading' ? 'Загружаем соцпровайдеров...' : undefined)
 
-  if (providers.length === 1) {
-    const provider = providers[0]
+  const googleUnavailableMessage = availableProviders.has('google')
+    ? undefined
+    : 'Google вход недоступен в текущей конфигурации.'
 
-    return (
+  const gitHubUnavailableMessage = availableProviders.has('github')
+    ? undefined
+    : 'GitHub вход недоступен в текущей конфигурации.'
+
+  const title = mode === 'login' ? 'Вход в аккаунт' : 'Регистрация'
+  const submitLabel = mode === 'login' ? 'Войти' : 'Зарегистрироваться'
+
+  return (
+    <>
       <Button
-        className="social-login-control-btn"
+        className="auth-open-modal-btn"
         type="primary"
         size="small"
         icon={<LoginOutlined />}
-        loading={isRedirecting}
-        disabled={disabled || isRedirecting}
-        onClick={() => handleProviderClick(provider)}
+        disabled={disabled}
+        onClick={openModal}
       >
-        Войти через {formatProviderLabel(provider)}
+        Войти
       </Button>
-    )
-  }
 
-  const defaultProvider = providers[0]
+      <Modal
+        title={title}
+        open={isModalOpen}
+        onCancel={closeModal}
+        footer={null}
+        destroyOnHidden
+        centered
+      >
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          {submitErrorMessage !== null ? (
+            <Alert
+              showIcon
+              type="error"
+              message={submitErrorMessage}
+            />
+          ) : null}
 
-  return (
-    <Dropdown.Button
-      className="social-login-control-btn"
-      type="primary"
-      size="small"
-      icon={<LoginOutlined />}
-      loading={isRedirecting}
-      disabled={disabled || isRedirecting}
-      menu={{
-        items: providerItems,
-        onClick: handleMenuClick,
-      }}
-      onClick={() => handleProviderClick(defaultProvider)}
-    >
-      Войти через {formatProviderLabel(defaultProvider)}
-    </Dropdown.Button>
+          <Form<AuthCredentialsFormValues>
+            form={form}
+            layout="vertical"
+            onFinish={handleSubmit}
+            requiredMark={false}
+          >
+            <Form.Item<AuthCredentialsFormValues>
+              label="Логин"
+              name="login"
+              rules={[
+                { required: true, message: 'Введите логин.' },
+                { min: 3, message: 'Логин должен быть не короче 3 символов.' },
+                { max: 100, message: 'Логин должен быть не длиннее 100 символов.' },
+              ]}
+            >
+              <Input autoComplete="username" maxLength={100} />
+            </Form.Item>
+
+            <Form.Item<AuthCredentialsFormValues>
+              label="Пароль"
+              name="password"
+              rules={[
+                { required: true, message: 'Введите пароль.' },
+                { min: 8, message: 'Пароль должен быть не короче 8 символов.' },
+                { max: 200, message: 'Пароль должен быть не длиннее 200 символов.' },
+              ]}
+            >
+              <Input.Password autoComplete={mode === 'login' ? 'current-password' : 'new-password'} maxLength={200} />
+            </Form.Item>
+
+            {mode === 'register' ? (
+              <Form.Item<AuthCredentialsFormValues>
+                label="Повторите пароль"
+                name="confirmPassword"
+                dependencies={['password']}
+                rules={[
+                  { required: true, message: 'Повторите пароль.' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value: string | undefined) {
+                      if (value === undefined || value.length === 0 || value === getFieldValue('password')) {
+                        return Promise.resolve()
+                      }
+
+                      return Promise.reject(new Error('Пароли не совпадают.'))
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password autoComplete="new-password" maxLength={200} />
+              </Form.Item>
+            ) : null}
+
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={isSubmitting}
+              disabled={isSubmitting || isRedirecting}
+            >
+              {submitLabel}
+            </Button>
+          </Form>
+
+          <Typography.Text type="secondary">
+            {mode === 'login' ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
+            <Button type="link" onClick={switchMode} style={{ padding: 0 }}>
+              {mode === 'login' ? 'Зарегистрируйтесь!' : 'Войдите!'}
+            </Button>
+          </Typography.Text>
+
+          <Divider style={{ margin: '4px 0' }}>или через</Divider>
+
+          <Space size="small" style={{ width: '100%' }}>
+            <Tooltip title={socialProvidersBootstrapMessage ?? googleUnavailableMessage}>
+              <Button
+                className="social-login-provider-btn social-login-provider-btn-google"
+                icon={<GoogleOutlined />}
+                block
+                loading={isRedirecting}
+                disabled={
+                  isSubmitting
+                  || isRedirecting
+                  || status !== 'ready'
+                  || !availableProviders.has('google')
+                }
+                onClick={() => handleSocialLogin('google')}
+              >
+                Google
+              </Button>
+            </Tooltip>
+
+            <Tooltip title={socialProvidersBootstrapMessage ?? gitHubUnavailableMessage}>
+              <Button
+                className="social-login-provider-btn social-login-provider-btn-github"
+                icon={<GithubOutlined />}
+                block
+                loading={isRedirecting}
+                disabled={
+                  isSubmitting
+                  || isRedirecting
+                  || status !== 'ready'
+                  || !availableProviders.has('github')
+                }
+                onClick={() => handleSocialLogin('github')}
+              >
+                GitHub
+              </Button>
+            </Tooltip>
+          </Space>
+
+          {status === 'error' && errorMessage !== null ? (
+            <Alert
+              showIcon
+              type="warning"
+              message="Социальный вход временно недоступен"
+              description={errorMessage}
+            />
+          ) : null}
+        </Space>
+      </Modal>
+    </>
   )
 }
-

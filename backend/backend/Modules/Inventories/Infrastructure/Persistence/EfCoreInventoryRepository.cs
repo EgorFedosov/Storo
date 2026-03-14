@@ -39,7 +39,7 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
         dbContext.Inventories.Remove(inventory);
     }
 
-    public Task<InventoryDetailsAggregate?> GetDetailsAsync(
+    public async Task<InventoryDetailsAggregate?> GetDetailsAsync(
         long inventoryId,
         long? viewerUserId,
         CancellationToken cancellationToken)
@@ -47,7 +47,7 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
         var hasViewer = viewerUserId.HasValue;
         var viewerId = viewerUserId.GetValueOrDefault();
 
-        return dbContext.Inventories
+        var aggregate = await dbContext.Inventories
             .AsNoTracking()
             .Where(inventory => inventory.Id == inventoryId)
             .Select(inventory => new InventoryDetailsAggregate(
@@ -73,5 +73,17 @@ public sealed class EfCoreInventoryRepository(AppDbContext dbContext) : IInvento
                         inventoryTag.Tag.Name))
                     .ToArray()))
             .SingleOrDefaultAsync(cancellationToken);
+
+        if (aggregate is null)
+        {
+            return null;
+        }
+
+        var itemsCount = await dbContext.Items
+            .AsNoTracking()
+            .Where(item => item.InventoryId == inventoryId)
+            .CountAsync(cancellationToken);
+
+        return aggregate with { ItemsCount = itemsCount };
     }
 }

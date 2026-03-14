@@ -31,6 +31,7 @@ type CustomFieldsAutosaveTabProps = {
   onRemoveSelected: () => void
   onMoveSelectedUp: () => void
   onMoveSelectedDown: () => void
+  onSaveNow: () => void
   onResetDrafts: () => void
   onReloadEditor: () => void
 }
@@ -47,10 +48,11 @@ const customFieldTypeOptions = [
   { label: 'Ссылка', value: 'link' },
   { label: 'Логическое', value: 'bool' },
 ] as const
+const primaryActionButtonWidth = 156
 
 function getSaveStatusMeta(status: CustomFieldsAutosaveStatus): SaveStatusMeta {
   if (status === 'pending') {
-    return { color: 'gold', label: 'Ожидает автосохранения' }
+    return { color: 'orange', label: 'Есть несохраненные изменения' }
   }
 
   if (status === 'saving') {
@@ -96,6 +98,7 @@ export function CustomFieldsAutosaveTab({
   onRemoveSelected,
   onMoveSelectedUp,
   onMoveSelectedDown,
+  onSaveNow,
   onResetDrafts,
   onReloadEditor,
 }: CustomFieldsAutosaveTabProps) {
@@ -107,6 +110,8 @@ export function CustomFieldsAutosaveTab({
   const canMoveSelectedDown = selectedFieldIndex >= 0 && selectedFieldIndex < fields.length - 1
   const saveStatusMeta = getSaveStatusMeta(saveStatus)
   const lastSavedLabel = formatLastSavedAt(lastSavedAt)
+  const showSaveNowButton = saveStatus === 'pending'
+  const saveNowDisabled = isMutating || globalValidationErrors.length > 0
   const concurrencyProblemUi = concurrencyProblem === null
     ? null
     : describeConcurrencyProblem(concurrencyProblem)
@@ -199,7 +204,18 @@ export function CustomFieldsAutosaveTab({
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       <Space size={8} wrap>
-        <Tag color={saveStatusMeta.color}>{saveStatusMeta.label}</Tag>
+        {showSaveNowButton ? (
+          <Button
+            type="primary"
+            onClick={onSaveNow}
+            disabled={saveNowDisabled}
+            style={{ width: primaryActionButtonWidth }}
+          >
+            Сохранить сейчас
+          </Button>
+        ) : (
+          <Tag color={saveStatusMeta.color}>{saveStatusMeta.label}</Tag>
+        )}
         {lastSavedLabel === null ? null : <Tag>Последнее сохранение: {lastSavedLabel}</Tag>}
       </Space>
 
@@ -237,7 +253,7 @@ export function CustomFieldsAutosaveTab({
       )}
 
       <Space size={8} wrap>
-        <Button type="primary" onClick={onAddField} disabled={isMutating}>
+        <Button type="primary" onClick={onAddField} disabled={isMutating} style={{ width: primaryActionButtonWidth }}>
           Добавить поле
         </Button>
         <Button onClick={onMoveSelectedUp} disabled={isMutating || !canMoveSelectedUp}>

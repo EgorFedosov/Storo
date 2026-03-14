@@ -19,23 +19,10 @@ public sealed class AspNetExternalAuthService(
         ArgumentNullException.ThrowIfNull(command);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var scheme = await authenticationSchemeProvider.GetSchemeAsync(ExternalAuthDefaults.GoogleScheme);
-        if (scheme is null)
-        {
-            return ExternalAuthChallengeResult.Redirect(
-                BuildErrorRedirectUri(ExternalAuthErrorCodes.ProviderUnavailable));
-        }
-
-        var returnUrl = ResolveSuccessRedirect(command.ReturnUrl);
-
-        var properties = new AuthenticationProperties
-        {
-            RedirectUri = ExternalAuthDefaults.GoogleCompletionPath
-        };
-        properties.Items[ExternalAuthDefaults.ReturnUrlItemKey] = returnUrl;
-
-        return ExternalAuthChallengeResult.Ready(
-            new ExternalAuthChallenge(ExternalAuthDefaults.GoogleScheme, properties));
+        return await StartChallengeAsync(
+            ExternalAuthDefaults.GoogleScheme,
+            ExternalAuthDefaults.GoogleCompletionPath,
+            command.ReturnUrl);
     }
 
     public async Task<ExternalAuthCallbackResult> CompleteGoogleAuthenticationAsync(
@@ -45,46 +32,36 @@ public sealed class AspNetExternalAuthService(
         ArgumentNullException.ThrowIfNull(command);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!string.IsNullOrWhiteSpace(command.Error))
-        {
-            return ExternalAuthCallbackResult.Redirect(
-                BuildErrorRedirectUri(ExternalAuthErrorCodes.ExternalAuthFailed));
-        }
-
-        var httpContext = ResolveHttpContext();
-        var authenticateResult = await httpContext.AuthenticateAsync(ExternalAuthDefaults.ExternalScheme);
-
-        if (!authenticateResult.Succeeded || authenticateResult.Principal is null)
-        {
-            return ExternalAuthCallbackResult.Redirect(
-                BuildErrorRedirectUri(ExternalAuthErrorCodes.ExternalAuthFailed));
-        }
-
-        var providerUserId = FindClaimValue(authenticateResult.Principal, ClaimTypes.NameIdentifier, "sub");
-        var email = FindClaimValue(authenticateResult.Principal, ClaimTypes.Email, "email");
-
-        if (string.IsNullOrWhiteSpace(providerUserId) || string.IsNullOrWhiteSpace(email))
-        {
-            return ExternalAuthCallbackResult.Redirect(
-                BuildErrorRedirectUri(ExternalAuthErrorCodes.MissingExternalIdentity));
-        }
-
-        var displayName = FindClaimValue(authenticateResult.Principal, ClaimTypes.Name, "name");
-        if (string.IsNullOrWhiteSpace(displayName))
-        {
-            displayName = email;
-        }
-
-        var returnUrl = ResolveSuccessRedirect(
-            ResolveReturnUrl(command.ReturnUrl, authenticateResult.Properties));
-
-        var identity = new ExternalAuthIdentity(
+        return await CompleteAuthenticationAsync(
             "google",
-            providerUserId.Trim(),
-            email.Trim(),
-            displayName.Trim());
+            command.Error,
+            command.ReturnUrl);
+    }
 
-        return ExternalAuthCallbackResult.Authenticated(returnUrl, identity);
+    public async Task<ExternalAuthChallengeResult> StartGitHubChallengeAsync(
+        StartGitHubLoginCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return await StartChallengeAsync(
+            ExternalAuthDefaults.GitHubScheme,
+            ExternalAuthDefaults.GitHubCompletionPath,
+            command.ReturnUrl);
+    }
+
+    public async Task<ExternalAuthCallbackResult> CompleteGitHubAuthenticationAsync(
+        CompleteGitHubLoginCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return await CompleteAuthenticationAsync(
+            "github",
+            command.Error,
+            command.ReturnUrl);
     }
 
     public Task ClearExternalStateAsync(CancellationToken cancellationToken)
@@ -172,6 +149,77 @@ public sealed class AspNetExternalAuthService(
     {
         var separator = uri.Contains('?', StringComparison.Ordinal) ? "&" : "?";
         return $"{uri}{separator}{Uri.EscapeDataString(key)}={Uri.EscapeDataString(value)}";
+    }
+
+    private async Task<ExternalAuthChallengeResult> StartChallengeAsync(
+        string schemeName,
+        string completionPath,
+        string? returnUrl)
+    {
+        var scheme = await authenticationSchemeProvider.GetSchemeAsync(schemeName);
+        if (scheme is null)
+        {
+            return ExternalAuthChallengeResult.Redirect(
+                BuildErrorRedirectUri(ExternalAuthErrorCodes.ProviderUnavailable));
+        }
+
+        var resolvedReturnUrl = ResolveSuccessRedirect(returnUrl);
+
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = completionPath
+        };
+        properties.Items[ExternalAuthDefaults.ReturnUrlItemKey] = resolvedReturnUrl;
+
+        return ExternalAuthChallengeResult.Ready(
+            new ExternalAuthChallenge(schemeName, properties));
+    }
+
+    private async Task<ExternalAuthCallbackResult> CompleteAuthenticationAsync(
+        string providerName,
+        string? providerError,
+        string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(providerError))
+        {
+            return ExternalAuthCallbackResult.Redirect(
+                BuildErrorRedirectUri(ExternalAuthErrorCodes.ExternalAuthFailed));
+        }
+
+        var httpContext = ResolveHttpContext();
+        var authenticateResult = await httpContext.AuthenticateAsync(ExternalAuthDefaults.ExternalScheme);
+
+        if (!authenticateResult.Succeeded || authenticateResult.Principal is null)
+        {
+            return ExternalAuthCallbackResult.Redirect(
+                BuildErrorRedirectUri(ExternalAuthErrorCodes.ExternalAuthFailed));
+        }
+
+        var providerUserId = FindClaimValue(authenticateResult.Principal, ClaimTypes.NameIdentifier, "sub");
+        var email = FindClaimValue(authenticateResult.Principal, ClaimTypes.Email, "email");
+
+        if (string.IsNullOrWhiteSpace(providerUserId) || string.IsNullOrWhiteSpace(email))
+        {
+            return ExternalAuthCallbackResult.Redirect(
+                BuildErrorRedirectUri(ExternalAuthErrorCodes.MissingExternalIdentity));
+        }
+
+        var displayName = FindClaimValue(authenticateResult.Principal, ClaimTypes.Name, "name");
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            displayName = email;
+        }
+
+        var resolvedReturnUrl = ResolveSuccessRedirect(
+            ResolveReturnUrl(returnUrl, authenticateResult.Properties));
+
+        var identity = new ExternalAuthIdentity(
+            providerName,
+            providerUserId.Trim(),
+            email.Trim(),
+            displayName.Trim());
+
+        return ExternalAuthCallbackResult.Authenticated(resolvedReturnUrl, identity);
     }
 
     private HttpContext ResolveHttpContext()

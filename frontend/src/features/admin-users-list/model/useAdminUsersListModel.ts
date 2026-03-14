@@ -146,7 +146,7 @@ function createNextQueryState(
   }
 }
 
-export function useAdminUsersListModel() {
+export function useAdminUsersListModel(enabled = true) {
   const locationSnapshot = useLocationSnapshot()
   const routeState = useMemo(
     () => parseAdminUsersRouteState(locationSnapshot.search),
@@ -247,6 +247,13 @@ export function useAdminUsersListModel() {
       action: AdminModerationAction,
       user: AdminUserListItem,
     ): Promise<ModerationActionExecutionResult> => {
+      if (!enabled) {
+        return {
+          ok: false,
+          message: 'Moderation actions require an authenticated session.',
+        }
+      }
+
       if (moderationInFlightRef.current) {
         return {
           ok: false,
@@ -322,10 +329,18 @@ export function useAdminUsersListModel() {
         setModerationInFlight(null)
       }
     },
-    [],
+    [enabled],
   )
 
   useEffect(() => {
+    if (!enabled) {
+      requestAbortControllerRef.current?.abort()
+      setPageData(null)
+      setIsLoading(false)
+      setErrorMessage(null)
+      return
+    }
+
     requestSequenceRef.current += 1
     const requestId = requestSequenceRef.current
 
@@ -388,6 +403,7 @@ export function useAdminUsersListModel() {
     sortDirection,
     sortField,
     reloadToken,
+    enabled,
   ])
 
   useEffect(() => {

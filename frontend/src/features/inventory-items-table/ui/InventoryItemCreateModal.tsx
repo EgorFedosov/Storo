@@ -289,9 +289,6 @@ export function InventoryItemCreateModal({
         </Typography.Paragraph>
         {customIdValidationRegex !== null ? (
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-            Регулярное выражение шаблона:
-            {' '}
-            <Typography.Text code>{customIdValidationRegex}</Typography.Text>
             {customIdPreviewSample === null || customIdPreviewSample.trim().length === 0
               ? null
               : (
