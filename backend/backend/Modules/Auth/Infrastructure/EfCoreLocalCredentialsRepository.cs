@@ -35,7 +35,7 @@ public sealed class EfCoreLocalCredentialsRepository(
 
         var now = DateTime.UtcNow;
         var userName = login.Trim();
-        var localEmail = BuildLocalEmail(userName);
+        var localEmail = await BuildUniqueLocalEmailAsync(userName, normalizedLogin, cancellationToken);
         var user = new User
         {
             Email = localEmail,
@@ -131,12 +131,112 @@ public sealed class EfCoreLocalCredentialsRepository(
         return login.Trim().ToUpperInvariant();
     }
 
-    private static string BuildLocalEmail(string login)
+    private async Task<string> BuildUniqueLocalEmailAsync(
+        string login,
+        string normalizedLogin,
+        CancellationToken cancellationToken)
     {
-        var normalizedLogin = login.Trim().ToUpperInvariant();
+        var localPart = BuildEmailLocalPart(login);
+        var baseEmail = $"{localPart}@storo.local";
+        var normalizedBaseEmail = baseEmail.ToUpperInvariant();
+
+        var emailTaken = await dbContext.Users
+            .AnyAsync(user => user.NormalizedEmail == normalizedBaseEmail, cancellationToken);
+        if (!emailTaken)
+        {
+            return baseEmail;
+        }
+
         var loginHash = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedLogin));
-        var hashHex = Convert.ToHexString(loginHash).ToLowerInvariant();
-        return $"local+{hashHex}@storo.local";
+        var hashSuffix = Convert.ToHexString(loginHash)[..8].ToLowerInvariant();
+
+        const int maxLocalPartLength = 64;
+        var allowedBaseLength = maxLocalPartLength - hashSuffix.Length - 1;
+        var truncatedBase = localPart.Length > allowedBaseLength
+            ? localPart[..allowedBaseLength].Trim('.')
+            : localPart;
+        if (string.IsNullOrWhiteSpace(truncatedBase))
+        {
+            truncatedBase = "localuser";
+        }
+
+        return $"{truncatedBase}.{hashSuffix}@storo.local";
+    }
+
+    private static string BuildEmailLocalPart(string login)
+    {
+        var trimmedLogin = login.Trim().ToLowerInvariant();
+        if (trimmedLogin.Length == 0)
+        {
+            return "localuser";
+        }
+
+        var localPartBuilder = new StringBuilder(trimmedLogin.Length);
+
+        foreach (var character in trimmedLogin)
+        {
+            if (char.IsLetterOrDigit(character))
+            {
+                localPartBuilder.Append(character);
+                continue;
+            }
+
+            if (character is '_' or '.' or '-')
+            {
+                localPartBuilder.Append(character == '_' ? '.' : character);
+                continue;
+            }
+
+            localPartBuilder.Append('.');
+        }
+
+        var normalizedLocalPart = CollapseDots(localPartBuilder.ToString()).Trim('.');
+        if (normalizedLocalPart.Length == 0)
+        {
+            return "localuser";
+        }
+
+        const int maxLocalPartLength = 64;
+        if (normalizedLocalPart.Length <= maxLocalPartLength)
+        {
+            return normalizedLocalPart;
+        }
+
+        var truncated = normalizedLocalPart[..maxLocalPartLength].Trim('.');
+        return string.IsNullOrWhiteSpace(truncated)
+            ? "localuser"
+            : truncated;
+    }
+
+    private static string CollapseDots(string value)
+    {
+        if (value.Length == 0)
+        {
+            return value;
+        }
+
+        var result = new StringBuilder(value.Length);
+        var previousWasDot = false;
+
+        foreach (var character in value)
+        {
+            if (character == '.')
+            {
+                if (previousWasDot)
+                {
+                    continue;
+                }
+
+                previousWasDot = true;
+                result.Append(character);
+                continue;
+            }
+
+            previousWasDot = false;
+            result.Append(character);
+        }
+
+        return result.ToString();
     }
 
     private static AuthenticatedUser ToAuthenticatedUser(User user)

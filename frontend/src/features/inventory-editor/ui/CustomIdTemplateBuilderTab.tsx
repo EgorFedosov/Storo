@@ -25,15 +25,10 @@ const partTypeOptions: ReadonlyArray<PartTypeOption> = [
   { value: 'random_9_digit', label: 'Случайное 9-значное' },
   { value: 'guid', label: 'GUID' },
   { value: 'datetime', label: 'Дата/время' },
-  { value: 'sequence', label: 'Последовательность' },
 ]
 
 function toPartTypeLabel(partType: InventoryCustomIdPartType): string {
   return partTypeOptions.find((option) => option.value === partType)?.label ?? partType
-}
-
-function supportsFormatPattern(partType: InventoryCustomIdPartType): boolean {
-  return partType === 'datetime' || partType === 'sequence'
 }
 
 function getFieldError(
@@ -111,34 +106,6 @@ export function CustomIdTemplateBuilderTab({
               status={errorMessage !== null ? 'error' : undefined}
               placeholder={disabled ? '(не используется)' : 'например, EQ-'}
               onChange={(event) => model.updatePartFixedText(part.clientId, event.target.value)}
-            />
-            {errorMessage !== null ? (
-              <Typography.Text type="danger">
-                {errorMessage}
-              </Typography.Text>
-            ) : null}
-          </Space>
-        )
-      },
-    },
-    {
-      title: 'Шаблон формата',
-      dataIndex: 'formatPattern',
-      key: 'formatPattern',
-      width: 320,
-      render: (_value: string, part, index) => {
-        const errorMessage = getFieldError(model.validationErrors, index, 'formatPattern')
-        const disabled = !supportsFormatPattern(part.partType) || isBusy
-
-        return (
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
-            <Input
-              value={part.formatPattern}
-              disabled={disabled}
-              maxLength={200}
-              status={errorMessage !== null ? 'error' : undefined}
-              placeholder={disabled ? '(не используется)' : (part.partType === 'sequence' ? 'например, D4' : 'например, yyyy')}
-              onChange={(event) => model.updatePartFormatPattern(part.clientId, event.target.value)}
             />
             {errorMessage !== null ? (
               <Typography.Text type="danger">

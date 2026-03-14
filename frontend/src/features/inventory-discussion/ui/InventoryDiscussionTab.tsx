@@ -96,13 +96,7 @@ export function InventoryDiscussionTab({ inventoryId, canComment, enabled }: Inv
             <ReactMarkdown>{value}</ReactMarkdown>
           </div>
         ),
-      },
-      {
-        title: 'ID поста',
-        dataIndex: 'id',
-        key: 'id',
-        width: 140,
-      },
+      }
     ],
     [],
   )

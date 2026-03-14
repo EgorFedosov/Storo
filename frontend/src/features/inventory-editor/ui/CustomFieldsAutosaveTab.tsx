@@ -159,23 +159,6 @@ export function CustomFieldsAutosaveTab({
         ),
       },
       {
-        title: 'Описание',
-        dataIndex: 'description',
-        key: 'description',
-        render: (value: string, record: InventoryEditorCustomFieldDraft) => (
-          <Input
-            value={value}
-            status={validationByKey[record.key]?.description === null ? undefined : 'error'}
-            maxLength={inventoryCustomFieldsAutosaveContract.maxDescriptionLength}
-            placeholder="Необязательное описание поля"
-            disabled={isMutating}
-            onChange={(event) => {
-              onUpdateField(record.key, { description: event.target.value })
-            }}
-          />
-        ),
-      },
-      {
         title: 'Показывать в таблице',
         dataIndex: 'showInTable',
         key: 'showInTable',
@@ -195,7 +178,7 @@ export function CustomFieldsAutosaveTab({
         dataIndex: 'id',
         key: 'id',
         width: 140,
-        render: (value: string | null) => value ?? '(новое)',
+        render: (value: string | null) => value,
       },
     ],
     [isMutating, onUpdateField, validationByKey],

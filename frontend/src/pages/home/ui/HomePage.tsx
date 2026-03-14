@@ -231,7 +231,7 @@ export function HomePage() {
         />
       </Card>
 
-      <Card title={`Самые популярные инвентари`}>
+      <Card title={`Популярные инвентари`}>
         <Table<HomeInventorySummary>
           rowKey="id"
           columns={topInventoriesColumns}

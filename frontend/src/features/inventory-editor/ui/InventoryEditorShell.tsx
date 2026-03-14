@@ -157,7 +157,7 @@ function renderAutosaveBadge(state: AutosaveBadgeState) {
     return <Tag color="green">{savedLabel}</Tag>
   }
 
-  return <Tag color="default">Нет локальных изменений</Tag>
+  return <Tag color="default">Нет изменений</Tag>
 }
 
 function renderSettingsTab({
@@ -732,38 +732,6 @@ function AccessEditorTab({
   const modeSelectDisabled = !accessEditor.canEdit || accessEditor.isSaving
   const writerEmailsDisabled = !accessEditor.canEdit || accessEditor.isSaving || draft.mode === 'public'
 
-  const columns: NonNullable<TableProps<WriterRow>['columns']> = [
-    {
-      title: 'Отображаемое имя',
-      dataIndex: 'displayName',
-      key: 'displayName',
-    },
-    {
-      title: 'Имя пользователя',
-      dataIndex: 'userName',
-      key: 'userName',
-      width: 220,
-      render: (value: string) => `@${value}`,
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      width: 280,
-    },
-    {
-      title: 'Статус',
-      dataIndex: 'isBlocked',
-      key: 'isBlocked',
-      width: 120,
-      render: (isBlocked: boolean) => (
-        <Tag color={isBlocked ? 'red' : 'green'}>
-          {isBlocked ? 'Заблокирован' : 'Активен'}
-        </Tag>
-      ),
-    },
-  ]
-
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
       {concurrencyProblem !== null ? (
@@ -784,7 +752,7 @@ function AccessEditorTab({
         <Tag color={draft.mode === 'public' ? 'green' : 'gold'}>
           {draft.mode === 'public' ? 'Публичный доступ' : 'Ограниченный доступ'}
         </Tag>
-        <Tag>Писатели: {String(draft.writerUserIds.length)}</Tag>
+        <Tag>Выданные права: {String(draft.writerUserIds.length)}</Tag>
       </Space>
 
       <Typography.Text strong>Режим доступа</Typography.Text>
@@ -794,15 +762,15 @@ function AccessEditorTab({
         value={draft.mode}
         disabled={modeSelectDisabled}
         options={[
-          { value: 'public', label: 'Публичный (могут писать все авторизованные)' },
-          { value: 'restricted', label: 'Ограниченный (могут писать только выбранные)' },
+          { value: 'public', label: 'Публичный (есть доступ у всех авторизованных)' },
+          { value: 'restricted', label: 'Ограниченный (есть доступ только у выбранных)' },
         ]}
         onChange={(mode) => {
           onUpdateAccessDraft({ mode })
         }}
       />
 
-      <Typography.Text strong>Email пользователей с правом записи</Typography.Text>
+      <Typography.Text strong>Email пользователей с правами на изменение</Typography.Text>
       <Select<string[]>
         mode="multiple"
         showSearch
@@ -811,7 +779,7 @@ function AccessEditorTab({
         listHeight={320}
         value={selectedWriterEmails}
         options={knownWriterEmailOptions}
-        placeholder="Выберите email пользователей (для restricted режима)"
+        placeholder="Выберите email пользователей"
         disabled={writerEmailsDisabled}
         loading={isUsersLoading}
         notFoundContent={isUsersLoading ? 'Загрузка пользователей...' : undefined}
@@ -858,22 +826,6 @@ function AccessEditorTab({
           Сбросить изменения
         </Button>
       </Space>
-
-      <Table<WriterRow>
-        rowKey="key"
-        columns={columns}
-        dataSource={rows}
-        pagination={false}
-        size="middle"
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Явные пользователи с правом записи не настроены."
-            />
-          ),
-        }}
-      />
     </Space>
   )
 }

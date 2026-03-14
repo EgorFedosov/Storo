@@ -133,13 +133,7 @@ export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProp
         dataIndex: 'name',
         key: 'name',
         render: (value: string) => <Tag>{value}</Tag>,
-      },
-      {
-        title: 'ID тега',
-        dataIndex: 'id',
-        key: 'id',
-        width: 180,
-      },
+      }
     ],
     [],
   )
