@@ -334,13 +334,11 @@ export function AdminUsersListSection() {
 
   if (!isAuthenticated) {
     return (
-      <Card>
-        <Result
-          status="403"
-          title="Требуется авторизация"
-          subTitle="Чтобы просматривать список пользователей, войдите в аккаунт."
-        />
-      </Card>
+      <Result
+        status="403"
+        title="Требуется авторизация"
+        subTitle="Чтобы просматривать список пользователей, войдите в аккаунт."
+      />
     )
   }
 
