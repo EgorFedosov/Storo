@@ -30,19 +30,20 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
                 inventory.InventoryTags.Any(inventoryTag => inventoryTag.Tag.NormalizedName == normalizedTag));
         }
 
-        var hasQuery = !string.IsNullOrWhiteSpace(query.Query);
-        NpgsqlTsQuery? tsQuery = null;
+        var searchQuery = string.IsNullOrWhiteSpace(query.Query)
+            ? null
+            : query.Query.Trim();
 
-        if (hasQuery)
+        if (searchQuery is not null)
         {
-            var searchQuery = query.Query!.Trim();
-            tsQuery = EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery);
-
             source = source.Where(inventory =>
-                EF.Property<NpgsqlTsVector>(inventory, "search_vector").Matches(tsQuery)
-                || EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name).Matches(tsQuery)
+                EF.Property<NpgsqlTsVector>(inventory, "search_vector")
+                    .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))
+                || EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name)
+                    .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))
                 || inventory.InventoryTags.Any(inventoryTag =>
-                    EF.Property<NpgsqlTsVector>(inventoryTag.Tag, "search_vector").Matches(tsQuery)));
+                    EF.Property<NpgsqlTsVector>(inventoryTag.Tag, "search_vector")
+                        .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))));
         }
 
         var totalCount = await source.CountAsync(cancellationToken);
@@ -50,8 +51,7 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
             source,
             query.SortField,
             query.SortDirection,
-            tsQuery,
-            hasQuery);
+            searchQuery);
 
         var skip = (query.Page - 1) * query.PageSize;
         var rows = await sortedQuery
@@ -112,19 +112,20 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
         cancellationToken.ThrowIfCancellationRequested();
 
         var searchQuery = query.Query.Trim();
-        var tsQuery = EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery);
-
         var source = dbContext.Items
             .AsNoTracking()
             .Where(item =>
-                EF.Functions.ToTsVector(SearchConfig, item.CustomId).Matches(tsQuery)
-                || EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title).Matches(tsQuery)
+                EF.Functions.ToTsVector(SearchConfig, item.CustomId)
+                    .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))
+                || EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title)
+                    .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))
                 || item.CustomFieldValues.Any(value =>
                     value.CustomField.IsEnabled
-                    && EF.Property<NpgsqlTsVector>(value, "search_vector").Matches(tsQuery)));
+                    && EF.Property<NpgsqlTsVector>(value, "search_vector")
+                        .Matches(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery))));
 
         var totalCount = await source.CountAsync(cancellationToken);
-        var sortedQuery = ApplyItemsSort(source, query.SortField, query.SortDirection, tsQuery);
+        var sortedQuery = ApplyItemsSort(source, query.SortField, query.SortDirection, searchQuery);
         var skip = (query.Page - 1) * query.PageSize;
 
         var rows = await sortedQuery
@@ -189,30 +190,25 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
         IQueryable<Inventory> source,
         SearchInventoriesSortField sortField,
         SearchSortDirection sortDirection,
-        NpgsqlTsQuery? tsQuery,
-        bool hasQuery)
+        string? searchQuery)
     {
-        if (sortField == SearchInventoriesSortField.Relevance && hasQuery && tsQuery is not null)
+        if (sortField == SearchInventoriesSortField.Relevance && !string.IsNullOrWhiteSpace(searchQuery))
         {
             return sortDirection == SearchSortDirection.Asc
                 ? source
                     .OrderBy(inventory =>
-                        EF.Property<NpgsqlTsVector>(inventory, "search_vector").Rank(tsQuery) * 2f
-                        + EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name).Rank(tsQuery)
-                        + inventory.InventoryTags
-                            .Select(inventoryTag => EF.Property<NpgsqlTsVector>(inventoryTag.Tag, "search_vector").Rank(tsQuery))
-                            .DefaultIfEmpty(0f)
-                            .Max())
+                        EF.Property<NpgsqlTsVector>(inventory, "search_vector")
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)) * 2f
+                        + EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)))
                     .ThenBy(inventory => inventory.UpdatedAt)
                     .ThenBy(inventory => inventory.Id)
                 : source
                     .OrderByDescending(inventory =>
-                        EF.Property<NpgsqlTsVector>(inventory, "search_vector").Rank(tsQuery) * 2f
-                        + EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name).Rank(tsQuery)
-                        + inventory.InventoryTags
-                            .Select(inventoryTag => EF.Property<NpgsqlTsVector>(inventoryTag.Tag, "search_vector").Rank(tsQuery))
-                            .DefaultIfEmpty(0f)
-                            .Max())
+                        EF.Property<NpgsqlTsVector>(inventory, "search_vector")
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)) * 2f
+                        + EF.Functions.ToTsVector(SearchConfig, inventory.Category.Name)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)))
                     .ThenByDescending(inventory => inventory.UpdatedAt)
                     .ThenBy(inventory => inventory.Id);
         }
@@ -247,31 +243,25 @@ public sealed class EfCoreSearchReadModel(AppDbContext dbContext) : ISearchReadM
         IQueryable<Item> source,
         SearchItemsSortField sortField,
         SearchSortDirection sortDirection,
-        NpgsqlTsQuery tsQuery)
+        string searchQuery)
     {
         if (sortField == SearchItemsSortField.Relevance)
         {
             return sortDirection == SearchSortDirection.Asc
                 ? source
                     .OrderBy(item =>
-                        EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title).Rank(tsQuery) * 2f
-                        + EF.Functions.ToTsVector(SearchConfig, item.CustomId).Rank(tsQuery)
-                        + item.CustomFieldValues
-                            .Where(value => value.CustomField.IsEnabled)
-                            .Select(value => EF.Property<NpgsqlTsVector>(value, "search_vector").Rank(tsQuery))
-                            .DefaultIfEmpty(0f)
-                            .Max())
+                        EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)) * 2f
+                        + EF.Functions.ToTsVector(SearchConfig, item.CustomId)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)))
                     .ThenBy(item => item.UpdatedAt)
                     .ThenBy(item => item.Id)
                 : source
                     .OrderByDescending(item =>
-                        EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title).Rank(tsQuery) * 2f
-                        + EF.Functions.ToTsVector(SearchConfig, item.CustomId).Rank(tsQuery)
-                        + item.CustomFieldValues
-                            .Where(value => value.CustomField.IsEnabled)
-                            .Select(value => EF.Property<NpgsqlTsVector>(value, "search_vector").Rank(tsQuery))
-                            .DefaultIfEmpty(0f)
-                            .Max())
+                        EF.Functions.ToTsVector(SearchConfig, item.Inventory.Title)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)) * 2f
+                        + EF.Functions.ToTsVector(SearchConfig, item.CustomId)
+                            .Rank(EF.Functions.WebSearchToTsQuery(SearchConfig, searchQuery)))
                     .ThenByDescending(item => item.UpdatedAt)
                     .ThenBy(item => item.Id);
         }

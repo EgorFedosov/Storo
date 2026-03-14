@@ -12,7 +12,8 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
+var postgresConnectionString = ResolveJsonConnectionString(builder.Environment)
+                               ?? builder.Configuration.GetConnectionString("Postgres")
                                ?? throw new InvalidOperationException("Connection string 'Postgres' was not found.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -85,3 +86,17 @@ app.MapApiV1();
 app.MapHub<DiscussionHub>("/hubs/discussions");
 
 app.Run();
+
+static string? ResolveJsonConnectionString(IHostEnvironment environment)
+{
+    var configuration = new ConfigurationBuilder()
+        .SetBasePath(environment.ContentRootPath)
+        .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+        .AddJsonFile($"appsettings.{environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+        .Build();
+
+    var value = configuration.GetConnectionString("Postgres");
+    return string.IsNullOrWhiteSpace(value)
+        ? null
+        : value.Trim();
+}
