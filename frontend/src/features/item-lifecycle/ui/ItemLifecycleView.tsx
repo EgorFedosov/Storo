@@ -179,7 +179,7 @@ function applyServerFieldErrors(
   form.setFields(Array.from(mergedErrors.values()))
 }
 
-function toSnapshotRows(item: ItemDetails, etag: string | null): ItemSnapshotRow[] {
+function toSnapshotRows(item: ItemDetails): ItemSnapshotRow[] {
   return [
     { key: 'itemId', property: 'ID элемента', value: item.id },
     { key: 'customId', property: 'Пользовательский ID', value: item.customId },
@@ -209,7 +209,6 @@ function toSnapshotRows(item: ItemDetails, etag: string | null): ItemSnapshotRow
     { key: 'createdAt', property: 'Создано (UTC)', value: formatUtcDateTime(item.fixedFields.createdAt) },
     { key: 'updatedAt', property: 'Обновлено (UTC)', value: formatUtcDateTime(item.fixedFields.updatedAt) },
     { key: 'version', property: 'Версия', value: String(item.version) },
-    { key: 'etag', property: 'ETag', value: etag ?? `(отсутствует, используется версия "${String(item.version)}")` },
     {
       key: 'likes',
       property: 'Лайки',
@@ -231,7 +230,6 @@ function normalizeFormInput(values: ItemFormValues): ItemLifecycleUpdateDraft {
 
 export function ItemLifecycleView({
   item,
-  etag,
   isAuthenticated,
   isBlocked,
   isUpdating,
@@ -253,7 +251,7 @@ export function ItemLifecycleView({
   const [form] = Form.useForm<ItemFormValues>()
   const [messageApi, messageContextHolder] = message.useMessage()
 
-  const snapshotRows = useMemo(() => toSnapshotRows(item, etag), [etag, item])
+  const snapshotRows = useMemo(() => toSnapshotRows(item), [item])
   const formValues = useMemo(() => createFormValues(item), [item])
 
   useEffect(() => {

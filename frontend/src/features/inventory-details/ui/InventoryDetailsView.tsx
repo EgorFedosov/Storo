@@ -35,7 +35,7 @@ function formatUtcDateTime(value: string): string {
   return parsedValue.isValid() ? parsedValue.format('DD.MM.YYYY HH:mm') : value
 }
 
-function toSnapshotRows(details: InventoryDetails, etag: string | null): SnapshotRow[] {
+function toSnapshotRows(details: InventoryDetails): SnapshotRow[] {
   return [
     { key: 'id', property: 'ID инвентаря', value: details.id },
     { key: 'category', property: 'Категория', value: details.header.category.name },
@@ -44,8 +44,7 @@ function toSnapshotRows(details: InventoryDetails, etag: string | null): Snapsho
     { key: 'items', property: 'Количество элементов', value: String(details.summary.itemsCount) },
     { key: 'createdAt', property: 'Создано (UTC)', value: formatUtcDateTime(details.header.createdAt) },
     { key: 'updatedAt', property: 'Обновлено (UTC)', value: formatUtcDateTime(details.header.updatedAt) },
-    { key: 'version', property: 'Версия', value: String(details.version) },
-    { key: 'etag', property: 'ETag', value: etag ?? `(отсутствует, используется версия "${String(details.version)}")` },
+    { key: 'version', property: 'Версия', value: String(details.version) }
   ]
 }
 
@@ -96,8 +95,8 @@ function toPermissionRows(details: InventoryDetails): PermissionRow[] {
   ]
 }
 
-export function InventoryDetailsView({ details, etag }: InventoryDetailsViewProps) {
-  const snapshotRows = useMemo(() => toSnapshotRows(details, etag), [details, etag])
+export function InventoryDetailsView({ details }: InventoryDetailsViewProps) {
+  const snapshotRows = useMemo(() => toSnapshotRows(details), [details])
   const tagRows = useMemo<TagRow[]>(
     () =>
       details.tags.map((tag) => ({

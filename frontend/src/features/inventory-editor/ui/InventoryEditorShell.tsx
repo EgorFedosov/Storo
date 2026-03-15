@@ -829,11 +829,10 @@ function AccessEditorTab({
     </Space>
   )
 }
-function renderOverviewTable(editor: InventoryEditor, etag: string | null) {
+function renderOverviewTable(editor: InventoryEditor) {
   const rows: PropertyValueRow[] = [
     { key: 'id', property: 'ID инвентаря', value: editor.id },
     { key: 'version', property: 'Версия', value: String(editor.version) },
-    { key: 'etag', property: 'ETag', value: etag ?? '(missing)' },
     { key: 'title', property: 'Текущее название', value: editor.settings.title },
   ]
 
@@ -864,7 +863,6 @@ function renderOverviewTable(editor: InventoryEditor, etag: string | null) {
 
 export function InventoryEditorShell({
   editor,
-  etag,
   activeTabKey,
   tabStates,
   categoryOptions,
@@ -1047,7 +1045,7 @@ export function InventoryEditorShell({
           <Typography.Title level={3} style={{ marginTop: 0, marginBottom: 0 }}>
             Редактор: {editor.settings.title}
           </Typography.Title>
-          {renderOverviewTable(editor, etag)}
+          {renderOverviewTable(editor)}
         </Space>
       </Card>
 

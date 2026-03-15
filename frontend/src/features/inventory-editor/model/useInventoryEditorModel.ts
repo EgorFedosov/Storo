@@ -2011,6 +2011,7 @@ export function useInventoryEditorModel(inventoryId: string | null): InventoryEd
       const nextDraftParts = [...current.draftParts, nextPart]
       return {
         ...current,
+        draftIsEnabled: true,
         draftParts: nextDraftParts,
         selectedPartId: resolveSelectedCustomIdPartId(nextPart.clientId, nextDraftParts),
         validationErrors: {},
