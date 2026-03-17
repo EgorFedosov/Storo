@@ -13,6 +13,7 @@ using backend.Modules.Inventories.UseCases.EditorMutations;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
 using backend.Modules.Inventories.UseCases.GetInventoryEditor;
 using backend.Modules.Inventories.UseCases.ImageUpload;
+using backend.Modules.Inventories.UseCases.OdooExport;
 using backend.Modules.Inventories.UseCases.OdooToken;
 using backend.Modules.Inventories.UseCases.Statistics;
 using Microsoft.AspNetCore.Routing;
@@ -44,6 +45,7 @@ public sealed class InventoriesModule : IApiModule
         services.AddScoped<IInventoryAssetStorageService, SupabaseInventoryAssetStorageService>();
         services.AddScoped<ICreateInventoryUseCase, CreateInventoryUseCase>();
         services.AddScoped<IGenerateInventoryApiTokenUseCase, GenerateInventoryApiTokenUseCase>();
+        services.AddScoped<IExportInventoryForOdooUseCase, ExportInventoryForOdooUseCase>();
         services.AddScoped<IGetInventoryDetailsUseCase, GetInventoryDetailsUseCase>();
         services.AddScoped<IGetInventoryEditorUseCase, GetInventoryEditorUseCase>();
         services.AddScoped<IDeleteInventoryUseCase, DeleteInventoryUseCase>();
@@ -63,6 +65,7 @@ public sealed class InventoriesModule : IApiModule
     {
         apiGroup.MapInventoryRootEndpoint();
         apiGroup.MapInventoryOdooTokenEndpoint();
+        apiGroup.MapInventoryOdooExportEndpoint();
         apiGroup.MapInventoryEditorMutationsEndpoint();
         apiGroup.MapInventoryCustomFieldsEndpoint();
         apiGroup.MapInventoryCustomIdTemplateEndpoint();

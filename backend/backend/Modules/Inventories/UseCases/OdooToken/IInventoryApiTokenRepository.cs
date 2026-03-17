@@ -8,6 +8,10 @@ public interface IInventoryApiTokenRepository
         long inventoryId,
         CancellationToken cancellationToken);
 
+    Task<InventoryApiToken?> GetActiveByHashAsync(
+        string tokenHash,
+        CancellationToken cancellationToken);
+
     Task AddAsync(
         InventoryApiToken token,
         CancellationToken cancellationToken);

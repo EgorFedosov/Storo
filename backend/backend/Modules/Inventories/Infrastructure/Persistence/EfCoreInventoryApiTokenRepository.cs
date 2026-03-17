@@ -17,6 +17,19 @@ public sealed class EfCoreInventoryApiTokenRepository(AppDbContext dbContext) : 
                 cancellationToken);
     }
 
+    public Task<InventoryApiToken?> GetActiveByHashAsync(
+        string tokenHash,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tokenHash);
+
+        return dbContext.InventoryApiTokens
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                token => token.TokenHash == tokenHash && token.IsActive,
+                cancellationToken);
+    }
+
     public Task AddAsync(
         InventoryApiToken token,
         CancellationToken cancellationToken)
