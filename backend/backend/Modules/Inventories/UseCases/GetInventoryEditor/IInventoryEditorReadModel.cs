@@ -21,7 +21,8 @@ public sealed record InventoryEditorReadModel(
     IReadOnlyList<InventoryEditorWriterReadModel> Writers,
     IReadOnlyList<InventoryEditorCustomFieldReadModel> CustomFields,
     InventoryEditorCustomIdTemplateReadModel? CustomIdTemplate,
-    long? SequenceLastValue);
+    long? SequenceLastValue,
+    InventoryEditorActiveApiTokenReadModel? ActiveApiToken);
 
 public sealed record InventoryEditorTagReadModel(long Id, string Name);
 
@@ -49,3 +50,8 @@ public sealed record InventoryEditorCustomIdTemplatePartReadModel(
     CustomIdPartType PartType,
     string? FixedText,
     string? FormatPattern);
+
+public sealed record InventoryEditorActiveApiTokenReadModel(
+    string TokenHash,
+    DateTime CreatedAt);
+

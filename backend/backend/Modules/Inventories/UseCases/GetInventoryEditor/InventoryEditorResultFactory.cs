@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using backend.Modules.Inventories.Domain;
 
@@ -8,6 +9,7 @@ public static class InventoryEditorResultFactory
 {
     private const string PublicAccessMode = "public";
     private const string RestrictedAccessMode = "restricted";
+    private const string OdooTokenActionUrlFormat = "/api/v1/integrations/odoo/inventories/{0}/token";
 
     public static InventoryEditorResult Create(InventoryEditorReadModel aggregate)
     {
@@ -36,6 +38,7 @@ public static class InventoryEditorResultFactory
             .ToArray();
 
         var customIdTemplate = CreateTemplateResult(aggregate.CustomIdTemplate, aggregate.SequenceLastValue);
+        var integrations = CreateIntegrationsResult(aggregate);
 
         return new InventoryEditorResult(
             aggregate.Id,
@@ -51,12 +54,40 @@ public static class InventoryEditorResultFactory
                 writers),
             customFields,
             customIdTemplate,
+            integrations,
             new InventoryEditorPermissionsResult(
                 true,
                 true,
                 true,
                 true,
                 true));
+    }
+
+    private static InventoryEditorIntegrationsResult CreateIntegrationsResult(InventoryEditorReadModel aggregate)
+    {
+        var activeToken = aggregate.ActiveApiToken;
+        return new InventoryEditorIntegrationsResult(
+            new InventoryEditorOdooIntegrationResult(
+                true,
+                true,
+                true,
+                string.Format(CultureInfo.InvariantCulture, OdooTokenActionUrlFormat, aggregate.Id),
+                activeToken is not null,
+                activeToken is null ? null : CreateMaskedToken(activeToken.TokenHash),
+                activeToken?.CreatedAt));
+    }
+
+    private static string CreateMaskedToken(string tokenHash)
+    {
+        var normalizedHash = tokenHash?.Trim() ?? string.Empty;
+        if (normalizedHash.Length == 0)
+        {
+            return "odoo_************";
+        }
+
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedHash));
+        var suffix = Convert.ToHexString(digest).ToLowerInvariant()[^4..];
+        return $"odoo_************{suffix}";
     }
 
     private static InventoryEditorCustomIdTemplateResult CreateTemplateResult(

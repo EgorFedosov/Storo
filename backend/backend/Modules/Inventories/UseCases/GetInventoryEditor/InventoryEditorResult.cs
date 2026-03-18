@@ -8,6 +8,7 @@ public sealed record InventoryEditorResult(
     InventoryEditorAccessResult Access,
     IReadOnlyList<InventoryEditorCustomFieldResult> CustomFields,
     InventoryEditorCustomIdTemplateResult CustomIdTemplate,
+    InventoryEditorIntegrationsResult Integrations,
     InventoryEditorPermissionsResult Permissions);
 
 public sealed record InventoryEditorSettingsResult(
@@ -53,6 +54,18 @@ public sealed record InventoryEditorCustomIdTemplatePartResult(
 public sealed record InventoryEditorCustomIdTemplatePreviewResult(
     string SampleCustomId,
     IReadOnlyList<string> Warnings);
+
+public sealed record InventoryEditorIntegrationsResult(
+    InventoryEditorOdooIntegrationResult Odoo);
+
+public sealed record InventoryEditorOdooIntegrationResult(
+    bool Enabled,
+    bool CanViewToken,
+    bool CanGenerateToken,
+    string TokenActionUrl,
+    bool HasActiveToken,
+    string? MaskedToken,
+    DateTime? GeneratedAt);
 
 public sealed record InventoryEditorPermissionsResult(
     bool CanEditInventory,

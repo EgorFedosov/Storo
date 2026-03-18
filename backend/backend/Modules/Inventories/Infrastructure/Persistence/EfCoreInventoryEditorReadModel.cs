@@ -73,6 +73,14 @@ public sealed class EfCoreInventoryEditorReadModel(AppDbContext dbContext) : IIn
                         part.FormatPattern))
                     .ToArray());
 
+        var activeApiToken = await dbContext.InventoryApiTokens
+            .AsNoTracking()
+            .Where(apiToken => apiToken.InventoryId == inventoryId && apiToken.IsActive)
+            .Select(apiToken => new InventoryEditorActiveApiTokenReadModel(
+                apiToken.TokenHash,
+                apiToken.CreatedAt))
+            .SingleOrDefaultAsync(cancellationToken);
+
         return new InventoryEditorReadModel(
             inventory.Id,
             inventory.Version,
@@ -87,6 +95,7 @@ public sealed class EfCoreInventoryEditorReadModel(AppDbContext dbContext) : IIn
             writers,
             customFields,
             customIdTemplate,
-            inventory.CustomIdSequenceState?.LastValue);
+            inventory.CustomIdSequenceState?.LastValue,
+            activeApiToken);
     }
 }

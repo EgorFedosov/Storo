@@ -11,6 +11,7 @@ public sealed record InventoryEditorResponse(
     InventoryEditorAccessResponse Access,
     IReadOnlyList<InventoryEditorCustomFieldResponse> CustomFields,
     InventoryEditorCustomIdTemplateResponse CustomIdTemplate,
+    InventoryEditorIntegrationsResponse Integrations,
     InventoryEditorPermissionsResponse Permissions)
 {
     public static InventoryEditorResponse FromResult(InventoryEditorResult result)
@@ -63,6 +64,15 @@ public sealed record InventoryEditorResponse(
                 new InventoryEditorCustomIdTemplatePreviewResponse(
                     result.CustomIdTemplate.Preview.SampleCustomId,
                     result.CustomIdTemplate.Preview.Warnings.ToArray())),
+            new InventoryEditorIntegrationsResponse(
+                new InventoryEditorOdooIntegrationResponse(
+                    result.Integrations.Odoo.Enabled,
+                    result.Integrations.Odoo.CanViewToken,
+                    result.Integrations.Odoo.CanGenerateToken,
+                    result.Integrations.Odoo.TokenActionUrl,
+                    result.Integrations.Odoo.HasActiveToken,
+                    result.Integrations.Odoo.MaskedToken,
+                    result.Integrations.Odoo.GeneratedAt)),
             new InventoryEditorPermissionsResponse(
                 result.Permissions.CanEditInventory,
                 result.Permissions.CanManageAccess,
@@ -115,6 +125,18 @@ public sealed record InventoryEditorCustomIdTemplatePartResponse(
 public sealed record InventoryEditorCustomIdTemplatePreviewResponse(
     string SampleCustomId,
     IReadOnlyList<string> Warnings);
+
+public sealed record InventoryEditorIntegrationsResponse(
+    InventoryEditorOdooIntegrationResponse Odoo);
+
+public sealed record InventoryEditorOdooIntegrationResponse(
+    bool Enabled,
+    bool CanViewToken,
+    bool CanGenerateToken,
+    string TokenActionUrl,
+    bool HasActiveToken,
+    string? MaskedToken,
+    DateTime? GeneratedAt);
 
 public sealed record InventoryEditorPermissionsResponse(
     bool CanEditInventory,
