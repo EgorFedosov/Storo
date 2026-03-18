@@ -13,6 +13,7 @@ using backend.Modules.Inventories.UseCases.EditorMutations;
 using backend.Modules.Inventories.UseCases.GetInventoryDetails;
 using backend.Modules.Inventories.UseCases.GetInventoryEditor;
 using backend.Modules.Inventories.UseCases.ImageUpload;
+using backend.Modules.Inventories.UseCases.OdooToken;
 using backend.Modules.Inventories.UseCases.Statistics;
 using Microsoft.AspNetCore.Routing;
 
@@ -29,6 +30,7 @@ public sealed class InventoriesModule : IApiModule
 
         services.AddSignalR();
         services.AddScoped<IInventoryRepository, EfCoreInventoryRepository>();
+        services.AddScoped<IInventoryApiTokenRepository, EfCoreInventoryApiTokenRepository>();
         services.AddScoped<IInventoryEditorReadModel, EfCoreInventoryEditorReadModel>();
         services.AddScoped<IStatisticsReadModel, EfCoreStatisticsReadModel>();
         services.AddScoped<ISequenceStateRepository, EfCoreSequenceStateRepository>();
@@ -41,6 +43,7 @@ public sealed class InventoriesModule : IApiModule
         services.AddScoped<IImageStoragePresignService, ConfigurationImageStoragePresignService>();
         services.AddScoped<IInventoryAssetStorageService, SupabaseInventoryAssetStorageService>();
         services.AddScoped<ICreateInventoryUseCase, CreateInventoryUseCase>();
+        services.AddScoped<IGenerateInventoryApiTokenUseCase, GenerateInventoryApiTokenUseCase>();
         services.AddScoped<IGetInventoryDetailsUseCase, GetInventoryDetailsUseCase>();
         services.AddScoped<IGetInventoryEditorUseCase, GetInventoryEditorUseCase>();
         services.AddScoped<IDeleteInventoryUseCase, DeleteInventoryUseCase>();
@@ -59,6 +62,7 @@ public sealed class InventoriesModule : IApiModule
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
         apiGroup.MapInventoryRootEndpoint();
+        apiGroup.MapInventoryOdooTokenEndpoint();
         apiGroup.MapInventoryEditorMutationsEndpoint();
         apiGroup.MapInventoryCustomFieldsEndpoint();
         apiGroup.MapInventoryCustomIdTemplateEndpoint();
