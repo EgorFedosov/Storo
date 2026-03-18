@@ -1,4 +1,5 @@
 using backend.Modules.Inventories.Domain;
+using backend.Modules.Integrations.Domain;
 using backend.Modules.Items.Domain;
 using backend.Modules.Users.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemCustomFieldValue> ItemCustomFieldValues => Set<ItemCustomFieldValue>();
     public DbSet<ItemLike> ItemLikes => Set<ItemLike>();
+    public DbSet<SupportTicketExport> SupportTicketExports => Set<SupportTicketExport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
