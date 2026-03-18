@@ -3,8 +3,13 @@ backend/.idea/
 backend/backend/bin/
 backend/backend/obj/
 backend/backend/.env
+frontend/dist
+frontend/node_modules
 **/**.csv
 **/**.webp
 **/**.dotnet
 **/**.nuget
 **/**.puml
+**/**.xlsx
+**/**.md
+!README.md

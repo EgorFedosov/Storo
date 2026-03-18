@@ -25,6 +25,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<InventoryStatistics> InventoryStatistics => Set<InventoryStatistics>();
     public DbSet<InventoryNumericFieldStatistic> InventoryNumericFieldStatistics => Set<InventoryNumericFieldStatistic>();
     public DbSet<InventoryStringFieldStatistic> InventoryStringFieldStatistics => Set<InventoryStringFieldStatistic>();
+    public DbSet<InventoryApiToken> InventoryApiTokens => Set<InventoryApiToken>();
 
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemCustomFieldValue> ItemCustomFieldValues => Set<ItemCustomFieldValue>();

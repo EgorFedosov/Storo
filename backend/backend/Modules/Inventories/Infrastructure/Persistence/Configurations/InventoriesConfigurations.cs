@@ -561,3 +561,55 @@ public sealed class InventoryStringFieldStatisticConfiguration : IEntityTypeConf
             .IsUnique();
     }
 }
+
+public sealed class InventoryApiTokenConfiguration : IEntityTypeConfiguration<InventoryApiToken>
+{
+    public void Configure(EntityTypeBuilder<InventoryApiToken> entity)
+    {
+        entity.ToTable("inventory_api_tokens");
+        entity.HasKey(x => x.Id);
+
+        entity.Property(x => x.Id)
+            .HasColumnName("id")
+            .ValueGeneratedOnAdd();
+
+        entity.Property(x => x.InventoryId)
+            .HasColumnName("inventory_id")
+            .IsRequired();
+
+        entity.Property(x => x.TokenHash)
+            .HasColumnName("token_hash")
+            .HasMaxLength(512)
+            .IsRequired();
+
+        entity.Property(x => x.IsActive)
+            .HasColumnName("is_active")
+            .IsRequired();
+
+        entity.Property(x => x.CreatedByUserId)
+            .HasColumnName("created_by_user_id")
+            .IsRequired();
+
+        entity.Property(x => x.CreatedAt)
+            .HasColumnName("created_at")
+            .IsRequired();
+
+        entity.Property(x => x.RevokedAt)
+            .HasColumnName("revoked_at");
+
+        entity.HasOne(x => x.Inventory)
+            .WithMany()
+            .HasForeignKey(x => x.InventoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(x => x.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(x => x.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(x => x.InventoryId)
+            .IsUnique()
+            .HasFilter("is_active")
+            .HasDatabaseName("IX_inventory_api_tokens_inventory_id_active_unique");
+    }
+}
