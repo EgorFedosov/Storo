@@ -13,6 +13,7 @@ public static class SupportTicketsEndpoint
 {
     private const string DropboxProvider = "dropbox";
 
+    private const int MaxTicketIdLength = 128;
     private const int MaxSummaryLength = 4000;
     private const int MaxPageLinkLength = 2048;
 
@@ -23,14 +24,22 @@ public static class SupportTicketsEndpoint
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status401Unauthorized),
-                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status403Forbidden),
-                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status502BadGateway));
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status403Forbidden));
 
         supportTicketsGroup
             .MapPost(string.Empty, CreateAsync)
             .WithName("CreateSupportTicket")
             .WithMetadata(
-                new ProducesResponseTypeAttribute(typeof(CreateSupportTicketResponse), StatusCodes.Status201Created))
+                new ProducesResponseTypeAttribute(typeof(CreateSupportTicketResponse), StatusCodes.Status201Created),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status502BadGateway))
+            .RequireAuthenticatedAccess();
+
+        supportTicketsGroup
+            .MapGet("/{ticketId}", GetStatusAsync)
+            .WithName("GetSupportTicketStatus")
+            .WithMetadata(
+                new ProducesResponseTypeAttribute(typeof(GetSupportTicketStatusResponse), StatusCodes.Status200OK),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status404NotFound))
             .RequireAuthenticatedAccess();
     }
 
@@ -90,6 +99,52 @@ public static class SupportTicketsEndpoint
                 "Bad Gateway",
                 "Dropbox API request failed while exporting support ticket.",
                 "dropbox_upstream_error");
+        }
+    }
+
+    private static async Task<Results<Ok<GetSupportTicketStatusResponse>, ValidationProblem, ProblemHttpResult>> GetStatusAsync(
+        string ticketId,
+        ICurrentUserAccessor currentUserAccessor,
+        IGetSupportTicketStatusUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var currentUser = currentUserAccessor.CurrentUser;
+        var actorUserId = currentUser.UserId
+                          ?? throw new InvalidOperationException("Authenticated user id claim is missing.");
+        var actorIsAdmin = HasAdminRole(currentUser.Roles);
+
+        var normalizedTicketId = ticketId.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedTicketId) || normalizedTicketId.Length > MaxTicketIdLength)
+        {
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["ticketId"] = ["ticketId is required and must be 128 characters or less."]
+            });
+        }
+
+        try
+        {
+            var result = await useCase.ExecuteAsync(
+                new GetSupportTicketStatusQuery(normalizedTicketId, actorUserId, actorIsAdmin),
+                cancellationToken);
+
+            return TypedResults.Ok(GetSupportTicketStatusResponse.FromResult(result));
+        }
+        catch (SupportTicketStatusAccessDeniedException)
+        {
+            return CreateProblem(
+                StatusCodes.Status403Forbidden,
+                "Forbidden",
+                "You do not have access to this support ticket.",
+                "support_ticket_forbidden");
+        }
+        catch (SupportTicketStatusNotFoundException)
+        {
+            return CreateProblem(
+                StatusCodes.Status404NotFound,
+                "Not Found",
+                "Support ticket was not found.",
+                "support_ticket_not_found");
         }
     }
 
@@ -264,5 +319,29 @@ public sealed record CreateSupportTicketResponse(
             result.Status,
             result.UploadedFileRef,
             result.CreatedAtUtc);
+    }
+}
+
+public sealed record GetSupportTicketStatusResponse(
+    string TicketId,
+    string Provider,
+    string Status,
+    string? UploadedFileRef,
+    string? ErrorMessage,
+    DateTime CreatedAtUtc,
+    DateTime? UploadedAtUtc)
+{
+    public static GetSupportTicketStatusResponse FromResult(SupportTicketStatusResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return new GetSupportTicketStatusResponse(
+            result.TicketId,
+            result.Provider,
+            result.Status,
+            result.UploadedFileRef,
+            result.ErrorMessage,
+            result.CreatedAtUtc,
+            result.UploadedAtUtc);
     }
 }

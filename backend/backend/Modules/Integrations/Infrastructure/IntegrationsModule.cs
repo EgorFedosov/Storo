@@ -18,6 +18,7 @@ public sealed class IntegrationsModule : IApiModule
         services.AddScoped<IDropboxUploadClient, DropboxUploadClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
         services.AddScoped<ICreateSupportTicketUseCase, CreateSupportTicketUseCase>();
+        services.AddScoped<IGetSupportTicketStatusUseCase, GetSupportTicketStatusUseCase>();
     }
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
