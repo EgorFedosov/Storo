@@ -1,5 +1,6 @@
 using backend.Modules.Auth.Infrastructure;
 using backend.Modules.Concurrency.Infrastructure;
+using backend.Modules.Integrations.Infrastructure;
 using backend.Modules.Inventories.Infrastructure;
 using backend.Modules.Items.Infrastructure;
 using backend.Modules.Search.Infrastructure;
@@ -14,6 +15,7 @@ public static class ModuleRegistrationExtensions
     [
         new AuthModule(),
         new ConcurrencyModule(),
+        new IntegrationsModule(),
         new InventoriesModule(),
         new ItemsModule(),
         new SearchModule(),
