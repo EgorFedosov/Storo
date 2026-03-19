@@ -14,34 +14,66 @@ public sealed class DropboxOptions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var rootPath = ReadTrimmed(configuration, "DROPBOX_ROOT_PATH", "/storo-support");
+        var appKey = ResolveRequiredTrimmed(configuration, "DROPBOX_APP_KEY");
+        var appSecret = ResolveRequiredTrimmed(configuration, "DROPBOX_APP_SECRET");
+        var refreshToken = ResolveRequiredTrimmed(configuration, "DROPBOX_REFRESH_TOKEN");
+        var rootPath = ResolveRequiredTrimmed(configuration, "DROPBOX_ROOT_PATH");
+        var apiBaseUrl = ResolveRequiredTrimmed(configuration, "DROPBOX_API_BASE_URL");
+        var contentBaseUrl = ResolveRequiredTrimmed(configuration, "DROPBOX_CONTENT_BASE_URL");
+        var useRefreshToken = ResolveRequiredBoolean(configuration, "DROPBOX_USE_REFRESH_TOKEN");
+        if (!useRefreshToken)
+        {
+            throw new InvalidOperationException("DROPBOX_USE_REFRESH_TOKEN must be true for Dropbox integration.");
+        }
 
         return new DropboxOptions
         {
-            AppKey = ReadTrimmed(configuration, "DROPBOX_APP_KEY"),
-            AppSecret = ReadTrimmed(configuration, "DROPBOX_APP_SECRET"),
-            RefreshToken = ReadTrimmed(configuration, "DROPBOX_REFRESH_TOKEN"),
+            AppKey = appKey,
+            AppSecret = appSecret,
+            RefreshToken = refreshToken,
             RootPath = NormalizeRootPath(rootPath),
-            ApiBaseUrl = NormalizeBaseUrl(ReadTrimmed(configuration, "DROPBOX_API_BASE_URL", "https://api.dropboxapi.com/2")),
-            ContentBaseUrl = NormalizeBaseUrl(ReadTrimmed(configuration, "DROPBOX_CONTENT_BASE_URL", "https://content.dropboxapi.com/2")),
-            UseRefreshToken = ParseBoolean(configuration["DROPBOX_USE_REFRESH_TOKEN"], fallback: true),
+            ApiBaseUrl = NormalizeBaseUrl(apiBaseUrl, "DROPBOX_API_BASE_URL"),
+            ContentBaseUrl = NormalizeBaseUrl(contentBaseUrl, "DROPBOX_CONTENT_BASE_URL"),
+            UseRefreshToken = useRefreshToken,
         };
     }
 
-    private static string ReadTrimmed(IConfiguration configuration, string key, string fallback = "")
+    private static string ResolveRequiredTrimmed(IConfiguration configuration, string key)
+    {
+        var rawValue = configuration[key];
+        if (!string.IsNullOrWhiteSpace(rawValue))
+        {
+            return rawValue.Trim();
+        }
+
+        throw new InvalidOperationException($"Required configuration key '{key}' is missing.");
+    }
+
+    private static bool ResolveRequiredBoolean(IConfiguration configuration, string key)
     {
         var rawValue = configuration[key];
         if (string.IsNullOrWhiteSpace(rawValue))
         {
-            return fallback;
+            throw new InvalidOperationException($"Required configuration key '{key}' is missing.");
         }
 
-        return rawValue.Trim();
+        if (bool.TryParse(rawValue.Trim(), out var parsed))
+        {
+            return parsed;
+        }
+
+        throw new InvalidOperationException($"Configuration key '{key}' must be a boolean value.");
     }
 
-    private static string NormalizeBaseUrl(string url)
+    private static string NormalizeBaseUrl(string url, string key)
     {
-        return url.Trim().TrimEnd('/');
+        var normalized = url.Trim().TrimEnd('/');
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out _))
+        {
+            throw new InvalidOperationException($"Configuration key '{key}' must be an absolute URL.");
+        }
+
+        return normalized;
     }
 
     private static string NormalizeRootPath(string rootPath)
@@ -53,12 +85,5 @@ public sealed class DropboxOptions
         }
 
         return normalized.StartsWith("/", StringComparison.Ordinal) ? normalized : $"/{normalized}";
-    }
-
-    private static bool ParseBoolean(string? rawValue, bool fallback)
-    {
-        return bool.TryParse(rawValue, out var parsed)
-            ? parsed
-            : fallback;
     }
 }
