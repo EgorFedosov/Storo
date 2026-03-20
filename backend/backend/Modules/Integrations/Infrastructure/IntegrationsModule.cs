@@ -4,6 +4,7 @@ using backend.Modules.Integrations.Infrastructure.Dropbox;
 using backend.Modules.Integrations.Infrastructure.Persistence;
 using backend.Modules.Integrations.Infrastructure.Salesforce;
 using backend.Modules.Integrations.UseCases.Dropbox;
+using backend.Modules.Integrations.UseCases.Salesforce;
 using backend.Modules.Integrations.UseCases.SupportTickets;
 using Microsoft.AspNetCore.Routing;
 
@@ -19,6 +20,7 @@ public sealed class IntegrationsModule : IApiModule
         services.AddScoped<IDropboxAccessTokenClient, DropboxAccessTokenClient>();
         services.AddScoped<IDropboxUploadClient, DropboxUploadClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
+        services.AddScoped<ISalesforceContactRepository, EfCoreSalesforceContactRepository>();
         services.AddScoped<ICreateSupportTicketUseCase, CreateSupportTicketUseCase>();
         services.AddScoped<IGetSupportTicketStatusUseCase, GetSupportTicketStatusUseCase>();
     }
