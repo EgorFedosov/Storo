@@ -21,6 +21,7 @@ public sealed class IntegrationsModule : IApiModule
         services.AddScoped<IDropboxAccessTokenClient, DropboxAccessTokenClient>();
         services.AddScoped<IDropboxUploadClient, DropboxUploadClient>();
         services.AddScoped<ISalesforceAccessTokenClient, SalesforceAccessTokenClient>();
+        services.AddScoped<ISalesforceRestClient, SalesforceRestClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
         services.AddScoped<ISalesforceContactRepository, EfCoreSalesforceContactRepository>();
         services.AddScoped<ICreateSupportTicketUseCase, CreateSupportTicketUseCase>();
