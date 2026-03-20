@@ -14,6 +14,7 @@ public sealed class IntegrationsModule : IApiModule
         services.AddSingleton(DropboxOptions.FromConfiguration(configuration));
         services.AddHttpClient(DropboxAccessTokenClient.HttpClientName);
         services.AddScoped<IDropboxAccessTokenClient, DropboxAccessTokenClient>();
+        services.AddScoped<IDropboxUploadClient, DropboxUploadClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
     }
 
