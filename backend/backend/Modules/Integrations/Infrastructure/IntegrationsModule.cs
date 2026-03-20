@@ -1,4 +1,5 @@
 using backend.Infrastructure.Modularity;
+using backend.Modules.Integrations.Api;
 using backend.Modules.Integrations.Infrastructure.Dropbox;
 using backend.Modules.Integrations.Infrastructure.Persistence;
 using backend.Modules.Integrations.UseCases.Dropbox;
@@ -16,9 +17,11 @@ public sealed class IntegrationsModule : IApiModule
         services.AddScoped<IDropboxAccessTokenClient, DropboxAccessTokenClient>();
         services.AddScoped<IDropboxUploadClient, DropboxUploadClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
+        services.AddScoped<ICreateSupportTicketUseCase, CreateSupportTicketUseCase>();
     }
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
+        apiGroup.MapSupportTicketsEndpoint();
     }
 }
