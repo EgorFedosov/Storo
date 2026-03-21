@@ -1,7 +1,12 @@
 import { extractVersionStamp, normalizeETag, type VersionStamp } from '../../../shared/api/concurrency.ts'
 import { apiRequest, type ApiRequestOptions, type ApiResult } from '../../../shared/api/httpClient.ts'
 import { toLocalizedCategoryName } from '../../../shared/lib/categoryName.ts'
-import type { InventoryEditor, InventoryEditorCustomField, InventoryEditorCustomIdTemplatePart } from './inventoryEditorTypes.ts'
+import type {
+  InventoryEditor,
+  InventoryEditorCustomField,
+  InventoryEditorCustomIdTemplatePart,
+  InventoryOdooToken,
+} from './inventoryEditorTypes.ts'
 
 type InventoryEditorFailure = {
   ok: false
@@ -62,6 +67,27 @@ function normalizeOptionalString(value: unknown): string | null {
   }
 
   return normalizeString(value)
+}
+
+function normalizeBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+function normalizeIsoDateTimeString(value: unknown): string | null {
+  const normalizedValue = normalizeNonEmptyString(value)
+  if (normalizedValue === null) {
+    return null
+  }
+
+  return Number.isNaN(Date.parse(normalizedValue)) ? null : normalizedValue
+}
+
+function normalizeOptionalIsoDateTimeString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  return normalizeIsoDateTimeString(value)
 }
 
 function normalizePositiveInteger(value: unknown): number | null {
@@ -381,6 +407,66 @@ function normalizePermissions(payload: unknown): InventoryEditor['permissions'] 
   }
 }
 
+function createDefaultOdooIntegration(inventoryId: string): InventoryEditor['integrations']['odoo'] {
+  return {
+    enabled: false,
+    canViewToken: false,
+    canGenerateToken: false,
+    tokenActionUrl: `/integrations/odoo/inventories/${inventoryId}/token`,
+    hasActiveToken: false,
+    maskedToken: null,
+    generatedAt: null,
+  }
+}
+
+function normalizeOdooIntegration(
+  payload: unknown,
+  inventoryId: string,
+): InventoryEditor['integrations']['odoo'] | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const enabled = normalizeBoolean(payload.enabled)
+  const canViewToken = normalizeBoolean(payload.canViewToken)
+  const canGenerateToken = normalizeBoolean(payload.canGenerateToken)
+  const hasActiveToken = normalizeBoolean(payload.hasActiveToken)
+  const tokenActionUrl = normalizeOptionalString(payload.tokenActionUrl)
+  const maskedToken = normalizeOptionalString(payload.maskedToken)
+  const generatedAt = normalizeOptionalIsoDateTimeString(payload.generatedAt)
+
+  if (
+    enabled === null
+    || canViewToken === null
+    || canGenerateToken === null
+    || hasActiveToken === null
+  ) {
+    return null
+  }
+
+  return {
+    enabled,
+    canViewToken,
+    canGenerateToken,
+    tokenActionUrl: tokenActionUrl ?? `/integrations/odoo/inventories/${inventoryId}/token`,
+    hasActiveToken,
+    maskedToken,
+    generatedAt,
+  }
+}
+
+function normalizeIntegrations(payload: unknown, inventoryId: string): InventoryEditor['integrations'] {
+  if (!isRecord(payload)) {
+    return {
+      odoo: createDefaultOdooIntegration(inventoryId),
+    }
+  }
+
+  return {
+    odoo: normalizeOdooIntegration(payload.odoo, inventoryId) ?? createDefaultOdooIntegration(inventoryId),
+  }
+}
+
 function normalizeInventoryEditorPayload(payload: unknown): InventoryEditor | null {
   if (!isRecord(payload)) {
     return null
@@ -408,6 +494,8 @@ function normalizeInventoryEditorPayload(payload: unknown): InventoryEditor | nu
     return null
   }
 
+  const integrations = normalizeIntegrations(payload.integrations, id)
+
   return {
     id,
     version,
@@ -416,6 +504,7 @@ function normalizeInventoryEditorPayload(payload: unknown): InventoryEditor | nu
     access,
     customFields,
     customIdTemplate,
+    integrations,
     permissions,
   }
 }
@@ -441,6 +530,24 @@ function normalizeInventoryVersionPayload(payload: unknown): InventoryVersionPay
   }
 
   return { version }
+}
+
+function normalizeInventoryOdooTokenPayload(payload: unknown): InventoryOdooToken | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const createdAt = normalizeIsoDateTimeString(payload.createdAt)
+  if (createdAt === null) {
+    return null
+  }
+
+  return {
+    inventoryId: normalizeOptionalString(payload.inventoryId),
+    plainToken: normalizeOptionalString(payload.plainToken),
+    maskedToken: normalizeOptionalString(payload.maskedToken),
+    createdAt,
+  }
 }
 
 export async function requestInventoryEditor(
@@ -620,5 +727,39 @@ export async function deleteInventory(
   return {
     ...response,
     data: null,
+  }
+}
+
+export async function generateInventoryOdooToken(
+  tokenActionUrl: string,
+  options: ApiRequestOptions = {},
+): Promise<ApiResult<InventoryOdooToken>> {
+  const response = await apiRequest<unknown>(tokenActionUrl, {
+    ...options,
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    return response
+  }
+
+  const normalizedPayload = normalizeInventoryOdooTokenPayload(response.data)
+  if (normalizedPayload === null) {
+    return {
+      ok: false,
+      status: response.status,
+      problem: null,
+      error: {
+        kind: 'invalid_json',
+        message: 'Received invalid response format from Odoo token endpoint.',
+        problem: null,
+      },
+      meta: response.meta,
+    }
+  }
+
+  return {
+    ...response,
+    data: normalizedPayload,
   }
 }

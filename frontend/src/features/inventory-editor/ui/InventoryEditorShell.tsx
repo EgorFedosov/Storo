@@ -1,10 +1,11 @@
 import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Empty, Input, Popconfirm, Progress, Select, Space, Table, Tabs, Tag, Typography, Upload } from 'antd'
+import { Alert, Button, Card, Empty, Input, Modal, Popconfirm, Progress, Select, Space, Table, Tabs, Tag, Typography, Upload, message } from 'antd'
 import type { TableProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { fetchAdminUsersPage } from '../../../entities/admin-user/model/adminUsersApi.ts'
-import { inventoryEditorTagsContract } from '../../../entities/inventory/model/inventoryEditorApi.ts'
+import { generateInventoryOdooToken, inventoryEditorTagsContract } from '../../../entities/inventory/model/inventoryEditorApi.ts'
 import type { ConcurrencyProblem } from '../../../shared/api/concurrency.ts'
+import type { ApiFailure } from '../../../shared/api/httpClient.ts'
 import { ConcurrencyAlert } from '../../../shared/ui/kit/ConcurrencyAlert.tsx'
 import type { InventoryCategoryOption } from '../../../entities/reference/model/types.ts'
 import type { InventoryEditor } from '../../../entities/inventory/model/inventoryEditorTypes.ts'
@@ -129,6 +130,63 @@ function hasTagFieldErrors(state: InventoryTagsAutosaveState): boolean {
   return Object.values(state.fieldErrors).some((messages) => messages.length > 0)
 }
 
+type OdooIntegrationState = {
+  enabled: boolean
+  canViewToken: boolean
+  canGenerateToken: boolean
+  hasActiveToken: boolean
+  maskedToken: string | null
+  generatedAt: string | null
+  plainToken: string | null
+  isGenerating: boolean
+  errorMessage: string | null
+}
+
+function firstValidationErrorMessage(failure: ApiFailure): string | null {
+  const validationErrors = failure.problem?.errors ?? {}
+
+  for (const errors of Object.values(validationErrors)) {
+    if (errors.length > 0) {
+      return errors[0]
+    }
+  }
+
+  return null
+}
+
+function resolveOdooTokenGenerationFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 401) {
+    return 'Сессия истекла. Выполните вход снова.'
+  }
+
+  if (failure.status === 403) {
+    return 'Недостаточно прав для выполнения действия.'
+  }
+
+  if (failure.status === 404) {
+    return 'Запрашиваемые данные не найдены.'
+  }
+
+  if (failure.status === 409) {
+    return 'Конфликт версии. Обновите страницу.'
+  }
+
+  if (failure.status === 502 || failure.status >= 500) {
+    return 'Временная ошибка внешнего сервиса. Повторите позже.'
+  }
+
+  return firstValidationErrorMessage(failure) ?? failure.error.message
+}
+
+function formatDateTimeLabel(value: string | null): string | null {
+  if (value === null) {
+    return null
+  }
+
+  const timestamp = new Date(value)
+  return Number.isNaN(timestamp.valueOf()) ? null : timestamp.toLocaleString()
+}
+
 type AutosaveBadgeState = {
   isSaving: boolean
   isQueued: boolean
@@ -168,12 +226,16 @@ function renderSettingsTab({
   retryReferences,
   concurrencyProblem,
   settingsAutosave,
+  odooIntegration,
   onReloadEditor,
   onClearConcurrencyProblem,
   onUpdateSettingsDraft,
   onUploadSettingsImage,
   onDeleteSettingsImageFromStorage,
   onCancelSettingsImageUpload,
+  onGenerateOdooToken,
+  onCloseOdooPlainTokenModal,
+  onCopyOdooPlainToken,
   deleteFlow,
   onDeleteInventory,
   onSaveSettingsNow,
@@ -186,12 +248,16 @@ function renderSettingsTab({
   retryReferences: () => void
   concurrencyProblem: ConcurrencyProblem | null
   settingsAutosave: InventorySettingsAutosaveState
+  odooIntegration: OdooIntegrationState
   onReloadEditor: () => void
   onClearConcurrencyProblem: () => void
   onUpdateSettingsDraft: (patch: Partial<InventoryEditorSettingsDraft>) => void
   onUploadSettingsImage: (file: File) => Promise<boolean>
   onDeleteSettingsImageFromStorage: () => Promise<boolean>
   onCancelSettingsImageUpload: () => void
+  onGenerateOdooToken: () => Promise<void>
+  onCloseOdooPlainTokenModal: () => void
+  onCopyOdooPlainToken: () => Promise<void>
   deleteFlow: InventoryDeleteState
   onDeleteInventory: () => Promise<void>
   onSaveSettingsNow: () => void
@@ -228,6 +294,12 @@ function renderSettingsTab({
   const deleteUploadedFileDisabled = uploadDisabled || normalizedImageUrl.length === 0
   const canShowImagePreview = normalizedImageUrl.length > 0 && imageUrlError === null && !isUploadedPdf
   const canShowFileLink = normalizedImageUrl.length > 0 && imageUrlError === null && isUploadedPdf
+
+  const odooTokenStatusColor = odooIntegration.hasActiveToken ? 'green' : 'default'
+  const odooTokenStatusLabel = odooIntegration.hasActiveToken ? '\u0435\u0441\u0442\u044c' : '\u043d\u0435\u0442'
+  const odooGeneratedAtLabel = formatDateTimeLabel(odooIntegration.generatedAt)
+  const odooShowNoAccessMessage = !odooIntegration.canGenerateToken || !odooIntegration.canViewToken
+  const odooActionLabel = odooIntegration.hasActiveToken ? 'Regenerate' : 'Generate'
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -409,6 +481,95 @@ function renderSettingsTab({
           </Typography.Link>
         </Space>
       ) : null}
+
+      <Card size="small" title="Интеграция Odoo">
+        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          <Space size={8} wrap>
+            <Tag color={odooTokenStatusColor}>Токен: {odooTokenStatusLabel}</Tag>
+            {odooGeneratedAtLabel !== null ? <Tag>Сгенерирован: {odooGeneratedAtLabel}</Tag> : null}
+          </Space>
+
+          {!odooIntegration.enabled ? (
+            <Alert
+              showIcon
+              type="warning"
+              message="Интеграция Odoo отключена"
+              description="Действия с Odoo-токеном сейчас недоступны."
+            />
+          ) : null}
+
+          {odooIntegration.canViewToken ? (
+            <Space direction="vertical" size={6}>
+              <Typography.Text type="secondary">Маскированный токен</Typography.Text>
+              <Typography.Text code>{odooIntegration.maskedToken ?? '\u2014'}</Typography.Text>
+            </Space>
+          ) : (
+            <Typography.Text type="secondary">Маскированный токен недоступен.</Typography.Text>
+          )}
+
+          {odooShowNoAccessMessage ? (
+            <Alert
+              showIcon
+              type="info"
+              message="Нет доступа"
+              description="Нет доступа к Odoo-токену. Обратитесь к создателю инвентаря или администратору."
+            />
+          ) : null}
+
+          {odooIntegration.errorMessage !== null ? (
+            <Alert
+              showIcon
+              type="error"
+              message="Не удалось сгенерировать Odoo-токен"
+              description={odooIntegration.errorMessage}
+            />
+          ) : null}
+
+          {odooIntegration.canGenerateToken ? (
+            <Button
+              type="primary"
+              onClick={() => {
+                void onGenerateOdooToken()
+              }}
+              loading={odooIntegration.isGenerating}
+              disabled={!odooIntegration.enabled || odooIntegration.isGenerating}
+            >
+              {odooActionLabel}
+            </Button>
+          ) : null}
+        </Space>
+      </Card>
+
+      <Modal
+        open={odooIntegration.plainToken !== null}
+        title="Новый Odoo API token"
+        onCancel={onCloseOdooPlainTokenModal}
+        footer={[
+          <Button
+            key="copy"
+            onClick={() => {
+              void onCopyOdooPlainToken()
+            }}
+            disabled={odooIntegration.plainToken === null}
+          >
+            Copy
+          </Button>,
+          <Button key="close" type="primary" onClick={onCloseOdooPlainTokenModal}>
+            Закрыть
+          </Button>,
+        ]}
+      >
+        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          <Typography.Text>
+            Сохраните токен сейчас: после закрытия окна его нельзя будет снова увидеть.
+          </Typography.Text>
+          <Input.TextArea
+            readOnly
+            value={odooIntegration.plainToken ?? ''}
+            autoSize={{ minRows: 2, maxRows: 4 }}
+          />
+        </Space>
+      </Modal>
 
       <Space wrap>
         <Button type="primary" onClick={onSaveSettingsNow} loading={settingsAutosave.isSaving} disabled={saveDisabled}>
@@ -908,6 +1069,85 @@ export function InventoryEditorShell({
   onResetCustomFieldsDrafts,
   onTabChange,
 }: InventoryEditorShellProps) {
+  const [odooHasActiveToken, setOdooHasActiveToken] = useState(editor.integrations.odoo.hasActiveToken)
+  const [odooMaskedToken, setOdooMaskedToken] = useState<string | null>(editor.integrations.odoo.maskedToken)
+  const [odooGeneratedAt, setOdooGeneratedAt] = useState<string | null>(editor.integrations.odoo.generatedAt)
+  const [odooPlainToken, setOdooPlainToken] = useState<string | null>(null)
+  const [odooGenerateErrorMessage, setOdooGenerateErrorMessage] = useState<string | null>(null)
+  const [isOdooTokenGenerating, setIsOdooTokenGenerating] = useState(false)
+
+  useEffect(() => {
+    setOdooHasActiveToken(editor.integrations.odoo.hasActiveToken)
+    setOdooMaskedToken(editor.integrations.odoo.maskedToken)
+    setOdooGeneratedAt(editor.integrations.odoo.generatedAt)
+    setOdooPlainToken(null)
+    setOdooGenerateErrorMessage(null)
+    setIsOdooTokenGenerating(false)
+  }, [
+    editor.id,
+    editor.integrations.odoo.generatedAt,
+    editor.integrations.odoo.hasActiveToken,
+    editor.integrations.odoo.maskedToken,
+  ])
+
+  const onGenerateOdooToken = async () => {
+    if (isOdooTokenGenerating) {
+      return
+    }
+
+    setIsOdooTokenGenerating(true)
+    setOdooGenerateErrorMessage(null)
+    setOdooPlainToken(null)
+
+    try {
+      const tokenActionUrl = editor.integrations.odoo.tokenActionUrl ?? `/integrations/odoo/inventories/${editor.id}/token`
+      const result = await generateInventoryOdooToken(tokenActionUrl)
+
+      if (!result.ok) {
+        setOdooGenerateErrorMessage(resolveOdooTokenGenerationFailureMessage(result))
+        return
+      }
+
+      setOdooHasActiveToken(true)
+      setOdooMaskedToken(result.data.maskedToken)
+      setOdooGeneratedAt(result.data.createdAt)
+
+      const plainToken = result.data.plainToken?.trim() ?? ''
+      if (plainToken.length === 0) {
+        setOdooGenerateErrorMessage('\u0422\u043e\u043a\u0435\u043d \u0441\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u043d, \u043d\u043e \u0441\u0435\u0440\u0432\u0435\u0440 \u043d\u0435 \u0432\u0435\u0440\u043d\u0443\u043b \u043e\u0434\u043d\u043e\u0440\u0430\u0437\u043e\u0432\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435.')
+        return
+      }
+
+      setOdooPlainToken(plainToken)
+    } catch {
+      setOdooGenerateErrorMessage('\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u044c \u0437\u0430\u043f\u0440\u043e\u0441. \u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.')
+    } finally {
+      setIsOdooTokenGenerating(false)
+    }
+  }
+
+  const onCloseOdooPlainTokenModal = () => {
+    setOdooPlainToken(null)
+  }
+
+  const onCopyOdooPlainToken = async () => {
+    if (odooPlainToken === null || odooPlainToken.length === 0) {
+      return
+    }
+
+    if (!('clipboard' in navigator)) {
+      void message.error('Буфер обмена недоступен в этом браузере.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(odooPlainToken)
+      void message.success('Токен скопирован в буфер обмена.')
+    } catch {
+      void message.error('Не удалось скопировать токен. Скопируйте его вручную.')
+    }
+  }
+
   const tabs = useMemo(
     () =>
       tabStates.map((tab) => ({
@@ -924,12 +1164,26 @@ export function InventoryEditorShell({
               retryReferences,
               concurrencyProblem,
               settingsAutosave,
+              odooIntegration: {
+                enabled: editor.integrations.odoo.enabled,
+                canViewToken: editor.integrations.odoo.canViewToken,
+                canGenerateToken: editor.integrations.odoo.canGenerateToken,
+                hasActiveToken: odooHasActiveToken,
+                maskedToken: odooMaskedToken,
+                generatedAt: odooGeneratedAt,
+                plainToken: odooPlainToken,
+                isGenerating: isOdooTokenGenerating,
+                errorMessage: odooGenerateErrorMessage,
+              },
               onReloadEditor,
               onClearConcurrencyProblem,
               onUpdateSettingsDraft,
               onUploadSettingsImage,
               onDeleteSettingsImageFromStorage,
               onCancelSettingsImageUpload,
+              onGenerateOdooToken,
+              onCloseOdooPlainTokenModal,
+              onCopyOdooPlainToken,
               deleteFlow,
               onDeleteInventory,
               onSaveSettingsNow,
@@ -1005,6 +1259,12 @@ export function InventoryEditorShell({
       deleteFlow,
       editor,
       isCustomFieldsMutating,
+      isOdooTokenGenerating,
+      odooGenerateErrorMessage,
+      odooGeneratedAt,
+      odooHasActiveToken,
+      odooMaskedToken,
+      odooPlainToken,
       onAddCustomField,
       onClearConcurrencyProblem,
       onDeleteInventory,
@@ -1015,7 +1275,10 @@ export function InventoryEditorShell({
       onSaveCustomFieldsNow,
       onResetCustomFieldsDrafts,
       onCancelSettingsImageUpload,
+      onCloseOdooPlainTokenModal,
+      onCopyOdooPlainToken,
       onDeleteSettingsImageFromStorage,
+      onGenerateOdooToken,
       onResetAccessDraft,
       onResetSettingsDraft,
       onSaveSettingsNow,

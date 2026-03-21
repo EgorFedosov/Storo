@@ -77,6 +77,27 @@ export type InventoryEditorPermissions = {
   canWriteItems: boolean
 }
 
+export type InventoryEditorOdooIntegration = {
+  enabled: boolean
+  canViewToken: boolean
+  canGenerateToken: boolean
+  tokenActionUrl: string | null
+  hasActiveToken: boolean
+  maskedToken: string | null
+  generatedAt: string | null
+}
+
+export type InventoryEditorIntegrations = {
+  odoo: InventoryEditorOdooIntegration
+}
+
+export type InventoryOdooToken = {
+  inventoryId: string | null
+  plainToken: string | null
+  maskedToken: string | null
+  createdAt: string
+}
+
 export type InventoryEditor = {
   id: string
   version: number
@@ -85,5 +106,6 @@ export type InventoryEditor = {
   access: InventoryEditorAccess
   customFields: ReadonlyArray<InventoryEditorCustomField>
   customIdTemplate: InventoryEditorCustomIdTemplate
+  integrations: InventoryEditorIntegrations
   permissions: InventoryEditorPermissions
 }
