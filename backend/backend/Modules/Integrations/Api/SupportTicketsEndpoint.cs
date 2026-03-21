@@ -31,6 +31,7 @@ public static class SupportTicketsEndpoint
             .WithName("CreateSupportTicket")
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(CreateSupportTicketResponse), StatusCodes.Status201Created),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status500InternalServerError),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status502BadGateway))
             .RequireAuthenticatedAccess();
 
@@ -39,6 +40,7 @@ public static class SupportTicketsEndpoint
             .WithName("GetSupportTicketStatus")
             .WithMetadata(
                 new ProducesResponseTypeAttribute(typeof(GetSupportTicketStatusResponse), StatusCodes.Status200OK),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status500InternalServerError),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status404NotFound))
             .RequireAuthenticatedAccess();
     }
