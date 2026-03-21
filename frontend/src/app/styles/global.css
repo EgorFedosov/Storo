@@ -115,6 +115,17 @@ html[data-ui-theme='dark'] body {
   background: rgba(148, 163, 184, 0.24);
 }
 
+.app-shell-user-menu-btn.ant-btn {
+  color: rgba(241, 245, 249, 0.96);
+  font-weight: 600;
+}
+
+.app-shell-user-menu-btn.ant-btn:hover,
+.app-shell-user-menu-btn.ant-btn:focus {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.24);
+}
+
 .social-login-provider-btn.ant-btn {
   border-radius: 8px;
   font-weight: 600;
@@ -246,6 +257,11 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
 .support-ticket-modal-context-value.ant-typography {
   max-width: 100%;
   word-break: break-all;
+}
+
+.salesforce-modal-status {
+  display: grid;
+  gap: 6px;
 }
 
 .page-loader {

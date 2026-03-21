@@ -1,4 +1,5 @@
 import {
+  DownOutlined,
   HomeOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
@@ -6,11 +7,12 @@ import {
   UserOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Tooltip, Typography } from 'antd'
+import { Alert, Avatar, Button, Dropdown, Layout, Menu, Result, Spin, Space, Tooltip, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
 import { useCurrentUser } from '../../features/auth/model/useCurrentUser.ts'
+import { SalesforceSyncModal } from '../../features/integrations/ui/SalesforceSyncModal.tsx'
 import { SocialLoginControl } from '../../features/auth/ui/SocialLoginControl.tsx'
 import { SupportTicketModal } from '../../features/integrations/ui/SupportTicketModal.tsx'
 import { UserPreferencesControl } from '../../features/preferences/ui/UserPreferencesControl.tsx'
@@ -51,6 +53,7 @@ function buildSupportTicketPageLink(snapshot: LocationSnapshot): string {
 export function AppShell() {
   const locationSnapshot = useLocationSnapshot()
   const [isSupportTicketModalOpen, setIsSupportTicketModalOpen] = useState(false)
+  const [isSalesforceModalOpen, setIsSalesforceModalOpen] = useState(false)
   const { route, selectedNavigationKeys } = useShellLayoutState(locationSnapshot.pathname)
   const {
     errorMessage: referencesErrorMessage,
@@ -82,6 +85,24 @@ export function AppShell() {
   const closeSupportTicketModal = useCallback(() => {
     setIsSupportTicketModalOpen(false)
   }, [])
+
+  const openSalesforceModal = useCallback(() => {
+    setIsSalesforceModalOpen(true)
+  }, [])
+
+  const closeSalesforceModal = useCallback(() => {
+    setIsSalesforceModalOpen(false)
+  }, [])
+
+  const userMenuItems = useMemo(
+    () => [
+      {
+        key: 'salesforce-crm',
+        label: 'Salesforce CRM',
+      },
+    ],
+    [],
+  )
 
   const canOpenRoute = route.key === 'adminUsers' || canAccessRoute(route.key, access)
   const requiresLoginForMyInventories = route.key === 'myInventories' && !isAuthenticated
@@ -159,6 +180,27 @@ export function AppShell() {
           <Typography.Text className="app-shell-user-roles">
             {currentUser.roles.length > 0 ? currentUser.roles.join(', ') : 'гость'}
           </Typography.Text>
+          <Dropdown
+            trigger={['click']}
+            placement="bottomRight"
+            menu={{
+              items: userMenuItems,
+              onClick: ({ key }) => {
+                if (key === 'salesforce-crm') {
+                  openSalesforceModal()
+                }
+              },
+            }}
+          >
+            <Button
+              type="text"
+              icon={<DownOutlined />}
+              className="app-shell-user-menu-btn"
+              aria-label="Open user menu"
+            >
+              Menu
+            </Button>
+          </Dropdown>
         </Space>
       </Layout.Header>
 
@@ -250,6 +292,11 @@ export function AppShell() {
         pageLink={supportTicketPageLink}
         inventoryId={supportTicketInventoryId}
         onClose={closeSupportTicketModal}
+      />
+
+      <SalesforceSyncModal
+        open={isSalesforceModalOpen}
+        onClose={closeSalesforceModal}
       />
     </Layout>
   )
