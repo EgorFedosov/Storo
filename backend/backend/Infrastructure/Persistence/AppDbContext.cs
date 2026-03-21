@@ -32,6 +32,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ItemCustomFieldValue> ItemCustomFieldValues => Set<ItemCustomFieldValue>();
     public DbSet<ItemLike> ItemLikes => Set<ItemLike>();
     public DbSet<SupportTicketExport> SupportTicketExports => Set<SupportTicketExport>();
+    public DbSet<SalesforceContact> SalesforceContacts => Set<SalesforceContact>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

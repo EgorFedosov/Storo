@@ -97,3 +97,59 @@ public sealed class SupportTicketExportConfiguration : IEntityTypeConfiguration<
         entity.HasIndex(x => x.CreatedAtUtc);
     }
 }
+
+public sealed class SalesforceContactConfiguration : IEntityTypeConfiguration<SalesforceContact>
+{
+    public void Configure(EntityTypeBuilder<SalesforceContact> entity)
+    {
+        entity.ToTable("salesforce_contacts");
+        entity.HasKey(x => x.Id);
+
+        entity.Property(x => x.Id)
+            .HasColumnName("id")
+            .ValueGeneratedOnAdd();
+
+        entity.Property(x => x.UserId)
+            .HasColumnName("user_id")
+            .IsRequired();
+
+        entity.Property(x => x.SfAccountId)
+            .HasColumnName("sf_account_id")
+            .HasMaxLength(128);
+
+        entity.Property(x => x.SfContactId)
+            .HasColumnName("sf_contact_id")
+            .HasMaxLength(128);
+
+        entity.Property(x => x.SyncStatus)
+            .HasColumnName("sync_status")
+            .HasMaxLength(32)
+            .IsRequired();
+
+        entity.Property(x => x.LastSyncAtUtc)
+            .HasColumnName("last_sync_at_utc");
+
+        entity.Property(x => x.LastError)
+            .HasColumnName("last_error")
+            .HasMaxLength(4000);
+
+        entity.Property(x => x.CreatedAtUtc)
+            .HasColumnName("created_at_utc")
+            .IsRequired();
+
+        entity.Property(x => x.UpdatedAtUtc)
+            .HasColumnName("updated_at_utc")
+            .IsRequired();
+
+        entity.HasOne(x => x.User)
+            .WithMany()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(x => x.UserId)
+            .IsUnique();
+
+        entity.HasIndex(x => x.SfAccountId);
+        entity.HasIndex(x => x.SfContactId);
+    }
+}
