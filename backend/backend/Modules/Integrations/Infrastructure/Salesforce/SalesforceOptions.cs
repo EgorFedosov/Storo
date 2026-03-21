@@ -13,34 +13,49 @@ public sealed class SalesforceOptions
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
+        var clientId = ResolveRequiredTrimmed(configuration, "SALESFORCE_CLIENT_ID");
+        var clientSecret = ResolveRequiredTrimmed(configuration, "SALESFORCE_CLIENT_SECRET");
+        var refreshToken = ResolveRequiredTrimmed(configuration, "SALESFORCE_REFRESH_TOKEN");
+        var instanceUrl = ResolveRequiredTrimmed(configuration, "SALESFORCE_INSTANCE_URL");
+        var authBaseUrl = ResolveRequiredTrimmed(configuration, "SALESFORCE_AUTH_BASE_URL");
+        var apiVersion = ResolveRequiredTrimmed(configuration, "SALESFORCE_API_VERSION");
+
         return new SalesforceOptions
         {
-            ClientId = Resolve(configuration, "SALESFORCE_CLIENT_ID"),
-            ClientSecret = Resolve(configuration, "SALESFORCE_CLIENT_SECRET"),
-            RefreshToken = Resolve(configuration, "SALESFORCE_REFRESH_TOKEN"),
-            InstanceUrl = NormalizeUrl(Resolve(configuration, "SALESFORCE_INSTANCE_URL")),
-            AuthBaseUrl = NormalizeUrl(Resolve(configuration, "SALESFORCE_AUTH_BASE_URL")),
-            ApiVersion = NormalizeApiVersion(configuration["SALESFORCE_API_VERSION"])
+            ClientId = clientId,
+            ClientSecret = clientSecret,
+            RefreshToken = refreshToken,
+            InstanceUrl = NormalizeUrl(instanceUrl, "SALESFORCE_INSTANCE_URL"),
+            AuthBaseUrl = NormalizeUrl(authBaseUrl, "SALESFORCE_AUTH_BASE_URL"),
+            ApiVersion = NormalizeApiVersion(apiVersion)
         };
     }
 
-    private static string Resolve(IConfiguration configuration, string key)
+    private static string ResolveRequiredTrimmed(IConfiguration configuration, string key)
     {
-        var value = configuration[key];
-        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        var rawValue = configuration[key];
+        if (!string.IsNullOrWhiteSpace(rawValue))
+        {
+            return rawValue.Trim();
+        }
+
+        throw new InvalidOperationException($"Required configuration key '{key}' is missing.");
     }
 
-    private static string NormalizeUrl(string value)
+    private static string NormalizeUrl(string value, string key)
     {
-        return value.Trim().TrimEnd('/');
+        var normalized = value.Trim().TrimEnd('/');
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out _))
+        {
+            throw new InvalidOperationException($"Configuration key '{key}' must be an absolute URL.");
+        }
+
+        return normalized;
     }
 
-    private static string NormalizeApiVersion(string? value)
+    private static string NormalizeApiVersion(string value)
     {
-        var normalized = string.IsNullOrWhiteSpace(value)
-            ? "v66.0"
-            : value.Trim();
-
+        var normalized = value.Trim();
         return normalized.StartsWith('v') ? normalized : $"v{normalized}";
     }
 }
