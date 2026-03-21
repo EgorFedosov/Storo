@@ -1,16 +1,18 @@
 import {
   HomeOutlined,
+  QuestionCircleOutlined,
   SearchOutlined,
   TeamOutlined,
   UserOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Typography } from 'antd'
+import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Tooltip, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { Suspense, useMemo } from 'react'
+import { Suspense, useCallback, useMemo, useState } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
 import { useCurrentUser } from '../../features/auth/model/useCurrentUser.ts'
 import { SocialLoginControl } from '../../features/auth/ui/SocialLoginControl.tsx'
+import { SupportTicketModal } from '../../features/integrations/ui/SupportTicketModal.tsx'
 import { UserPreferencesControl } from '../../features/preferences/ui/UserPreferencesControl.tsx'
 import { GlobalSearchEntry } from '../../features/search-navigation/ui/GlobalSearchEntry.tsx'
 import { useSystemReferences } from '../../entities/reference/model/useSystemReferences.ts'
@@ -18,7 +20,11 @@ import {
   shellNavigationModel,
   type AppShellNavKey,
 } from '../../shared/config/routes.ts'
-import { navigate, useLocationSnapshot } from '../../shared/lib/router/navigation.ts'
+import {
+  navigate,
+  useLocationSnapshot,
+  type LocationSnapshot,
+} from '../../shared/lib/router/navigation.ts'
 import { useShellLayoutState } from '../model/useShellLayoutState.ts'
 
 const navigationIcons: Record<AppShellNavKey, ReactNode> = {
@@ -29,8 +35,22 @@ const navigationIcons: Record<AppShellNavKey, ReactNode> = {
   adminUsers: <TeamOutlined />,
 }
 
+const inventoryPathPattern = /^\/(?:inventory|inventories)\/([1-9]\d*)(?:\/edit)?$/i
+
+function resolveSupportTicketInventoryId(pathname: string): string | null {
+  const normalizedPathname = pathname.trim().replace(/\/+$/, '')
+  const match = inventoryPathPattern.exec(normalizedPathname.length === 0 ? '/' : normalizedPathname)
+  return match?.[1] ?? null
+}
+
+function buildSupportTicketPageLink(snapshot: LocationSnapshot): string {
+  const currentPath = `${snapshot.pathname}${snapshot.search}${snapshot.hash}`
+  return new URL(currentPath, window.location.origin).toString()
+}
+
 export function AppShell() {
   const locationSnapshot = useLocationSnapshot()
+  const [isSupportTicketModalOpen, setIsSupportTicketModalOpen] = useState(false)
   const { route, selectedNavigationKeys } = useShellLayoutState(locationSnapshot.pathname)
   const {
     errorMessage: referencesErrorMessage,
@@ -46,6 +66,22 @@ export function AppShell() {
     status,
   } = useCurrentUser()
   const Page = route.Page
+  const supportTicketInventoryId = useMemo(
+    () => resolveSupportTicketInventoryId(locationSnapshot.pathname),
+    [locationSnapshot.pathname],
+  )
+  const supportTicketPageLink = useMemo(
+    () => buildSupportTicketPageLink(locationSnapshot),
+    [locationSnapshot],
+  )
+
+  const openSupportTicketModal = useCallback(() => {
+    setIsSupportTicketModalOpen(true)
+  }, [])
+
+  const closeSupportTicketModal = useCallback(() => {
+    setIsSupportTicketModalOpen(false)
+  }, [])
 
   const canOpenRoute = route.key === 'adminUsers' || canAccessRoute(route.key, access)
   const requiresLoginForMyInventories = route.key === 'myInventories' && !isAuthenticated
@@ -97,6 +133,17 @@ export function AppShell() {
         />
 
         <Space size="small" wrap className="app-shell-header-meta">
+          <Tooltip title="Help">
+            <Button
+              type="text"
+              icon={<QuestionCircleOutlined />}
+              className="support-ticket-entry-btn"
+              onClick={openSupportTicketModal}
+              aria-label="Create support ticket"
+            >
+              Help
+            </Button>
+          </Tooltip>
           <SocialLoginControl
             isAuthenticated={isAuthenticated}
             pathname={locationSnapshot.pathname}
@@ -187,6 +234,23 @@ export function AppShell() {
           />
         )}
       </Layout.Content>
+
+      <Layout.Footer className="app-shell-footer">
+        <Button
+          type="link"
+          className="support-ticket-footer-link"
+          onClick={openSupportTicketModal}
+        >
+          Create support ticket
+        </Button>
+      </Layout.Footer>
+
+      <SupportTicketModal
+        open={isSupportTicketModalOpen}
+        pageLink={supportTicketPageLink}
+        inventoryId={supportTicketInventoryId}
+        onClose={closeSupportTicketModal}
+      />
     </Layout>
   )
 }

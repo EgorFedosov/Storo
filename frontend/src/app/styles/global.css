@@ -104,6 +104,17 @@ html[data-ui-theme='dark'] body {
   margin-left: auto;
 }
 
+.support-ticket-entry-btn.ant-btn {
+  color: rgba(241, 245, 249, 0.96);
+  font-weight: 600;
+}
+
+.support-ticket-entry-btn.ant-btn:hover,
+.support-ticket-entry-btn.ant-btn:focus {
+  color: #f8fafc;
+  background: rgba(148, 163, 184, 0.24);
+}
+
 .social-login-provider-btn.ant-btn {
   border-radius: 8px;
   font-weight: 600;
@@ -214,6 +225,27 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
 .app-shell-content {
   width: min(1200px, calc(100% - 32px));
   margin: 20px auto 28px;
+}
+
+.app-shell-footer {
+  text-align: center;
+  padding: 8px 24px 18px;
+  background: transparent;
+}
+
+.support-ticket-footer-link.ant-btn {
+  padding-inline: 0;
+  font-weight: 600;
+}
+
+.support-ticket-modal-context {
+  display: grid;
+  gap: 4px;
+}
+
+.support-ticket-modal-context-value.ant-typography {
+  max-width: 100%;
+  word-break: break-all;
 }
 
 .page-loader {
@@ -367,6 +399,10 @@ html[data-ui-theme='dark'] .inventory-meta-tag.ant-tag {
 
   .app-shell-header-meta {
     margin-left: 0;
+  }
+
+  .app-shell-footer {
+    padding-inline: 12px;
   }
 
   .global-search-entry {
