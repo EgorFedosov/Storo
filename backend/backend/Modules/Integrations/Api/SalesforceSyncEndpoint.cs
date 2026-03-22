@@ -34,6 +34,14 @@ public static class SalesforceSyncEndpoint
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status500InternalServerError),
                 new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status502BadGateway))
             .RequireAuthenticatedAccess();
+
+        salesforceGroup
+            .MapGet("/me", GetMeAsync)
+            .WithName("GetSalesforceMe")
+            .WithMetadata(
+                new ProducesResponseTypeAttribute(typeof(GetSalesforceMeResponse), StatusCodes.Status200OK),
+                new ProducesResponseTypeAttribute(typeof(ProblemDetails), StatusCodes.Status500InternalServerError))
+            .RequireAuthenticatedAccess();
     }
 
     private static async Task<Results<Ok<SyncSalesforceContactResponse>, ValidationProblem, ProblemHttpResult>> SyncAsync(
@@ -71,6 +79,21 @@ public static class SalesforceSyncEndpoint
                 "Salesforce API request failed while syncing current user.",
                 "salesforce_upstream_error");
         }
+    }
+
+    private static async Task<Ok<GetSalesforceMeResponse>> GetMeAsync(
+        ICurrentUserAccessor currentUserAccessor,
+        IGetSalesforceMeUseCase useCase,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = currentUserAccessor.CurrentUser.UserId
+                          ?? throw new InvalidOperationException("Authenticated user id claim is missing.");
+
+        var result = await useCase.ExecuteAsync(
+            new GetSalesforceMeQuery(actorUserId),
+            cancellationToken);
+
+        return TypedResults.Ok(GetSalesforceMeResponse.FromResult(result));
     }
 
     private static bool TryCreateCommand(
@@ -182,5 +205,25 @@ public sealed record SyncSalesforceContactResponse(
             result.SfContactId,
             result.SyncedAtUtc,
             result.ErrorMessage);
+    }
+}
+
+public sealed record GetSalesforceMeResponse(
+    bool IsLinked,
+    string? SfAccountId,
+    string? SfContactId,
+    string LastSyncStatus,
+    DateTime? LastSyncedAt)
+{
+    public static GetSalesforceMeResponse FromResult(SalesforceMeResult result)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        return new GetSalesforceMeResponse(
+            result.IsLinked,
+            result.SfAccountId,
+            result.SfContactId,
+            result.LastSyncStatus,
+            result.LastSyncedAtUtc);
     }
 }

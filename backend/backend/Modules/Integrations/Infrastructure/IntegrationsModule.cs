@@ -24,6 +24,7 @@ public sealed class IntegrationsModule : IApiModule
         services.AddScoped<ISalesforceRestClient, SalesforceRestClient>();
         services.AddScoped<ISupportTicketExportRepository, EfCoreSupportTicketExportRepository>();
         services.AddScoped<ISalesforceContactRepository, EfCoreSalesforceContactRepository>();
+        services.AddScoped<IGetSalesforceMeUseCase, GetSalesforceMeUseCase>();
         services.AddScoped<ISyncSalesforceContactUseCase, SyncSalesforceContactUseCase>();
         services.AddScoped<ICreateSupportTicketUseCase, CreateSupportTicketUseCase>();
         services.AddScoped<IGetSupportTicketStatusUseCase, GetSupportTicketStatusUseCase>();
