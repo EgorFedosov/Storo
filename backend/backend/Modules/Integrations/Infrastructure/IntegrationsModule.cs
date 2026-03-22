@@ -31,6 +31,7 @@ public sealed class IntegrationsModule : IApiModule
 
     public void MapEndpoints(RouteGroupBuilder apiGroup)
     {
+        apiGroup.MapSalesforceSyncEndpoint();
         apiGroup.MapSupportTicketsEndpoint();
     }
 }
