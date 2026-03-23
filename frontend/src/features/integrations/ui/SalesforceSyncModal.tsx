@@ -41,8 +41,10 @@ const defaultFormValues: SalesforceSyncFormValues = {
   notes: '',
 }
 
-const salesforceCompanyNameMaxLength = 200
-const salesforceFieldMaxLength = 200
+const salesforceCompanyNameMaxLength = 255
+const salesforceJobTitleMaxLength = 128
+const salesforcePhoneMaxLength = 64
+const salesforceCountryMaxLength = 80
 const salesforceNotesMaxLength = 4000
 
 function normalizeOptionalInput(value: string): string | null {
@@ -212,12 +214,17 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
         kind: 'failed',
         errorMessage: result.data.errorMessage,
       })
-    } else {
+    } else if (syncStatus === 'synced') {
       setSyncOutcome({
         kind: 'synced',
         sfAccountId: result.data.sfAccountId,
         sfContactId: result.data.sfContactId,
         syncedAt: result.data.syncedAt,
+      })
+    } else {
+      setSyncOutcome({
+        kind: 'failed',
+        errorMessage: 'Сервер вернул неизвестный статус синхронизации.',
       })
     }
 
@@ -292,13 +299,15 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           ) : null}
 
           {effectiveAccountId !== null || effectiveContactId !== null ? (
-            <Typography.Text type="secondary">
-              IDs:
-              {' '}
-              <Typography.Text code>{effectiveAccountId ?? '—'}</Typography.Text>
-              {' / '}
-              <Typography.Text code>{effectiveContactId ?? '—'}</Typography.Text>
-            </Typography.Text>
+            <div className="salesforce-modal-identifiers">
+              <Typography.Text type="secondary">IDs:</Typography.Text>
+              <Typography.Text code className="salesforce-modal-identifier-code">
+                Account: {effectiveAccountId ?? '—'}
+              </Typography.Text>
+              <Typography.Text code className="salesforce-modal-identifier-code">
+                Contact: {effectiveContactId ?? '—'}
+              </Typography.Text>
+            </div>
           ) : null}
         </div>
 
@@ -389,13 +398,13 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
             name="jobTitle"
             rules={[
               {
-                max: salesforceFieldMaxLength,
-                message: `Job title must be ${String(salesforceFieldMaxLength)} characters or less.`,
+                max: salesforceJobTitleMaxLength,
+                message: `Job title must be ${String(salesforceJobTitleMaxLength)} characters or less.`,
               },
             ]}
           >
             <Input
-              maxLength={salesforceFieldMaxLength}
+              maxLength={salesforceJobTitleMaxLength}
               placeholder="Support Engineer"
             />
           </Form.Item>
@@ -405,13 +414,13 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
             name="phone"
             rules={[
               {
-                max: salesforceFieldMaxLength,
-                message: `Phone must be ${String(salesforceFieldMaxLength)} characters or less.`,
+                max: salesforcePhoneMaxLength,
+                message: `Phone must be ${String(salesforcePhoneMaxLength)} characters or less.`,
               },
             ]}
           >
             <Input
-              maxLength={salesforceFieldMaxLength}
+              maxLength={salesforcePhoneMaxLength}
               placeholder="+1 555 123 45 67"
             />
           </Form.Item>
@@ -421,13 +430,13 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
             name="country"
             rules={[
               {
-                max: salesforceFieldMaxLength,
-                message: `Country must be ${String(salesforceFieldMaxLength)} characters or less.`,
+                max: salesforceCountryMaxLength,
+                message: `Country must be ${String(salesforceCountryMaxLength)} characters or less.`,
               },
             ]}
           >
             <Input
-              maxLength={salesforceFieldMaxLength}
+              maxLength={salesforceCountryMaxLength}
               placeholder="United States"
             />
           </Form.Item>

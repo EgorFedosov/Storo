@@ -264,6 +264,26 @@ html[data-ui-theme='dark'] .app-shell-nav.ant-menu {
   gap: 6px;
 }
 
+.salesforce-modal-identifiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.salesforce-modal-identifier-code.ant-typography {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 576px) {
+  .salesforce-modal-identifiers {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
 .page-loader {
   min-height: 320px;
   display: flex;

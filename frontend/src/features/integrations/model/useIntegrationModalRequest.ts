@@ -38,23 +38,23 @@ function getFirstValidationErrorMessage(failure: ApiFailure): string | null {
 
 export function resolveIntegrationFailureMessage(failure: ApiFailure): string {
   if (failure.status === 401) {
-    return 'Session expired. Please sign in again.'
+    return 'Сессия истекла. Выполните вход снова.'
   }
 
   if (failure.status === 403) {
-    return 'You do not have permission to perform this action.'
+    return 'Недостаточно прав для выполнения действия.'
   }
 
   if (failure.status === 404) {
-    return 'Requested data was not found.'
+    return 'Запрашиваемые данные не найдены.'
   }
 
   if (failure.status === 409) {
-    return 'Version conflict detected. Please refresh the page.'
+    return 'Конфликт версии. Обновите страницу.'
   }
 
   if (failure.status === 502 || failure.status >= 500) {
-    return 'Temporary external service error. Please try again later.'
+    return 'Временная ошибка внешнего сервиса. Повторите позже.'
   }
 
   return getFirstValidationErrorMessage(failure) ?? failure.error.message
@@ -129,6 +129,19 @@ export function useIntegrationModalRequest(): IntegrationModalRequestModel {
         setStatus('success')
         setSuccessMessage(resolvedSuccessMessage)
         return result
+      } catch (error) {
+        if (abortController.signal.aborted || requestId !== requestSequenceRef.current) {
+          return null
+        }
+
+        const fallbackMessage = 'Не удалось выполнить запрос. Повторите позже.'
+        const normalizedMessage = error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : fallbackMessage
+
+        setStatus('error')
+        setErrorMessage(normalizedMessage)
+        return null
       } finally {
         if (requestId === requestSequenceRef.current) {
           inFlightRef.current = false
