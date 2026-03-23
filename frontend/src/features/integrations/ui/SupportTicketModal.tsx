@@ -21,10 +21,10 @@ type SupportTicketFormValues = {
 }
 
 const supportTicketSummaryMaxLength = 4000
-const priorityOptions: Array<{ label: SupportTicketPriority; value: SupportTicketPriority }> = [
-  { label: 'High', value: 'High' },
-  { label: 'Average', value: 'Average' },
-  { label: 'Low', value: 'Low' },
+const priorityOptions: Array<{ label: string; value: SupportTicketPriority }> = [
+  { label: 'Высокий', value: 'High' },
+  { label: 'Средний', value: 'Average' },
+  { label: 'Низкий', value: 'Low' },
 ]
 
 const defaultFormValues: SupportTicketFormValues = {
@@ -76,10 +76,10 @@ export function SupportTicketModal({
       {
         resolveSuccessMessage: (result) => {
           if (result.data.ticketId === null) {
-            return 'Ticket uploaded'
+            return 'Сообщение отправлено'
           }
 
-          return `Ticket uploaded (ID: ${result.data.ticketId})`
+          return `Сообщение отправлено (ID: ${result.data.ticketId})`
         },
       },
     )
@@ -88,9 +88,9 @@ export function SupportTicketModal({
   return (
     <Modal
       open={open}
-      title="Create support ticket"
-      okText="Upload ticket"
-      cancelText="Cancel"
+      title="Сообщить о проблеме"
+      okText="Отправить сообщение"
+      cancelText="Отмена"
       centered
       destroyOnHidden
       onOk={() => {
@@ -105,14 +105,14 @@ export function SupportTicketModal({
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <div className="support-ticket-modal-context">
           <Typography.Text type="secondary">
-            Current page:
+            Текущая страница:
           </Typography.Text>
           <Typography.Text className="support-ticket-modal-context-value" code>
             {pageLink}
           </Typography.Text>
           {inventoryId !== null ? (
             <Typography.Text type="secondary">
-              Inventory context:
+              Контекст инвентаря:
               {' '}
               <Typography.Text code>#{inventoryId}</Typography.Text>
             </Typography.Text>
@@ -123,7 +123,7 @@ export function SupportTicketModal({
           <Alert
             showIcon
             type="info"
-            message="Uploading..."
+            message="Отправка..."
           />
         ) : null}
 
@@ -131,7 +131,7 @@ export function SupportTicketModal({
           <Alert
             showIcon
             type="error"
-            message="Failed to upload ticket"
+            message="Не удалось отправить"
             description={errorMessage}
           />
         ) : null}
@@ -140,7 +140,7 @@ export function SupportTicketModal({
           <Alert
             showIcon
             type="success"
-            message={successMessage ?? 'Ticket uploaded'}
+            message={successMessage ?? 'Сообщение отправлено'}
           />
         ) : null}
 
@@ -155,21 +155,21 @@ export function SupportTicketModal({
           onFinish={handleSubmit}
         >
           <Form.Item<SupportTicketFormValues>
-            label="Summary"
+            label="Описание проблемы"
             name="summary"
             rules={[
               {
                 required: true,
-                message: 'Please provide a short description.',
+                message: 'Опишите проблему.',
               },
               {
                 max: supportTicketSummaryMaxLength,
-                message: `Summary must be ${String(supportTicketSummaryMaxLength)} characters or less.`,
+                message: `Описание должно быть не длиннее ${String(supportTicketSummaryMaxLength)} символов.`,
               },
               {
                 validator: async (_, value: string | undefined) => {
                   if ((value ?? '').trim().length === 0) {
-                    throw new Error('Please provide a short description.')
+                    throw new Error('Опишите проблему.')
                   }
                 },
               },
@@ -179,23 +179,23 @@ export function SupportTicketModal({
               rows={4}
               maxLength={supportTicketSummaryMaxLength}
               showCount
-              placeholder="Describe your issue"
+              placeholder="Коротко опишите проблему"
             />
           </Form.Item>
 
           <Form.Item<SupportTicketFormValues>
-            label="Priority"
+            label="Приоритет"
             name="priority"
             rules={[
               {
                 required: true,
-                message: 'Please select priority.',
+                message: 'Выберите приоритет.',
               },
             ]}
           >
             <Select
               options={priorityOptions}
-              placeholder="Select priority"
+              placeholder="Выберите приоритет"
             />
           </Form.Item>
         </Form>

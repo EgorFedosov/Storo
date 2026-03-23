@@ -1,4 +1,5 @@
 using backend.Modules.Concurrency.UseCases.Versioning;
+using System.Net.Mail;
 
 namespace backend.Modules.Integrations.UseCases.Salesforce;
 
@@ -32,6 +33,7 @@ public sealed class SyncSalesforceContactUseCase(
         var country = NormalizeOptional(command.Country);
         var notes = NormalizeOptional(command.Notes);
         var actorEmail = NormalizeOptional(command.ActorEmail);
+        var actorEmailForSalesforce = NormalizeSalesforceEmail(command.ActorEmail);
         var actorDisplayName = NormalizeOptional(command.ActorDisplayName);
         var contactLastName = ResolveContactLastName(actorDisplayName, actorEmail, command.ActorUserId);
 
@@ -55,7 +57,7 @@ public sealed class SyncSalesforceContactUseCase(
                     accessTokenResult.AccessToken,
                     sfAccountId,
                     contactLastName,
-                    actorEmail,
+                    actorEmailForSalesforce,
                     phone,
                     jobTitle,
                     country,
@@ -123,6 +125,38 @@ public sealed class SyncSalesforceContactUseCase(
         return string.IsNullOrWhiteSpace(value)
             ? null
             : value.Trim();
+    }
+
+    private static string? NormalizeSalesforceEmail(string? value)
+    {
+        var normalized = NormalizeOptional(value);
+        if (normalized is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            _ = new MailAddress(normalized);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+
+        var atIndex = normalized.LastIndexOf('@');
+        if (atIndex < 0 || atIndex >= normalized.Length - 1)
+        {
+            return null;
+        }
+
+        var domain = normalized[(atIndex + 1)..];
+        if (domain.EndsWith(".local", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 
     private static string ResolveContactLastName(

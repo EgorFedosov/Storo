@@ -71,12 +71,12 @@ public static class SalesforceSyncEndpoint
             var result = await useCase.ExecuteAsync(command, cancellationToken);
             return TypedResults.Ok(SyncSalesforceContactResponse.FromResult(result));
         }
-        catch (SalesforceSyncUpstreamException)
+        catch (SalesforceSyncUpstreamException exception)
         {
             return CreateProblem(
                 StatusCodes.Status502BadGateway,
                 "Bad Gateway",
-                "Salesforce API request failed while syncing current user.",
+                BuildUpstreamDetail(exception),
                 "salesforce_upstream_error");
         }
     }
@@ -178,6 +178,25 @@ public static class SalesforceSyncEndpoint
             {
                 ["code"] = code
             });
+    }
+
+    private static string BuildUpstreamDetail(SalesforceSyncUpstreamException exception)
+    {
+        const string fallback = "Salesforce API request failed while syncing current user.";
+        const int maxDetailsLength = 1500;
+
+        var innerMessage = exception.InnerException?.Message?.Trim();
+        if (string.IsNullOrWhiteSpace(innerMessage))
+        {
+            return fallback;
+        }
+
+        if (innerMessage.Length > maxDetailsLength)
+        {
+            innerMessage = innerMessage[..maxDetailsLength];
+        }
+
+        return $"{fallback} Details: {innerMessage}";
     }
 }
 

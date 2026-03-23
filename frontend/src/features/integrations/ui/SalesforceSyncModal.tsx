@@ -101,20 +101,20 @@ function resolveSalesforceTag(
 
   if (normalizedLastSyncStatus === 'failed') {
     return {
-      label: 'Last sync failed',
+      label: 'Сбой синхронизации',
       color: 'red',
     }
   }
 
   if (isLinked || normalizedLastSyncStatus === 'synced') {
     return {
-      label: 'Linked',
+      label: 'Связано',
       color: 'green',
     }
   }
 
   return {
-    label: 'Not linked',
+    label: 'Не связано',
     color: 'default',
   }
 }
@@ -257,8 +257,8 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
     <Modal
       open={open}
       title="Salesforce CRM"
-      okText="Sync"
-      cancelText="Cancel"
+      okText="Синхронизировать"
+      cancelText="Отмена"
       centered
       destroyOnHidden
       afterOpenChange={handleAfterOpenChange}
@@ -275,7 +275,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
         <div className="salesforce-modal-status">
           <Space align="center" size={8} wrap>
             <Typography.Text type="secondary">
-              Current status:
+              Текущий статус:
             </Typography.Text>
             {meLoadStatus === 'loading' ? <Spin size="small" /> : null}
             {meLoadStatus === 'ready' || syncOutcome.kind !== 'idle' ? (
@@ -288,19 +288,19 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
               }}
               disabled={meLoadStatus === 'loading'}
             >
-              Refresh
+              Обновить
             </Button>
           </Space>
 
           {effectiveLastSyncedLabel !== null ? (
             <Typography.Text type="secondary">
-              Last synced: {effectiveLastSyncedLabel}
+              Последняя синхронизация: {effectiveLastSyncedLabel}
             </Typography.Text>
           ) : null}
 
           {effectiveAccountId !== null || effectiveContactId !== null ? (
             <div className="salesforce-modal-identifiers">
-              <Typography.Text type="secondary">IDs:</Typography.Text>
+              <Typography.Text type="secondary">Идентификаторы:</Typography.Text>
               <Typography.Text code className="salesforce-modal-identifier-code">
                 Account: {effectiveAccountId ?? '—'}
               </Typography.Text>
@@ -315,7 +315,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           <Alert
             showIcon
             type="error"
-            message="Failed to load Salesforce status"
+            message="Не удалось загрузить статус Salesforce"
             description={meErrorMessage}
           />
         ) : null}
@@ -324,7 +324,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           <Alert
             showIcon
             type="info"
-            message="Syncing..."
+            message="Синхронизация..."
           />
         ) : null}
 
@@ -332,7 +332,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           <Alert
             showIcon
             type="error"
-            message="Failed to sync Salesforce profile"
+            message="Не удалось синхронизировать профиль Salesforce"
             description={errorMessage}
           />
         ) : null}
@@ -341,7 +341,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           <Alert
             showIcon
             type="success"
-            message="Synced"
+            message="Синхронизировано"
             description={`Account: ${syncOutcome.sfAccountId ?? '—'}; Contact: ${syncOutcome.sfContactId ?? '—'}`}
           />
         ) : null}
@@ -350,8 +350,8 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           <Alert
             showIcon
             type="error"
-            message="Status: Failed"
-            description={syncOutcome.errorMessage ?? 'Salesforce returned failed status.'}
+            message="Статус: Ошибка"
+            description={syncOutcome.errorMessage ?? 'Salesforce вернул статус ошибки.'}
           />
         ) : null}
 
@@ -367,21 +367,17 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           onFinish={handleSubmit}
         >
           <Form.Item<SalesforceSyncFormValues>
-            label="Company name"
+            label="Название компании"
             name="companyName"
             rules={[
               {
-                required: true,
-                message: 'Please provide company name.',
-              },
-              {
                 max: salesforceCompanyNameMaxLength,
-                message: `Company name must be ${String(salesforceCompanyNameMaxLength)} characters or less.`,
+                message: `Название компании должно быть не длиннее ${String(salesforceCompanyNameMaxLength)} символов.`,
               },
               {
                 validator: async (_, value: string | undefined) => {
                   if ((value ?? '').trim().length === 0) {
-                    throw new Error('Please provide company name.')
+                    throw new Error('Укажите название компании.')
                   }
                 },
               },
@@ -389,33 +385,33 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           >
             <Input
               maxLength={salesforceCompanyNameMaxLength}
-              placeholder="Company LLC"
+              placeholder="ООО Компания"
             />
           </Form.Item>
 
           <Form.Item<SalesforceSyncFormValues>
-            label="Job title"
+            label="Должность"
             name="jobTitle"
             rules={[
               {
                 max: salesforceJobTitleMaxLength,
-                message: `Job title must be ${String(salesforceJobTitleMaxLength)} characters or less.`,
+                message: `Должность должна быть не длиннее ${String(salesforceJobTitleMaxLength)} символов.`,
               },
             ]}
           >
             <Input
               maxLength={salesforceJobTitleMaxLength}
-              placeholder="Support Engineer"
+              placeholder="Инженер поддержки"
             />
           </Form.Item>
 
           <Form.Item<SalesforceSyncFormValues>
-            label="Phone"
+            label="Телефон"
             name="phone"
             rules={[
               {
                 max: salesforcePhoneMaxLength,
-                message: `Phone must be ${String(salesforcePhoneMaxLength)} characters or less.`,
+                message: `Телефон должен быть не длиннее ${String(salesforcePhoneMaxLength)} символов.`,
               },
             ]}
           >
@@ -426,28 +422,28 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
           </Form.Item>
 
           <Form.Item<SalesforceSyncFormValues>
-            label="Country"
+            label="Страна"
             name="country"
             rules={[
               {
                 max: salesforceCountryMaxLength,
-                message: `Country must be ${String(salesforceCountryMaxLength)} characters or less.`,
+                message: `Страна должна быть не длиннее ${String(salesforceCountryMaxLength)} символов.`,
               },
             ]}
           >
             <Input
               maxLength={salesforceCountryMaxLength}
-              placeholder="United States"
+              placeholder="Беларусь"
             />
           </Form.Item>
 
           <Form.Item<SalesforceSyncFormValues>
-            label="Notes"
+            label="Примечания"
             name="notes"
             rules={[
               {
                 max: salesforceNotesMaxLength,
-                message: `Notes must be ${String(salesforceNotesMaxLength)} characters or less.`,
+                message: `Примечания должны быть не длиннее ${String(salesforceNotesMaxLength)} символов.`,
               },
             ]}
           >
@@ -455,7 +451,7 @@ export function SalesforceSyncModal({ open, onClose }: SalesforceSyncModalProps)
               rows={3}
               maxLength={salesforceNotesMaxLength}
               showCount
-              placeholder="Optional notes"
+              placeholder="Дополнительная информация"
             />
           </Form.Item>
         </Form>

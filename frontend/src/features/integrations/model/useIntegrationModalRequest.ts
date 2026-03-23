@@ -37,6 +37,10 @@ function getFirstValidationErrorMessage(failure: ApiFailure): string | null {
 }
 
 export function resolveIntegrationFailureMessage(failure: ApiFailure): string {
+  if (failure.status === 0) {
+    return 'Не удалось выполнить запрос. Проверьте подключение и повторите.'
+  }
+
   if (failure.status === 401) {
     return 'Сессия истекла. Выполните вход снова.'
   }

@@ -299,7 +299,9 @@ function renderSettingsTab({
   const odooTokenStatusLabel = odooIntegration.hasActiveToken ? '\u0435\u0441\u0442\u044c' : '\u043d\u0435\u0442'
   const odooGeneratedAtLabel = formatDateTimeLabel(odooIntegration.generatedAt)
   const odooShowNoAccessMessage = !odooIntegration.canGenerateToken || !odooIntegration.canViewToken
-  const odooActionLabel = odooIntegration.hasActiveToken ? 'Regenerate' : 'Generate'
+  const odooActionLabel = odooIntegration.hasActiveToken
+    ? 'Перегенерировать токен чтения'
+    : 'Сгенерировать токен чтения'
 
   return (
     <Space direction="vertical" size={12} style={{ width: '100%' }}>
@@ -482,8 +484,12 @@ function renderSettingsTab({
         </Space>
       ) : null}
 
-      <Card size="small" title="Интеграция Odoo">
+      <Card size="small" title="Odoo">
         <Space direction="vertical" size={10} style={{ width: '100%' }}>
+          <Typography.Text type="secondary">
+            Используйте этот токен для read-only доступа внешних систем к данным инвентаря.
+          </Typography.Text>
+
           <Space size={8} wrap>
             <Tag color={odooTokenStatusColor}>Токен: {odooTokenStatusLabel}</Tag>
             {odooGeneratedAtLabel !== null ? <Tag>Сгенерирован: {odooGeneratedAtLabel}</Tag> : null}
@@ -525,18 +531,16 @@ function renderSettingsTab({
             />
           ) : null}
 
-          {odooIntegration.canGenerateToken ? (
-            <Button
-              type="primary"
-              onClick={() => {
-                void onGenerateOdooToken()
-              }}
-              loading={odooIntegration.isGenerating}
-              disabled={!odooIntegration.enabled || odooIntegration.isGenerating}
-            >
-              {odooActionLabel}
-            </Button>
-          ) : null}
+          <Button
+            type="primary"
+            onClick={() => {
+              void onGenerateOdooToken()
+            }}
+            loading={odooIntegration.isGenerating}
+            disabled={!odooIntegration.enabled || !odooIntegration.canGenerateToken || odooIntegration.isGenerating}
+          >
+            {odooActionLabel}
+          </Button>
         </Space>
       </Card>
 

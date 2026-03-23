@@ -1,5 +1,4 @@
 import {
-  DownOutlined,
   HomeOutlined,
   QuestionCircleOutlined,
   SearchOutlined,
@@ -7,7 +6,7 @@ import {
   UserOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons'
-import { Alert, Avatar, Button, Dropdown, Layout, Menu, Result, Spin, Space, Tooltip, Typography } from 'antd'
+import { Alert, Avatar, Button, Layout, Menu, Result, Spin, Space, Tooltip, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { Suspense, useCallback, useMemo, useState } from 'react'
 import { canAccessRoute } from '../../features/auth/model/authStore.tsx'
@@ -94,16 +93,6 @@ export function AppShell() {
     setIsSalesforceModalOpen(false)
   }, [])
 
-  const userMenuItems = useMemo(
-    () => [
-      {
-        key: 'salesforce-crm',
-        label: 'Salesforce CRM',
-      },
-    ],
-    [],
-  )
-
   const canOpenRoute = route.key === 'adminUsers' || canAccessRoute(route.key, access)
   const requiresLoginForMyInventories = route.key === 'myInventories' && !isAuthenticated
   const navigationItems = useMemo(
@@ -154,15 +143,15 @@ export function AppShell() {
         />
 
         <Space size="small" wrap className="app-shell-header-meta">
-          <Tooltip title="Help">
+          <Tooltip title="Помощь">
             <Button
               type="text"
               icon={<QuestionCircleOutlined />}
               className="support-ticket-entry-btn"
               onClick={openSupportTicketModal}
-              aria-label="Create support ticket"
+              aria-label="Сообщить о проблеме"
             >
-              Help
+              Помощь
             </Button>
           </Tooltip>
           <SocialLoginControl
@@ -180,27 +169,14 @@ export function AppShell() {
           <Typography.Text className="app-shell-user-roles">
             {currentUser.roles.length > 0 ? currentUser.roles.join(', ') : 'гость'}
           </Typography.Text>
-          <Dropdown
-            trigger={['click']}
-            placement="bottomRight"
-            menu={{
-              items: userMenuItems,
-              onClick: ({ key }) => {
-                if (key === 'salesforce-crm') {
-                  openSalesforceModal()
-                }
-              },
-            }}
+          <Button
+            type="text"
+            className="app-shell-user-menu-btn"
+            onClick={openSalesforceModal}
+            aria-label="Открыть модальное окно Salesforce CRM"
           >
-            <Button
-              type="text"
-              icon={<DownOutlined />}
-              className="app-shell-user-menu-btn"
-              aria-label="Open user menu"
-            >
-              Menu
-            </Button>
-          </Dropdown>
+            Salesforce CRM
+          </Button>
         </Space>
       </Layout.Header>
 
@@ -283,7 +259,7 @@ export function AppShell() {
           className="support-ticket-footer-link"
           onClick={openSupportTicketModal}
         >
-          Create support ticket
+          Сообщить о проблеме
         </Button>
       </Layout.Footer>
 
