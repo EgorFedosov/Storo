@@ -24,6 +24,10 @@ Storo — веб-приложение для управления инвента
   - настройка доступа к инвентарю по пользователям (в UI выбор по email).
 - Реальное время для обсуждений (SignalR).
 - Настройки интерфейса: светлая/темная тема.
+- Интеграции:
+  - Odoo: генерация API-токена для инвентаря и защищенный экспорт агрегатов инвентаря.
+  - Dropbox: создание support ticket с выгрузкой JSON в Dropbox.
+  - Salesforce CRM: синхронизация профиля пользователя в Account/Contact.
 
 ## Технологический стек
 
@@ -61,6 +65,19 @@ Copy-Item backend/backend/.env.example backend/backend/.env
 - `SUPABASE_BUCKET`
 - `SUPABASE_PUBLIC_KEY`
 - `SUPABASE_SECRET_KEY`
+- `DROPBOX_APP_KEY`
+- `DROPBOX_APP_SECRET`
+- `DROPBOX_REFRESH_TOKEN`
+- `DROPBOX_ROOT_PATH`
+- `DROPBOX_API_BASE_URL`
+- `DROPBOX_CONTENT_BASE_URL`
+- `DROPBOX_USE_REFRESH_TOKEN`
+- `SALESFORCE_CLIENT_ID`
+- `SALESFORCE_CLIENT_SECRET`
+- `SALESFORCE_REFRESH_TOKEN`
+- `SALESFORCE_INSTANCE_URL`
+- `SALESFORCE_AUTH_BASE_URL`
+- `SALESFORCE_API_VERSION`
 
 3. Запустить:
 
